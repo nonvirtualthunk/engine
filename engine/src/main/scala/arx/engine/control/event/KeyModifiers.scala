@@ -22,4 +22,8 @@ object KeyModifiers {
 	}
 
 	val None = KeyModifiers(false,false,false)
+
+	val Ctrl = KeyModifiers(true,false,false)
+	val Shift = KeyModifiers(false,true,false)
+	val Alt = KeyModifiers(false,false,true)
 }

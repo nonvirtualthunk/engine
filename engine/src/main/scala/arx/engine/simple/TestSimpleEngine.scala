@@ -17,12 +17,11 @@ object TestSimpleEngine extends SimpleEngine {
 	var degrees = 0.0f
 
 	override def draw(canvas: Canvas): Unit = {
-//		canvas.drawQuad(0.0f,0.0f,5.0f,5.0f,ResourceManager.image("default/defaultium.png"))
 		canvas.drawQuad(0.0f,0.0f,5.0f,5.0f,degrees,Vec4f.One,ResourceManager.image("default/defaultium.png"))
 	}
 
 	override def update(deltaSeconds: Float): Unit = {
-		degrees += 0.5f
+		degrees += deltaSeconds * 15.0f
 	}
 
 

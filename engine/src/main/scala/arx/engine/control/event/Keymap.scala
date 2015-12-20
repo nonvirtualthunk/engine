@@ -14,25 +14,25 @@ import scala.collection.mutable
 import scalaxy.loops._
 
 object Keymap {
-	protected val mapping = new MultiMap[KeyCombination, String]()
-	protected val reverseMapping = new mutable.HashMap[String, KeyCombination]()
+	protected val mapping = new MultiMap[KeyCombination, Identifier]()
+	protected val reverseMapping = new mutable.HashMap[Identifier, KeyCombination]()
 
-	def register (identifier : String, keyCombination: KeyCombination): Unit = synchronized {
-		if (!reverseMapping.contains(identifier)) {
-			mapping.add(keyCombination,identifier)
-			reverseMapping.put(identifier,keyCombination)
+	def register (namespace : String, identifier : String, keyCombination: KeyCombination): Unit = synchronized {
+		if (!reverseMapping.contains(Identifier(namespace,identifier))) {
+			mapping.add(keyCombination,Identifier(namespace,identifier))
+			reverseMapping.put(Identifier(namespace,identifier),keyCombination)
 		} else {
 			Noto.error(s"Attempting to register duplicate keymapping: $keyCombination -> $identifier")
 		}
 	}
-	def register (identifier : String, keyCode : Int): Unit = {
-		register(identifier, KeyCombination(keyCode))
+	def register (namespace : String, identifier : String, keyCode : Int): Unit = {
+		register(namespace, identifier, KeyCombination(keyCode))
 	}
-	def register (identifier : String, keyCode : Int, keyModifiers: KeyModifiers) : Unit = {
-		register(identifier, KeyCombination(keyCode, keyModifiers))
+	def register (namespace : String, identifier : String, keyCode : Int, keyModifiers: KeyModifiers) : Unit = {
+		register(namespace, identifier, KeyCombination(keyCode, keyModifiers))
 	}
 
-	def unregister(identifier : String): Unit = synchronized {
+	def unregister(namespace : String, identifier : String): Unit = synchronized {
 		mapping.intern.foreach {
 			case (_, identifiers) =>
 				identifiers.indexOf(identifier) match {
@@ -40,16 +40,24 @@ object Keymap {
 					case i => identifiers.remove(i)
 				}
 		}
-		reverseMapping.remove(identifier)
+		reverseMapping.remove(Identifier(namespace,identifier))
 	}
 
-	def mappingFor(keyCombination : KeyCombination) = {
+	def mappingFor(keyCombination : KeyCombination) : Option[Identifier] = {
 		mapping.get(keyCombination).headOption
 	}
-	def mappingFor(keyPress : KeyPressEvent) = {
-		mapping.get(KeyCombination(keyPress.key, keyPress.modifiers)).headOption
+	def mappingFor(keyCombination : KeyCombination, namespace : String) : Option[String] = {
+		mapping.get(keyCombination).find(ident => ident.namespace == namespace).map(_.identifier)
 	}
-	def mappingActive(identifier : String) = {
-		reverseMapping(identifier).active
+	def mappingFor(keyPress : KeyPressEvent) : Option[Identifier] = {
+		mappingFor(KeyCombination(keyPress.key, keyPress.modifiers))
 	}
+	def mappingFor(keyPress : KeyPressEvent, namespace : String) : Option[String] = {
+		mappingFor(KeyCombination(keyPress.key, keyPress.modifiers), namespace)
+	}
+	def mappingActive(namespace : String, identifier : String) : Boolean = {
+		reverseMapping.get(Identifier(namespace, identifier)).exists(_.active)
+	}
+
+	case class Identifier (namespace : String, identifier : String)
 }

@@ -11,15 +11,29 @@ import arx.Prelude._
 import arx.core.vec.ReadVec2f
 import arx.engine.EngineCore
 import arx.engine.control.event._
+import arx.engine.game.GameEngine
+import arx.engine.graphics.GraphicsEngine
+import arx.engine.world.World
 import org.lwjgl.glfw.GLFW
 import scalaxy.loops._
 
 class Engine extends EngineCore with TEventUser {
+	val world = new World
+	val gameEngine = new GameEngine(world)
+	val graphicsEngine = new GraphicsEngine(world)
 
-	override def update(deltaSeconds: Float): Unit = ???
+	override def update(deltaSeconds: Float): Unit = {
+		gameEngine.update(deltaSeconds)
+		graphicsEngine.update(deltaSeconds)
+	}
 
-	override def draw(): Unit = ???
-
+	override def draw(): Unit = {
+		graphicsEngine.draw()
+	}
+	
+	eventFallback {
+		case e : Event => graphicsEngine.pov.handleEvent(e)
+	}
 
 	// Transform callbacks into event objects
 	override def keyCallback(key: Int, scancode: Int, action: Int, mods: Int): Unit = {
@@ -57,5 +71,9 @@ class Engine extends EngineCore with TEventUser {
 	override def scrollCallback(dx: Float, dy: Float): Unit = {
 		val event = ScrollEvent(ReadVec2f(dx,dy), KeyboardMirror.activeModifiers)
 		this.handleEvent(event)
+	}
+
+	def main (args : Array[String]): Unit = {
+		scalaMain(args)
 	}
 }

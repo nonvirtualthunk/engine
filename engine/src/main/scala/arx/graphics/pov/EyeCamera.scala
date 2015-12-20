@@ -24,7 +24,7 @@ import scalaxy.loops._
 class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f = Vec3f(0,0,1), var baseUp : ReadVec3f = Vec3f(0,1,0)) extends TCamera {
 	var angles: Vec2f = Vec2f(0.0f,0.0f)
 	var forward : ReadVec3f = baseForward
-	var ortho = baseUp.cross(baseForward)
+	var ortho = baseForward.cross(baseUp)
 	var up = baseUp
 
 	var useGlobalUp = false
@@ -43,20 +43,24 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 
 	import EyeCamera._
 	onEvent {
-		case kpe: KeyPressEvent => {
-			Keymap.mappingFor(kpe) match {
-				case Some(PanRight) => deltaAngles.x = -1.0f
-				case Some(PanLeft) => deltaAngles.x = 1.0f
-				case Some(PanUp) => deltaAngles.y = -1.0f
-				case Some(PanDown) => deltaAngles.y = 1.0f
-				case Some(MoveForward) => deltaEye.x = 1.0f
-				case Some(MoveBack) => deltaEye.x = -1.0f
-				case Some(MoveRight) => deltaEye.y = 1.0f
-				case Some(MoveLeft) => deltaEye.y = -1.0f
-				case Some(MoveUp) => deltaEye.z = 1.0f
-				case Some(MoveDown) => deltaEye.z = -1.0f
-				case _ => // do nothing
-			}
+		case kpe: KeyPressEvent => handleKey(kpe)
+	}
+
+	def keymapNamespace = EyeCamera.namespace
+
+	def handleKey(kpe : KeyPressEvent): Unit = {
+		Keymap.mappingFor(kpe,keymapNamespace) match {
+			case Some(PanRight) => deltaAngles.x = -1.0f
+			case Some(PanLeft) => deltaAngles.x = 1.0f
+			case Some(PanUp) => deltaAngles.y = -1.0f
+			case Some(PanDown) => deltaAngles.y = 1.0f
+			case Some(MoveForward) => deltaEye.x = 1.0f
+			case Some(MoveBack) => deltaEye.x = -1.0f
+			case Some(MoveRight) => deltaEye.y = 1.0f
+			case Some(MoveLeft) => deltaEye.y = -1.0f
+			case Some(MoveUp) => deltaEye.z = 1.0f
+			case Some(MoveDown) => deltaEye.z = -1.0f
+			case _ => // do nothing
 		}
 	}
 
@@ -70,18 +74,20 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 		if ( lastManualUpdate < 0 ) { lastManualUpdate = System.nanoTime() }
 		else {
 			Metrics.timer("Camera.initialChecks").timeStmt {
-				if ( ! Keymap.mappingActive(PanLeft) && ! Keymap.mappingActive(PanRight) ) { deltaAngles.x = 0.0f }
-				if ( ! Keymap.mappingActive(PanDown) && ! Keymap.mappingActive(PanUp) ) { deltaAngles.y = 0.0f }
+				if ( ! Keymap.mappingActive(keymapNamespace, PanLeft) && ! Keymap.mappingActive(keymapNamespace,PanRight) ) { deltaAngles.x = 0.0f }
+				if ( ! Keymap.mappingActive(keymapNamespace,PanDown) && ! Keymap.mappingActive(keymapNamespace,PanUp) ) { deltaAngles.y = 0.0f }
 
-				if ( ! Keymap.mappingActive(MoveForward) && ! Keymap.mappingActive(MoveBack) ) { deltaEye.x = 0.0f }
-				if ( ! Keymap.mappingActive(MoveLeft) && ! Keymap.mappingActive(MoveRight) ) { deltaEye.y = 0.0f }
-				if ( ! Keymap.mappingActive(MoveUp) && ! Keymap.mappingActive(MoveDown) ) { deltaEye.z = 0.0f }
+				if ( ! Keymap.mappingActive(keymapNamespace,MoveForward) && ! Keymap.mappingActive(keymapNamespace,MoveBack) ) { deltaEye.x = 0.0f }
+				if ( ! Keymap.mappingActive(keymapNamespace,MoveLeft) && ! Keymap.mappingActive(keymapNamespace,MoveRight) ) { deltaEye.y = 0.0f }
+				if ( ! Keymap.mappingActive(keymapNamespace,MoveUp) && ! Keymap.mappingActive(keymapNamespace,MoveDown) ) { deltaEye.z = 0.0f }
 			}
 
 			Metrics.timer("Camera.computation").timeStmt {
 				val curTime = System.nanoTime()
 				val f = ((curTime - lastManualUpdate) / 1.66667e7).toFloat
 				lastManualUpdate = curTime
+
+				Metrics.histogram("Camera.delta").update((f * 1000).toInt)
 
 				if ( useGlobalUp ) {
 					val forwardLength = (forward * Vec3f(1.0f,1.0f,0.0f)).lengthSafe
@@ -102,34 +108,36 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 				val transform = (Mat3x4 rotateY angles.y) rotateZ angles.x
 				forward = transform transformVector baseForward
 				up = transform transformVector baseUp
-				ortho = up cross forward
+				ortho = forward cross up
 			}
 		}
 	}
 }
 
 object EyeCamera {
-	val PanLeft = "EyeCamera.panLeft"
-	val PanRight = "EyeCamera.panRight"
-	val PanUp = "EyeCamera.panUp"
-	val PanDown = "EyeCamera.panDown"
+	val PanLeft = "panLeft"
+	val PanRight = "panRight"
+	val PanUp = "panUp"
+	val PanDown = "panDown"
 	
-	val MoveLeft = "EyeCamera.moveLeft"
-	val MoveRight = "EyeCamera.moveRight"
-	val MoveUp = "EyeCamera.moveUp"
-	val MoveDown = "EyeCamera.moveDown"
-	val MoveForward = "EyeCamera.moveForward"
-	val MoveBack = "EyeCamera.moveBack"
-	
-	Keymap.register(PanLeft, GLFW.GLFW_KEY_LEFT)
-	Keymap.register(PanRight, GLFW.GLFW_KEY_RIGHT)
-	Keymap.register(PanUp, GLFW.GLFW_KEY_UP)
-	Keymap.register(PanDown, GLFW.GLFW_KEY_DOWN)
+	val MoveLeft = "moveLeft"
+	val MoveRight = "moveRight"
+	val MoveUp = "moveUp"
+	val MoveDown = "moveDown"
+	val MoveForward = "moveForward"
+	val MoveBack = "moveBack"
 
-	Keymap.register(MoveLeft, GLFW.GLFW_KEY_A)
-	Keymap.register(MoveRight, GLFW.GLFW_KEY_D)
-	Keymap.register(MoveForward, GLFW.GLFW_KEY_W)
-	Keymap.register(MoveBack, GLFW.GLFW_KEY_S)
-	Keymap.register(MoveUp, GLFW.GLFW_KEY_E)
-	Keymap.register(MoveDown, GLFW.GLFW_KEY_Q)
+	val namespace = "EyeCamera"
+	
+	Keymap.register(namespace, PanLeft, GLFW.GLFW_KEY_LEFT)
+	Keymap.register(namespace, PanRight, GLFW.GLFW_KEY_RIGHT)
+	Keymap.register(namespace, PanUp, GLFW.GLFW_KEY_UP)
+	Keymap.register(namespace, PanDown, GLFW.GLFW_KEY_DOWN)
+
+	Keymap.register(namespace, MoveLeft, GLFW.GLFW_KEY_A)
+	Keymap.register(namespace, MoveRight, GLFW.GLFW_KEY_D)
+	Keymap.register(namespace, MoveForward, GLFW.GLFW_KEY_W)
+	Keymap.register(namespace, MoveBack, GLFW.GLFW_KEY_S)
+	Keymap.register(namespace, MoveUp, GLFW.GLFW_KEY_E)
+	Keymap.register(namespace, MoveDown, GLFW.GLFW_KEY_Q)
 }

@@ -35,6 +35,9 @@ trait TEventUser {
 	def consumeEvent ( func : PartialFunction[Event,_] ){
 		eventListeners ::= (func,true,0)
 	}
+	def eventFallback ( func : PartialFunction[Event,_]): Unit = {
+		eventListeners ::= (func,false,1)
+	}
 
 	def handleEvent ( event: Event ) : Boolean = {
 		TEventUser.pushEvent(event)

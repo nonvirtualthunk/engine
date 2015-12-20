@@ -11,30 +11,22 @@ import arx.Prelude._
 import arx.application.Noto
 import arx.core.Dependency
 import arx.core.datastructures.UpdateThread
+import arx.core.units.UnitOfTime
+import arx.engine.EnginePiece
+import arx.engine.graphics.GraphicsEngine.PovComponent
 import arx.engine.graphics.components.GraphicsComponent
 import arx.engine.world.World
 import arx.graphics.pov.EyeCamera
 import arx.graphics.pov.TCamera
 
-class GraphicsEngine(world : World) {
-	var parallelism = 4
-	var graphicsComponents = List[GraphicsComponent]()
+class GraphicsEngine(world : World) extends EnginePiece[GraphicsComponent] {
+	def graphicsComponents = components
 	var pov : TCamera = new EyeCamera()
 
-	protected var initialized = false
-	protected lazy val graphicsThreads = fillList(parallelism)(i => new UpdateThread(0.01.seconds) {
-		// divide up the components such that each graphics thread has its own share
-		val localComponents = graphicsComponents.zipWithIndex.filter {
-			case(comp, index) => index % parallelism == i
-		}.unzip.left
+	addComponent[PovComponent]
 
-		override def update(): Unit = {
-			localComponents.foreach(c => c.update(rawInterval.seconds))
-		}
-	})
-
-	def addComponent[T <: GraphicsComponent : Manifest] = {
-		graphicsComponents ::= instantiateComponent(List(manifest[T].runtimeClass)).asInstanceOf[GraphicsComponent]
+	override def update(deltaSeconds: Float): Unit = {
+		super.update(deltaSeconds)
 	}
 
 	protected def instantiateComponent(l : List[Class[_]]) : AnyRef = {
@@ -47,28 +39,20 @@ class GraphicsEngine(world : World) {
 		}
 	}
 
-	def update (deltaSeconds : Float): Unit = {
-		if (!initialized) {
-			initialize()
-		}
-
-		graphicsThreads.foreach(t => t.timePassed(deltaSeconds.seconds))
-	}
-
-	def initialize(): Unit = {
-		val resolved = Dependency.resolve(graphicsComponents, graphicsComponents, instantiateComponent)
-		val allComponents = resolved.ofType[GraphicsComponent]
-		val nonComponents = resolved.notOfType[GraphicsComponent]
-
-		graphicsComponents = allComponents
-		nonComponents.foreach(nc => Noto.info(s"Instantiated non-component for graphics engine: $nc"))
-	}
-
 	def draw(): Unit = {
-		graphicsComponents = graphicsComponents.sortBy(_.drawPriority * -1)
-		graphicsComponents.foreach(g => g.draw())
+		components = components.sortBy(_.drawPriority * -1)
+		components.foreach(g => g.draw())
 	}
 }
 
 
 
+object GraphicsEngine {
+	class PovComponent(engine : GraphicsEngine, world : World) extends GraphicsComponent(engine,world) {
+		override def update(dt: UnitOfTime): Unit = {
+			engine.pov.update(dt)
+		}
+
+		override def draw(): Unit = {}
+	}
+}

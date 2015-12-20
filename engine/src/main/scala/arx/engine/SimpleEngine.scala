@@ -22,12 +22,15 @@ abstract class SimpleEngine extends EngineCore {
 	val shader = ResourceManager.shader("shaders/Simple")
 
 	val modelview = arx.graphics.GL.lookAt(Vec3f(0.0f,0.0f,5.0f),Vec3f(0.0f,0.0f,0.0f),Vec3f(0.0f,1.0f,0.0f))
-	val projection = arx.graphics.GL.perspective(50.0f,WIDTH/HEIGHT.toFloat,0.1f,1000.0f)
+	val projection = arx.graphics.GL.perspective(50.0f,WindowWidth/WindowHeight.toFloat,0.1f,1000.0f)
+
+
 
 	override def draw(): Unit = {
-		canvas.startDraw()
-		draw(canvas)
-		canvas.finishDraw()
+		if (canvas.startDraw()) {
+			draw(canvas)
+			canvas.finishDraw()
+		}
 
 		arx.graphics.GL.glSetState(GL_CULL_FACE, enable = false)
 		arx.graphics.GL.glSetState(GL_DEPTH_TEST, enable = false)
@@ -38,6 +41,10 @@ abstract class SimpleEngine extends EngineCore {
 		shader.setUniform("ProjectionMatrix", projection, tolerateAbsence = true)
 
 		canvas.render()
+	}
+
+	override def update(deltaSeconds: Float): Unit = {
+
 	}
 
 	override def keyCallback(key: Int, scancode: Int, action: Int, mods: Int): Unit = {

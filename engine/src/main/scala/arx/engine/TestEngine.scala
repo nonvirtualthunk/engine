@@ -55,7 +55,7 @@ object TestEngine extends EngineCore {
 	lazy val texture = Texture.fromImage(image)
 
 	val modelview = arx.graphics.GL.lookAt(Vec3f(-15.0f,0.0f,-5.0f),Vec3f(-5.0f,0.0f,0.0f),Vec3f(0.0f,1.0f,0.0f))
-	val projection = arx.graphics.GL.perspective(50.0f,WIDTH/HEIGHT.toFloat,0.1f,1000.0f)
+	val projection = arx.graphics.GL.perspective(50.0f,WindowWidth/WindowHeight.toFloat,0.1f,1000.0f)
 
 	//	val modelview = Mat4x4.Identity
 	//	val projection = Mat4x4.Identity
@@ -89,5 +89,9 @@ object TestEngine extends EngineCore {
 		//		glVertex3f(10.0f,10.0f,0.0f)
 		//
 		//		glEnd()
+	}
+
+	def main(args: Array[String]) {
+		scalaMain(args)
 	}
 }

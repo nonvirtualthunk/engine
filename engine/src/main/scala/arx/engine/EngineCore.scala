@@ -1,40 +1,51 @@
 package arx.engine
 
 /**
- * Created with IntelliJ IDEA.
- * User: nvt
- * Date: 12/5/15
- * Time: 8:52 AM
- */
+  * Created with IntelliJ IDEA.
+  * User: nvt
+  * Date: 12/5/15
+  * Time: 8:52 AM
+  */
 
 import arx.Prelude.int2RicherInt
 import arx.application.Application
 import arx.application.Noto
+import arx.core.datastructures.KillableThread
 import arx.core.introspection.NativeLibraryHandler
-import arx.core.vec.Vec2f
+import arx.core.math.Recti
+import arx.core.metrics.Metrics
+import arx.core.vec.{Vec2i, Vec2f}
 import arx.engine.control.event.KeyboardMirror
 import arx.engine.control.event.Mouse
 import arx.engine.control.event.MouseButton
+import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.GLFW._
 import org.lwjgl.glfw._
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl._
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.MemoryUtil._
 
 
 abstract class EngineCore {
-	val WIDTH = 1024
-	val HEIGHT = 768
+	var WindowWidth = 1024
+	var WindowHeight = 768
+
+	var FramebufferWidth = 1024
+	var FramebufferHeight = 768
 
 	var errorCallback: GLFWErrorCallback = null
 	var keyCallback: GLFWKeyCallback = null
 	var mouseButtonCallbackIntern: GLFWMouseButtonCallback = null
 	var mouseMoveCallbackIntern: GLFWCursorPosCallback = null
-	var scrollCallbackIntern : GLFWScrollCallback = null
-	var charCallbackIntern : GLFWCharCallback = null
+	var scrollCallbackIntern: GLFWScrollCallback = null
+	var charCallbackIntern: GLFWCharCallback = null
+	var sizeCallback: GLFWWindowSizeCallback = null
 
 	// The window handle
 	var window = 0l
+
+	var fullscreen = false
 
 
 	def run(): Unit = {
@@ -46,6 +57,7 @@ abstract class EngineCore {
 			glfwDestroyWindow(window)
 			keyCallback.release()
 		} finally {
+			KillableThread.kill()
 			glfwTerminate()
 			if (errorCallback != null) {
 				errorCallback.release()
@@ -76,8 +88,20 @@ abstract class EngineCore {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4)
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1)
 
+
 		// Create the window
-		window = glfwCreateWindow(WIDTH, HEIGHT, "Hello World!", NULL, NULL)
+		if (fullscreen) {
+			val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor())
+			WindowWidth = vidMode.width
+			WindowHeight = vidMode.height
+			window = glfwCreateWindow(WindowWidth, WindowHeight, "Hello World!", glfwGetPrimaryMonitor(), NULL)
+		} else {
+			window = glfwCreateWindow(WindowWidth, WindowHeight, "Hello World!", NULL, NULL)
+		}
+
+		updateWindowSize();
+
+
 		if (window == NULL) {
 			throw new RuntimeException("Failed to create the GLFW window")
 		}
@@ -85,9 +109,12 @@ abstract class EngineCore {
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
 		keyCallback = new GLFWKeyCallback() {
 			def invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
-				if (key == GLFW_KEY_Q && mods.isBitSet(GLFW_MOD_CONTROL) || mods.isBitSet(GLFW_MOD_SUPER)) {
+				if (key == GLFW_KEY_Q && (mods.isBitSet(GLFW_MOD_CONTROL) || mods.isBitSet(GLFW_MOD_SUPER))) {
 					glfwSetWindowShouldClose(window, GLFW_TRUE)
+				} else if (key == GLFW_KEY_F3 && mods.isBitSet(GLFW_MOD_SHIFT)) {
+					Metrics.prettyPrint()
 				}
+
 				if (action == GLFW_PRESS) {
 					KeyboardMirror.setKeyDown(key, isDown = true)
 				} else if (action == GLFW_RELEASE) {
@@ -118,15 +145,15 @@ abstract class EngineCore {
 
 		mouseMoveCallbackIntern = new GLFWCursorPosCallback {
 			override def invoke(window: Long, x: Double, y: Double): Unit = {
-				Mouse.currentPosition = Vec2f(x.toFloat,y.toFloat)
-				mousePosCallback(x.toFloat,y.toFloat)
+				Mouse.currentPosition = Vec2f(x.toFloat, y.toFloat)
+				mousePosCallback(x.toFloat, y.toFloat)
 			}
 		}
 		glfwSetCursorPosCallback(window, mouseMoveCallbackIntern)
-		
+
 		scrollCallbackIntern = new GLFWScrollCallback {
 			override def invoke(window: Long, dx: Double, dy: Double): Unit = {
-				scrollCallback(dx.toFloat,dy.toFloat)
+				scrollCallback(dx.toFloat, dy.toFloat)
 			}
 		}
 		glfwSetScrollCallback(window, scrollCallbackIntern)
@@ -138,21 +165,35 @@ abstract class EngineCore {
 		}
 		glfwSetCharCallback(window, charCallbackIntern)
 
-		// Get the resolution of the primary monitor
-		val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
-		// Center our window
-		glfwSetWindowPos(
-			window,
-			(vidmode.width() - WIDTH) / 2,
-			(vidmode.height() - HEIGHT) / 2
-		)
+
+		sizeCallback = new GLFWWindowSizeCallback {
+			override def invoke(window: Long, width: Int, height: Int): Unit = {
+				WindowWidth = width
+				WindowHeight = height
+				updateWindowSize()
+				windowSizeCallback(width, height)
+			}
+		}
+		glfwSetWindowSizeCallback(window, sizeCallback)
+
+		if (!fullscreen) {
+			// Get the resolution of the primary monitor
+			val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
+
+			// Center our window
+			glfwSetWindowPos(
+				window,
+				(vidmode.width() - WindowWidth) / 2,
+				(vidmode.height() - WindowHeight) / 2
+			)
+		}
 
 		// Make the OpenGL context current
 		glfwMakeContextCurrent(window)
 		// Enable v-sync
 		glfwSwapInterval(1)
 
-		// Make the window visible
+//		// Make the window visible
 		glfwShowWindow(window)
 	}
 
@@ -160,20 +201,39 @@ abstract class EngineCore {
 
 	}
 
-	def charCallback(str : String): Unit = {
+	def charCallback(str: String): Unit = {
 
 	}
 
-	def mouseButtonCallback(button : MouseButton, action: Int, mods : Int): Unit = {
-		
-	}
-
-	def mousePosCallback(x : Float, y : Float): Unit = {
+	def mouseButtonCallback(button: MouseButton, action: Int, mods: Int): Unit = {
 
 	}
 
-	def scrollCallback(dx : Float, dy : Float): Unit = {
-		
+	def mousePosCallback(x: Float, y: Float): Unit = {
+
+	}
+
+	def scrollCallback(dx: Float, dy: Float): Unit = {
+
+	}
+
+	def windowSizeCallback(width: Int, height: Int) = {
+
+	}
+
+	def updateWindowSize(): Unit = {
+		val xb = BufferUtils.createIntBuffer(1)
+		val yb = BufferUtils.createIntBuffer(1)
+		glfwGetWindowSize(window,xb, yb)
+		println(s"Current window size: ${xb.get(0)}, ${yb.get(0)}")
+		glfwGetFramebufferSize(window, xb, yb)
+		println(s"Frame buffer size: ${xb.get(0)}, ${yb.get(0)}")
+		FramebufferWidth = xb.get(0)
+		FramebufferHeight = yb.get(0)
+	}
+
+	def desiredViewportSize = {
+		Vec2i(FramebufferWidth, FramebufferHeight)
 	}
 
 	def loop(): Unit = {
@@ -183,16 +243,27 @@ abstract class EngineCore {
 
 		// Set the clear color
 		glClearColor(0.1f, 0.0f, 0.0f, 0.0f)
-		// TODO: This *2 should only be there on mac
-		glViewport(0, 0, WIDTH * 2, HEIGHT * 2)
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+		// TODO: This *2 should only be there on mac
+		glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+		arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+
+		var lastUpdated = GLFW.glfwGetTime()
+
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
 		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
-			update(0.01666667f)
+			if (arx.graphics.GL.viewportSize != desiredViewportSize) {
+				glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+				arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+			}
+
+			val curTime = GLFW.glfwGetTime()
+			val deltaSeconds = curTime - lastUpdated
+			lastUpdated = curTime
+			update(deltaSeconds.toFloat)
 
 			draw()
 
