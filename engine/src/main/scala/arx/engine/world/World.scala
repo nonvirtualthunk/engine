@@ -13,8 +13,7 @@ import arx.core.query.ContinuousQuery
 import arx.core.query.TContinuousQuerySource
 import arx.core.synchronization.ReadWriteLock
 import arx.core.traits.TSentinel
-import arx.engine.data.THasInternalAuxData
-import arx.engine.data.TWorldAuxData
+import arx.engine.data._
 import arx.engine.entity.GameEntity
 import arx.engine.entity.MinimalGameEntity
 import arx.engine.entity.MinimalGameEntityWrapper
@@ -24,7 +23,7 @@ import com.carrotsearch.hppc.LongOpenHashSet
 import scalaxy.loops._
 
 class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxData] {
-	protected[engine] val entityAuxDataQueries = Map[Class[_],ContinuousQuery[TGameEntity]]()
+	protected[engine] var entityAuxDataQueries = Map[Class[_],ContinuousQuery[TGameEntity]]()
 	protected[engine] var entityQueries = List[ContinuousQuery[TGameEntity]]()
 
 	protected[engine] val minimalEntities = new LongOpenHashSet()
@@ -32,6 +31,9 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 
 	@transient
 	protected[engine] var _entityLock = new ReadWriteLock
+
+	protected[engine] val timeData : TimeData = this.auxData[TimeData]
+	def time = timeData.time
 
 	def addEntity(e : TGameEntity): Unit = {
 		entityLock.writeLock {
@@ -58,6 +60,31 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 			}
 			// The lock is reentrant, so this shouldn't deadlock, probably
 			entityQueries.foreach(_.remove(e))
+		}
+	}
+
+	def auxDataQuery[T <: TGameEntityAuxData : Manifest] : ContinuousQuery[TGameEntity] = {
+		entityLock.writeLock {
+			entityAuxDataQueries.get(manifest[T].runtimeClass) match {
+				case Some(q) => q
+				case None =>
+					val q = createEntityQuery { case e : TGameEntity if e.hasAuxData[T] => e }
+					entityAuxDataQueries += manifest[T].runtimeClass -> q
+					q
+			}
+		}
+	}
+
+	protected[engine] def auxDataAddedToEntity ( entity : TGameEntity , auxData : TGameEntityAuxData ) {
+		entityAuxDataQueries.get(auxData.getClass) match {
+			case Some(query) => query.add(entity)
+			case None =>
+		}
+	}
+	protected[engine] def auxDataRemovedFromEntity ( entity : TGameEntity , auxData : TGameEntityAuxData ) {
+		entityAuxDataQueries.get(auxData.getClass) match {
+			case Some(query) => query.remove(entity)
+			case None =>
 		}
 	}
 
@@ -109,7 +136,7 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 	}
 
 	// Transient initialization
-	def entityLock = { if (_entityLock == null) { _entityLock = new ReadWriteLock } ; _entityLock }
+	protected[engine] def entityLock = { if (_entityLock == null) { _entityLock = new ReadWriteLock } ; _entityLock }
 }
 
 object World {

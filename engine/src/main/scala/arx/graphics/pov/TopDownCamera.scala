@@ -8,15 +8,23 @@ package arx.graphics.pov
  */
 
 import arx.Prelude._
-import arx.core.vec.Vec3f
+import arx.core.vec.{ReadVec3f, Vec3f}
 import arx.engine.control.event.KeyModifiers
 import arx.engine.control.event.KeyPressEvent
 import arx.engine.control.event.Keymap
 import org.lwjgl.glfw.GLFW
 import scalaxy.loops._
 
-class TopDownCamera extends EyeCamera(Vec3f(0,0,1), Vec3f(0,0,-1), Vec3f(0,1,0)) {
+class TopDownCamera(zDist : Float) extends EyeCamera(Vec3f(0,0,zDist), Vec3f(0,0,-1), Vec3f(0,1,0)) {
 	override def keymapNamespace: String = TopDownCamera.namespace
+
+	var proportionalMoveSpeed = false
+
+	override def effectiveMoveSpeed: ReadVec3f = if (proportionalMoveSpeed) {
+		moveSpeed * (eye.z / 100.0f)
+	} else {
+		super.effectiveMoveSpeed
+	}
 }
 
 object TopDownCamera {

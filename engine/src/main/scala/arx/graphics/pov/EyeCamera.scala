@@ -11,9 +11,7 @@ import arx.Prelude._
 import arx.core.mat.Mat3x4
 import arx.core.metrics.Metrics
 import arx.core.units.UnitOfTime
-import arx.core.vec.ReadVec3f
-import arx.core.vec.Vec2f
-import arx.core.vec.Vec3f
+import arx.core.vec.{ReadVec2f, ReadVec3f, Vec2f, Vec3f}
 import arx.engine.control.event.KeyCombination
 import arx.engine.control.event.KeyPressEvent
 import arx.engine.control.event.Keymap
@@ -30,6 +28,9 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 	var useGlobalUp = false
 	var moveSpeed = Vec3f(1.0f,1.0f,1.0f)
 	var turnSpeed = Vec2f(1.0f,1.0f)
+
+	def effectiveMoveSpeed : ReadVec3f = moveSpeed
+	def effectiveTurnSpeed : ReadVec2f = turnSpeed
 
 	var fovy = 50.0f
 
@@ -89,6 +90,9 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 
 				Metrics.histogram("Camera.delta").update((f * 1000).toInt)
 
+				val effMS = effectiveMoveSpeed
+				val effTS = effectiveTurnSpeed
+
 				if ( useGlobalUp ) {
 					val forwardLength = (forward * Vec3f(1.0f,1.0f,0.0f)).lengthSafe
 					val tforward = forward * Vec3f(1.0f,1.0f,0.0f) * deltaEye.x
@@ -97,12 +101,12 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 					//up, since it is derived from (up x forward), whereas forward is derived
 					//from the transform, so looking down results in slower movement
 					val tup = Vec3f(0.0f,0.0f,1.0f) * deltaEye.z
-					eye += (tforward * moveSpeed.x + tortho * moveSpeed.y + tup * moveSpeed.z) * f
+					eye += (tforward * effMS.x + tortho * effMS.y + tup * effMS.z) * f
 				} else {
-					eye += ((forward * deltaEye.x * moveSpeed.x) + (up * deltaEye.z * moveSpeed.z) + (ortho * deltaEye.y * moveSpeed.y)) * f
+					eye += ((forward * deltaEye.x * effMS.x) + (up * deltaEye.z * effMS.z) + (ortho * deltaEye.y * effMS.y)) * f
 				}
 
-				angles += deltaAngles * f * 0.025f * turnSpeed
+				angles += deltaAngles * f * 0.025f * effTS
 
 
 				val transform = (Mat3x4 rotateY angles.y) rotateZ angles.x

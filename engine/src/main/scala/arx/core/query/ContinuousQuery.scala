@@ -53,6 +53,15 @@ class ContinuousQuery[T <: AnyRef : Manifest] ( val matchFunction : (AnyRef) => 
 		this
 	}
 
+	def onAddition(f : (T) => Unit, fireOnExistingResults : Boolean): Unit = {
+		this.withListener(new ContinuousQueryListener[T] {
+
+			override def queryResultAdded(t: T): Unit = { f(t) }
+			override def queryResultRemoved(t: T): Unit = {}
+		}, fireOnExistingResults)
+
+	}
+
 	def foreach[U](f: (T) => U) {results.foreach(f)}
 	override def size = results.size
 

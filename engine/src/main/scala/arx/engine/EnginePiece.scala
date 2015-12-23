@@ -19,16 +19,21 @@ abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest]
 	var components = List[Component]()
 
 	protected var initialized = false
-	protected lazy val updateThreads = fillList(parallelism)(i => new UpdateThread(0.01.seconds) {
-		// divide up the components such that each graphics thread has its own share
-		val localComponents = components.zipWithIndex.filter {
-			case(comp, index) => index % parallelism == i
-		}.unzip.left
 
-		override def update(): Unit = {
-			localComponents.foreach(c => c.update(rawInterval.seconds))
+	def createUpdateThread(i: Int): UpdateThread = {
+		new UpdateThread(0.01.seconds) {
+			// divide up the components such that each graphics thread has its own share
+			val localComponents = components.zipWithIndex.filter {
+				case(comp, index) => index % parallelism == i
+			}.unzip.left
+
+			override def update(): Unit = {
+				localComponents.foreach(c => c.updateSelf(rawInterval.seconds))
+			}
 		}
-	})
+	}
+
+	protected lazy val updateThreads = fillList(parallelism)(i => createUpdateThread(i))
 
 	def addComponent[T <: Component: Manifest] = {
 		components ::= instantiateComponent(List(manifest[T].runtimeClass)).asInstanceOf[Component]

@@ -35,7 +35,9 @@ trait THasAuxData[U <: TAuxData] {
 
 	def aux[T <: U : Manifest] = auxData[T]
 
+
 	def ->[T <: U] (classWrap: AuxDataObject[T]) = auxData(classWrap.clazz)
+	def apply[T <: U : Manifest] = auxData[T]
 
 	def auxDataOpt[T <: U : Manifest]: Option[T]
 

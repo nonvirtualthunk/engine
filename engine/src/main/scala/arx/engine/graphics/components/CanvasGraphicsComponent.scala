@@ -19,7 +19,9 @@ abstract class CanvasGraphicsComponent(ge : GraphicsEngine, world : World) exten
 	val shader = ResourceManager.shader("shaders/Simple")
 	val canvas = new Canvas
 
-	override def update(dt: UnitOfTime): Unit = {
+	override def updateSelf(dt: UnitOfTime): Unit = {
+		super.updateSelf(dt)
+
 		if (canvas.startDraw()) {
 			draw(canvas)
 			canvas.finishDraw()
@@ -29,6 +31,7 @@ abstract class CanvasGraphicsComponent(ge : GraphicsEngine, world : World) exten
 	override def draw(): Unit = {
 		arx.graphics.GL.glSetState(GL_CULL_FACE, enable = false)
 		arx.graphics.GL.glSetState(GL_DEPTH_TEST, enable = false)
+		arx.graphics.GL.glSetState(GL_BLEND, enable = true)
 
 		shader.bind()
 

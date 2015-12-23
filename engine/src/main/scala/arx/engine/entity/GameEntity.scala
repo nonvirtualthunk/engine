@@ -15,4 +15,5 @@ import scalaxy.loops._
 
 class GameEntity extends TGameEntity with THasInternalAuxData[TGameEntityAuxData] {
 	var id = TGameEntity.IdCounter.getAndIncrement
+	var name = "GameEntity(" + id + ")"
 }

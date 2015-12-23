@@ -8,8 +8,18 @@ package arx.engine.data
  */
 
 import arx.Prelude._
+import arx.engine.entity.TGameEntity
 import scalaxy.loops._
 
 trait TGameEntityAuxData extends TAuxData {
+	def onAssignedToEntity(entity : TGameEntity) {}
 
+	override final def onAssignedToObject(entity: THasAuxData[_]): Unit = {
+		entity match {
+			case e : TGameEntity =>
+				e.world.auxDataAddedToEntity(e, this)
+				onAssignedToEntity(e)
+			case _ =>
+		}
+	}
 }

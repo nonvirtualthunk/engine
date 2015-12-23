@@ -7,9 +7,12 @@ package arx.engine
   * Time: 8:52 AM
   */
 
+import java.util.concurrent.locks.LockSupport
+
 import arx.Prelude.int2RicherInt
 import arx.application.Application
 import arx.application.Noto
+import arx.core.async.Async
 import arx.core.datastructures.KillableThread
 import arx.core.introspection.NativeLibraryHandler
 import arx.core.math.Recti
@@ -28,11 +31,11 @@ import org.lwjgl.system.MemoryUtil._
 
 
 abstract class EngineCore {
-	var WindowWidth = 1024
-	var WindowHeight = 768
+	var WindowWidth = 1920
+	var WindowHeight = 1200
 
-	var FramebufferWidth = 1024
-	var FramebufferHeight = 768
+	var FramebufferWidth = WindowWidth
+	var FramebufferHeight = WindowHeight
 
 	var errorCallback: GLFWErrorCallback = null
 	var keyCallback: GLFWKeyCallback = null
@@ -41,11 +44,14 @@ abstract class EngineCore {
 	var scrollCallbackIntern: GLFWScrollCallback = null
 	var charCallbackIntern: GLFWCharCallback = null
 	var sizeCallback: GLFWWindowSizeCallback = null
+	var focusCallback: GLFWWindowFocusCallback = null
 
 	// The window handle
 	var window = 0l
 
 	var fullscreen = false
+	var hasFocus = true
+	var fullPause = false
 
 
 	def run(): Unit = {
@@ -58,6 +64,7 @@ abstract class EngineCore {
 			keyCallback.release()
 		} finally {
 			KillableThread.kill()
+			Async.onQuit()
 			glfwTerminate()
 			if (errorCallback != null) {
 				errorCallback.release()
@@ -111,8 +118,10 @@ abstract class EngineCore {
 			def invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
 				if (key == GLFW_KEY_Q && (mods.isBitSet(GLFW_MOD_CONTROL) || mods.isBitSet(GLFW_MOD_SUPER))) {
 					glfwSetWindowShouldClose(window, GLFW_TRUE)
-				} else if (key == GLFW_KEY_F3 && mods.isBitSet(GLFW_MOD_SHIFT)) {
+				} else if (key == GLFW_KEY_F3 && mods.isBitSet(GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
 					Metrics.prettyPrint()
+				} else if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
+					fullPause = ! fullPause
 				}
 
 				if (action == GLFW_PRESS) {
@@ -175,6 +184,16 @@ abstract class EngineCore {
 			}
 		}
 		glfwSetWindowSizeCallback(window, sizeCallback)
+
+		focusCallback = new GLFWWindowFocusCallback {
+			override def invoke(window: Long, focus: Int): Unit = {
+				hasFocus = focus match {
+					case GLFW_TRUE => true
+					case GLFW_FALSE => false
+				}
+			}
+		}
+		glfwSetWindowFocusCallback(window, focusCallback)
 
 		if (!fullscreen) {
 			// Get the resolution of the primary monitor
@@ -242,36 +261,47 @@ abstract class EngineCore {
 		Application.openGLThread.set(true)
 
 		// Set the clear color
-		glClearColor(0.1f, 0.0f, 0.0f, 0.0f)
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
 
 		// TODO: This *2 should only be there on mac
 		glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
 		arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+
+		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
 
 		var lastUpdated = GLFW.glfwGetTime()
 
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
 		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+			if (hasFocus && ! fullPause) {
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
-			if (arx.graphics.GL.viewportSize != desiredViewportSize) {
-				glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-				arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
+					glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+					arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+				}
 			}
 
 			val curTime = GLFW.glfwGetTime()
 			val deltaSeconds = curTime - lastUpdated
 			lastUpdated = curTime
-			update(deltaSeconds.toFloat)
+			if (!fullPause) {
+				update(deltaSeconds.toFloat)
+			}
 
-			draw()
+			if (hasFocus && ! fullPause) {
+				draw()
 
-			glfwSwapBuffers(window) // swap the color buffers
+				glfwSwapBuffers(window) // swap the color buffers
+			}
 
 			// Poll for window events. The key callback above will only be
 			// invoked during this call.
 			glfwPollEvents()
+			if (fullPause) {
+				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
+			}
 		}
 	}
 

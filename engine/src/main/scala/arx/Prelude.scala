@@ -47,6 +47,7 @@ object Prelude {
 	implicit def toRicherBoolean (b : Boolean): RicherBoolean = new RicherBoolean(b)
 	implicit def toArxOption[T] (opt : Option[T]): ArxOption[T] = new ArxOption(opt)
 	implicit def toArxAnyRef[T <: AnyRef] (ref : T) : ArxAnyRef[T] = new ArxAnyRef[T](ref)
+	implicit def toArxAny[T <: Any] (ref : T) : ArxAny[T] = new ArxAny[T](ref)
 	implicit def toArxTuple[A,B] (tup : (A,B)) : ArxTuple[A,B] = new ArxTuple[A,B](tup)
 
 	implicit def toArxKryo (k : Kryo): ArxKryo = new ArxKryo(k)

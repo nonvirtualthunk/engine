@@ -12,5 +12,9 @@ import arx.core.units.UnitOfTime
 import scalaxy.loops._
 
 trait TUpdateable {
-	def update (dt : UnitOfTime)
+	def updateSelf(dt : UnitOfTime): Unit = {
+		update(dt)
+	}
+
+	protected def update (dt : UnitOfTime)
 }

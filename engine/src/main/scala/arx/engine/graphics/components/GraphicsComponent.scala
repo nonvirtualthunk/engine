@@ -19,7 +19,5 @@ abstract class GraphicsComponent(graphicsEngine : GraphicsEngine, world : World)
 	var drawPriority = 0
 	var pov : Moddable[TCamera] = Moddable(() => graphicsEngine.pov)
 
-	def update (dt : UnitOfTime)
-
 	def draw ()
 }

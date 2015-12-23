@@ -40,6 +40,7 @@ class GraphicsEngine(world : World) extends EnginePiece[GraphicsComponent] {
 	}
 
 	def draw(): Unit = {
+		pov.update(0.016666667.seconds)
 		components = components.sortBy(_.drawPriority * -1)
 		components.foreach(g => g.draw())
 	}
@@ -50,7 +51,7 @@ class GraphicsEngine(world : World) extends EnginePiece[GraphicsComponent] {
 object GraphicsEngine {
 	class PovComponent(engine : GraphicsEngine, world : World) extends GraphicsComponent(engine,world) {
 		override def update(dt: UnitOfTime): Unit = {
-			engine.pov.update(dt)
+
 		}
 
 		override def draw(): Unit = {}

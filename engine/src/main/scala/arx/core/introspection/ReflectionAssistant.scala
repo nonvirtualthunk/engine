@@ -20,6 +20,7 @@ import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.util.{ClasspathHelper, ConfigurationBuilder}
 import scala.collection.mutable
+import scala.collection.JavaConversions._
 import scalaxy.loops._
 
 object ReflectionAssistant {
@@ -65,7 +66,7 @@ object ReflectionAssistant {
 //
 	def arrayOf[T](c: Class[T], size: Int) = java.lang.reflect.Array.newInstance(c, size).asInstanceOf[Array[T]]
 
-	def allSubTypesOf ( clazz : Class[_] ) : List[Class[_]] = reflections.getSubTypesOf(clazz).toList.asInstanceOf[List[Class[_]]]
+	def allSubTypesOf ( clazz : Class[_] ) : List[Class[_]] = reflections.getSubTypesOf(clazz).toList
 	def allSubTypesOf[T : Manifest] : List[Class[_ <: T]] = allSubTypesOf(manifest[T].runtimeClass).asInstanceOf[List[Class[_ <: T]]]
 
 	def isSingleton ( c : Class[_] ) = c.getSimpleName.endsWith("$") && ! c.getSimpleName.startsWith("$")
