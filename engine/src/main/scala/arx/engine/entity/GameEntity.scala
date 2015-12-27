@@ -13,7 +13,10 @@ import arx.engine.data.THasInternalAuxData
 import arx.engine.world.World
 import scalaxy.loops._
 
-class GameEntity extends TGameEntity with THasInternalAuxData[TGameEntityAuxData] {
+class GameEntity(var name : String = "") extends TGameEntity with THasInternalAuxData[TGameEntityAuxData] {
 	var id = TGameEntity.IdCounter.getAndIncrement
-	var name = "GameEntity(" + id + ")"
+	if (name.isEmpty) {
+		name = "GameEntity(" + id + ")"
+	}
+
 }

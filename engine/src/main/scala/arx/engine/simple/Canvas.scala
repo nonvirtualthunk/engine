@@ -85,6 +85,15 @@ class Canvas {
 			.draw()
 	}
 
+	def drawQuad(center : ReadVec3f, dimensions : ReadVec2f, color : ReadVec4f, image : Image) = {
+		new QuadBuilder()
+			.withPosition(center)
+			.withDimensions(dimensions)
+			.withTexture(image)
+			.withColor(color)
+			.draw()
+	}
+
 	def drawQuad(centerX : Float, centerY : Float, width : Float, height : Float, rotationDegrees: Float, color : ReadVec4f, image : Image) = {
 		new QuadBuilder()
 			.withPosition(centerX, centerY)
@@ -105,6 +114,8 @@ class Canvas {
 			.draw()
 	}
 
+	def quad(center : ReadVec2f) = new QuadBuilder().withPosition(center)
+	def quad(center : ReadVec3f) = new QuadBuilder().withPosition(center)
 
 	protected class QuadBuilder {
 		var position = Vec3f.Zero
@@ -145,6 +156,11 @@ class Canvas {
 			this
 		}
 
+		def withDimensions(s: Float) = {
+			dimensions = Vec2f(s,s)
+			this
+		}
+
 		def withDimensions(x: Float, y: Float) = {
 			dimensions = Vec2f(x, y)
 			this
@@ -165,8 +181,12 @@ class Canvas {
 			this
 		}
 
-		def withTexture(image: Image) = {
+		def withTexture(image: Image) : QuadBuilder = {
 			texCoords = textureBlock(image)
+			this
+		}
+		def withTexture(imageStr: String) : QuadBuilder = {
+			texCoords = textureBlock(ResourceManager.image(imageStr))
 			this
 		}
 

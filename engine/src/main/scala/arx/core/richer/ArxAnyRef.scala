@@ -10,7 +10,7 @@ package arx.core.richer
 import arx.Prelude._
 import scalaxy.loops._
 
-class ArxAnyRef[T <: AnyRef](val intern : T) extends AnyVal {
+class ArxAnyRef[T <: AnyRef](protected val intern : T) extends AnyVal {
 
 	def ifType[U <: T : Manifest](func : (U) => Unit): Unit = {
 		if (manifest[U].runtimeClass.isAssignableFrom(intern.getClass)) {
@@ -19,7 +19,7 @@ class ArxAnyRef[T <: AnyRef](val intern : T) extends AnyVal {
 	}
 }
 
-class ArxAny[T <: Any](val intern : T) extends AnyVal {
+class ArxAny[T <: Any](protected val intern : T) extends AnyVal {
 	def pmatch (f : PartialFunction[T,Unit]): Unit = {
 		if (f.isDefinedAt(intern)) {
 			f.apply(intern)

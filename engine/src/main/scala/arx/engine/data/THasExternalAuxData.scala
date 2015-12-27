@@ -27,7 +27,7 @@ trait THasExternalAuxData[U <: TAuxData] extends THasAuxData[U] {
 		}
 	}
 
-	override protected def storeAuxData(d: U): Unit = externalStore.storeAuxData(id, d)
+	override protected[engine] def storeAuxData(d: U): Unit = externalStore.storeAuxData(id, d)
 
 	override def hasAuxData[T <: U : Manifest]: Boolean = {
 		externalStore.getAuxDataOrElse[T](id, manifest[T].runtimeClass.asInstanceOf[Class[T]], null.asInstanceOf[T]) == null.asInstanceOf[T]

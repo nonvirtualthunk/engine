@@ -33,7 +33,7 @@ trait THasInternalAuxData[U <: TAuxData] extends THasAuxData[U] {
 
 	def removeAuxData[T <: U](clazz: Class[T]) { _auxData -= clazz }
 
-	protected def storeAuxData(d: U): Unit = {
+	protected[engine] def storeAuxData(d: U): Unit = {
 		_auxData(d.getClass) = d
 	}
 

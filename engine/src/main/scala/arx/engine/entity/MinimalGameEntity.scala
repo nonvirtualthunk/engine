@@ -16,10 +16,13 @@ class MinimalGameEntity(val id : Long) extends TGameEntity with THasExternalAuxD
 	override def externalStore: TExternalAuxDataStore[TGameEntityAuxData] = {
 		MinimalGameEntity.auxStore
 	}
+
+	def name = "MinimalEntity(" + id + ")"
 }
 
 class MinimalGameEntityWrapper extends TGameEntity with THasExternalAuxData[TGameEntityAuxData] {
 	var id = 0L
+	def name = "MinimalEntityWrapper(" + id + ")"
 
 	override def externalStore: TExternalAuxDataStore[TGameEntityAuxData] = {
 		MinimalGameEntity.auxStore
