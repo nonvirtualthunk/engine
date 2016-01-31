@@ -8,6 +8,8 @@ package arx.core.datastructures
  * Created by nonvirtualthunk
  */
 
+import java.util.Comparator
+
 import arx.Prelude._
 import arx.application.Noto
 import java.util
@@ -98,6 +100,76 @@ class GrowableSortableArray[T <: THasSortKey : Manifest] extends GrowableArray[T
 			System.arraycopy(intern,i+1,intern,i,size - i - 1)
 		}
 		_size -= 1
+	}
+}
+
+class GrowableFloatArray extends Traversable[Float] {
+	private[this] final var _size = 0
+	var intern = Array.ofDim[Float](16)
+
+	override def size = _size
+
+	def ensureSize ( n : Int ) {
+		if ( intern.length < n ) {
+			val newArray = Array.ofDim[Float](math.max(intern.length*2,n))
+			System.arraycopy(intern,0,newArray,0,intern.length)
+			intern = newArray
+		}
+	}
+
+	def append ( t : Float ) {
+		val s = _size
+		ensureSize(s+1)
+		intern(s) = t
+		_size += 1
+	}
+
+	@inline
+	def apply ( i : Int ) = intern(i)
+	@inline
+	def update ( i : Int , t : Float ) {
+		intern(i) = t
+		if (i <= _size) {
+			_size = i+1
+		}
+	}
+
+	def foreach[U](f: (Float) => U) {
+		var i = 0; while ( i < size ) {
+			f(intern(i))
+			i += 1}
+	}
+
+	def remove ( v : Float ) {
+		var i = 0; while ( i < size ) {
+			if ( intern(i) == v ) {
+				remove(i)
+				i = size
+			}
+			i += 1}
+	}
+	def remove ( i : Int ) {
+		intern(i) = intern(size-1) //pop and swap
+		_size -= 1
+	}
+	def dropLast () { _size -= 1 }
+	def indexWhere ( f : (Float) => Boolean ) : Int = {
+		var i = 0; while ( i < size ) {
+			if ( f(intern(i)) ) {
+				return i
+			}
+			i += 1}
+		-1
+	}
+
+	def clear(): Unit = {
+		_size = 0
+	}
+
+	def toArray : Array[Float] = {
+		val ret = Array.ofDim[Float](size)
+		Array.copy(intern,0,ret,0,size)
+		ret
 	}
 }
 

@@ -49,6 +49,10 @@ abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest]
 		updateThreads.foreach(t => t.timePassed(deltaSeconds.seconds))
 	}
 
+	def updateSerial (deltaSeconds : Float): Unit = {
+		components.foreach(c => c.updateSelf(deltaSeconds.seconds))
+	}
+
 	def initialize(): Unit = {
 		val resolved = Dependency.resolve(components, components, instantiateComponent)
 		val allComponents = resolved.ofType[Component]

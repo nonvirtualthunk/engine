@@ -1,0 +1,36 @@
+#version 150 core
+
+in vec3 PrevVertex;
+in vec3 Vertex;
+in vec3 NextVertex;
+in float Orientation;
+
+in vec2 TexCoord;
+in vec4 Color;
+in float Thickness;
+
+out vec4 colorV;
+out vec2 texCoordV;
+
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+
+void main (){
+	vec3 mPrev = ModelViewMatrix * vec4(PrevVertex,1.0);
+	vec3 mCur = ModelViewMatrix * vec4(Vertex,1.0);
+	vec3 mNext = ModelViewMatrix * vec4(NextVertex,1.0);
+
+	vec2 deltaPrev = normalize(mCur.xy - mPrev.xy);
+	vec2 deltaNext = normalize(mNext.xy - mCur.xy);
+
+	vec2 normalPrev = vec2(-deltaPrev.y, deltaPrev.x);
+	vec2 normalNext = vec2(-deltaNext.y, deltaNext.x);
+
+	vec2 normal = (normalPrev + normalNext) * 0.5;
+
+	vec3 cur = mCur + normal * orientation * thickness;
+
+    texCoordV = TexCoord;
+	colorV = Color;
+	gl_Position = ProjectionMatrix * vec4(cur,1.0);
+}
