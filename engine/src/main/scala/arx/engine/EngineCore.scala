@@ -18,9 +18,9 @@ import arx.core.introspection.NativeLibraryHandler
 import arx.core.math.Recti
 import arx.core.metrics.Metrics
 import arx.core.vec.{Vec2i, Vec2f}
-import arx.engine.control.event.KeyboardMirror
-import arx.engine.control.event.Mouse
-import arx.engine.control.event.MouseButton
+import arx.engine.control.event.Event.KeyboardMirror
+import arx.engine.control.event.Event.Mouse
+import arx.engine.control.event.Event.MouseButton
 import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.GLFW._
 import org.lwjgl.glfw._

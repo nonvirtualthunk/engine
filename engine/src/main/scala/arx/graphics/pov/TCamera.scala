@@ -14,7 +14,7 @@ import arx.core.traits.TSentinel
 import arx.core.traits.TSentinelable
 import arx.core.units.UnitOfTime
 import arx.core.vec.ReadVec3f
-import arx.engine.control.event.TEventUser
+import arx.engine.control.event.Event.TEventUser
 import arx.graphics.shader.Shader
 import scalaxy.loops._
 

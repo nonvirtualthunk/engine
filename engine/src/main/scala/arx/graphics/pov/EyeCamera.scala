@@ -12,9 +12,9 @@ import arx.core.mat.Mat3x4
 import arx.core.metrics.Metrics
 import arx.core.units.UnitOfTime
 import arx.core.vec.{ReadVec2f, ReadVec3f, Vec2f, Vec3f}
-import arx.engine.control.event.KeyCombination
-import arx.engine.control.event.KeyPressEvent
-import arx.engine.control.event.Keymap
+import arx.engine.control.event.Event.KeyCombination
+import arx.engine.control.event.Event.KeyPressEvent
+import arx.engine.control.event.Event.Keymap
 import arx.graphics.GL
 import org.lwjgl.glfw.GLFW
 import scalaxy.loops._

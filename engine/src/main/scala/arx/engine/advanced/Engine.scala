@@ -10,7 +10,7 @@ package arx.engine.advanced
 import arx.Prelude._
 import arx.core.vec.ReadVec2f
 import arx.engine.EngineCore
-import arx.engine.control.event._
+import arx.engine.control.event.Event._
 import arx.engine.game.GameEngine
 import arx.engine.graphics.GraphicsEngine
 import arx.engine.world.World

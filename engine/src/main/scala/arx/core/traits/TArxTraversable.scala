@@ -23,7 +23,7 @@ trait TArxTraversable[T] extends Traversable[T] {
 	def foreachUnsafe[U] ( f : (T) => U )
 
 	def existsUnsafe ( f : (T) => Boolean ) : Boolean = {
-		import util.control.Breaks._
+		import scala.util.control.Breaks._
 		var result = false
 		breakable {
 			foreachUnsafe( value => {

@@ -1,4 +1,4 @@
-package arx.engine.control.event
+package arx.engine.control.event.Event
 
 /**
  * Created with IntelliJ IDEA.

@@ -10,6 +10,8 @@ package arx.core.richer
 import arx.Prelude._
 import arx.core.introspection.ReflectionAssistant
 import arx.core.introspection.IntrospectionUtil
+import arx.core.serialization.ArxKryoRegistrar
+
 //import arx.serialization.{ArxKryoRegistrar, ArxConnection}
 import com.esotericsoftware.kryo.serializers.DeflateSerializer
 import com.esotericsoftware.kryo.{Serializer, Kryo}
@@ -59,10 +61,10 @@ class ArxKryo(val kryo : Kryo) extends AnyVal{
 //	def connection = this.userData("connection").asInstanceOf[ArxConnection]
 //
 //
-//	def applyArxDefaultSettings (): Unit = {
-//		kryo.setRegistrationRequired(false)
-//		kryo.setInstantiatorStrategy(new org.objenesis.strategy.StdInstantiatorStrategy)
-//		new AllScalaRegistrar().apply(kryo)
-//		ArxKryoRegistrar.register(kryo,networked = true)
-//	}
+	def applyArxDefaultSettings (): Unit = {
+		kryo.setRegistrationRequired(false)
+		kryo.setInstantiatorStrategy(new org.objenesis.strategy.StdInstantiatorStrategy)
+		new AllScalaRegistrar().apply(kryo)
+		ArxKryoRegistrar.register(kryo,networked = true)
+	}
 }

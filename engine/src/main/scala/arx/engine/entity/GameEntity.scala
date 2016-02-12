@@ -19,4 +19,9 @@ class GameEntity(var name : String = "") extends TGameEntity with THasInternalAu
 		name = "GameEntity(" + id + ")"
 	}
 
+	override def hashCode() = id.hashCode()
+	override def equals(obj: scala.Any): Boolean = obj match {
+		case ge : GameEntity => ge.id == this.id
+		case _ => false
+	}
 }

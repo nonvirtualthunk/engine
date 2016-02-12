@@ -9,9 +9,9 @@ package arx.graphics.pov
 
 import arx.Prelude._
 import arx.core.vec.{ReadVec3f, Vec3f}
-import arx.engine.control.event.KeyModifiers
-import arx.engine.control.event.KeyPressEvent
-import arx.engine.control.event.Keymap
+import arx.engine.control.event.Event.KeyModifiers
+import arx.engine.control.event.Event.KeyPressEvent
+import arx.engine.control.event.Event.Keymap
 import org.lwjgl.glfw.GLFW
 import scalaxy.loops._
 
