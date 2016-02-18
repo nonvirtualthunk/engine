@@ -12,65 +12,71 @@ import arx.core.datastructures.voxelregions.voxelregions.EmptyVoxelRegion
 import arx.core.datastructures.voxelregions.voxelregions.VoxelRegion
 import arx.core.traits.TArxTraversable
 import arx.core.vec.coordinates.VoxelCoord
+import scala.language.postfixOps
 import scalaxy.loops._
 import arx.core.vec._
 
-class VoxelGrid[@specialized(Byte,Short,Int) T] extends VoxelStore[T] {
-	override def apply(x: Int, y: Int, z: Int): T = ???
+class VoxelGrid[@specialized(Byte, Short, Int) T](val defaultValue: T = null.asInstanceOf[T],
+																  coreSize: ReadVec3i = Vec3i(2048)) extends VoxelStore[T] {
+	protected[datastructures] val dummyTalea = new Talea[T](VoxelCoord(-1, -1, -1), defaultValue)
+	protected[datastructures] val grid = new RawGrid[Talea[T]](VoxelCoord.Center, coreSize, createTalea)
 
-	override def update(x: Int, y: Int, z: Int, value: T): Unit = ???
+	override def apply(x: Int, y: Int, z: Int): T = {
+		val talea = grid.getOrElse(x, y, z, dummyTalea)
+		talea(x - talea.x, y - talea.y, z - talea.z)
+	}
 
-	override def subStore(region: VoxelRegion): VoxelStore[T] with BoundedVoxelView[T] = ???
-	override def subView(region: VoxelRegion): VoxelView[T] with BoundedVoxelView[T] = {
-		val dim = region.max - region.min
-		if (dim < Talea.dimension) {
-			val shiftedMin = region.min >> Talea.dimensionPo2
-			val shiftedMax = region.max >> Talea.dimensionPo2
+	override def update(x: Int, y: Int, z: Int, value: T): Unit = {
+		val talea = grid.getOrElseUpdate(x, y, z)
+		talea(x - talea.x,y - talea.y,z - talea.z) = value
+	}
 
+	protected def createTalea(x: Int, y: Int, z: Int) = {
+		new Talea[T](VoxelCoord(x,y,z), defaultValue)
+	}
+
+	override def subStore(region: VoxelRegion): VoxelStore[T] with BoundedVoxelView[T] = {
+		val min = region.min
+		val max = region.max
+
+		val shiftedMin = min >> Talea.dimensionPo2
+		val shiftedMax = max >> Talea.dimensionPo2
+
+		// if min and max are in the same talea, we can just return the talea itself
+		if (shiftedMin == shiftedMax) {
+			grid.getOrElse(min.x, min.y, min.z, dummyTalea)
+		} else {
+			val dim = max - min
 
 		}
-
+	}
+	override def subView(region: VoxelRegion): VoxelView[T] with BoundedVoxelView[T] = {
+		subStore(region)
 	}
 }
 
-trait VoxelView[@specialized(Byte,Short,Int) T] {
-	def apply(x : Int, y : Int, z : Int) : T
-	def apply(v : VoxelCoord) : T = apply(v.x,v.y,v.z)
 
-	def subView(region : VoxelRegion) : VoxelView[T] with BoundedVoxelView[T]
-}
-
-trait VoxelStore[@specialized(Byte, Short, Int) T] extends VoxelView[T] {
-	def update(x : Int, y : Int, z : Int, value : T)
-	def update(v : VoxelCoord, value : T): Unit = {
-		update(v.x,v.y,v.z,value)
+class TaleaBlock2x2[@specialized(Byte, Short, Int) T](vgrid : VoxelGrid, alignedMin : VoxelCoord) extends VoxelStore[T] with BoundedVoxelView[T] {
+	val taleae = Array.ofDim[AnyRef](8)
+	for (x <- 0 to 1 optimized; y <- 0 to 1 optimized; z <- 0 to 1 optimized) {
+		taleae((x << 2) + (y << 1) + z) = vgrid.grid.getOrElse(
+			alignedMin.x + (x << Talea.dimensionPo2),
+			alignedMin.y + (y << Talea.dimensionPo2),
+			alignedMin.z + (z << Talea.dimensionPo2),
+			vgrid.dummyTalea)
 	}
 
-	def subStore(region : VoxelRegion) : VoxelStore[T] with BoundedVoxelView[T]
-}
+	override def update(x: Int, y: Int, z: Int, value: T): Unit = ???
+	override def subStore(region: VoxelRegion): VoxelStore[T] with BoundedVoxelView[T] = this
+	override def subView(region: VoxelRegion): VoxelView[T] with BoundedVoxelView[T] = this
+	override def apply(x: Int, y: Int, z: Int): T = {
+		val rx = x - alignedMin.x
+		val ry = y - alignedMin.y
+		val rz = z - alignedMin.z
+		val sx = rx >> Talea.dimensionPo2
+		val sy = ry >> Talea.dimensionPo2
+		val sz = rz >> Talea.dimensionPo2
 
-trait BoundedVoxelView[@specialized(Byte, Short, Int) T] extends VoxelView[T] {
-	def region : VoxelRegion
-
-	def foreach(f : (Int,Int,Int,T) => Unit): Unit = {
-		region.foreachUnsafe(v => {
-			f(v.x,v.y,v.z, this.apply(v))
-		})
+		taleae
 	}
-}
-
-object EmptyByteVoxelGrid extends VoxelStore[Byte] with BoundedVoxelView[Byte] {
-	override def update(x: Int, y: Int, z: Int, value: Byte): Unit = {}
-
-	override def apply(x: Int, y: Int, z: Int): Byte = 0
-
-	override def subStore(region: VoxelRegion): VoxelStore[Byte] with BoundedVoxelView[Byte] = {
-		this
-	}
-
-	override def subView(region: VoxelRegion): VoxelView[Byte] with BoundedVoxelView[Byte] = {
-		this
-	}
-
-	override def region: VoxelRegion = EmptyVoxelRegion
 }

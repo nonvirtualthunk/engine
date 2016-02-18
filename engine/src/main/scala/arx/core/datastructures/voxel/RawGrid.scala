@@ -21,7 +21,7 @@ import org.cliffc.high_scale_lib.ArxUnsafeUtil
 import scalaxy.loops._
 import arx.core.vec._
 
-class RawGrid[TaleaType <: AnyRef](val origin: VoxelCoord, val coreSize: ReadVec3i) {
+class RawGrid[TaleaType <: AnyRef](val origin: VoxelCoord, val coreSize: ReadVec3i, val creator : (Int,Int,Int) => TaleaType) {
 	private[this] final val ox = origin.x
 	private[this] final val oy = origin.y
 	private[this] final val oz = origin.z
@@ -38,36 +38,38 @@ class RawGrid[TaleaType <: AnyRef](val origin: VoxelCoord, val coreSize: ReadVec
 	@transient private[this] val arrayScale = unsafe.arrayIndexScale(classOf[Array[Object]])
 	private[this] val dimensionPo2 = Talea.dimensionPo2
 
-	def updateRawArray(idx: Int, tmp: TaleaType) = {
+	def updateRawArray(idx: Int, tmp: TaleaType) : TaleaType = {
 		//Array | Index | Old | New
 		if (unsafe.compareAndSwapObject(rawArray, arrayOffset + idx * arrayScale, null, tmp)) {
-			tmp
+			tmp.asInstanceOf[TaleaType]
 		} else {
-			rawArray(idx)
+			rawArray(idx).asInstanceOf[TaleaType]
 		}
 	}
 
 
-	def getOrElseUpdate(x: Int, y: Int, z: Int, u: => TaleaType) = {
+	def getOrElseUpdate(x: Int, y: Int, z: Int) : TaleaType = {
 		val dpo2 = dimensionPo2
 		val nx = (x - ox) >> dpo2
 		val ny = (y - oy) >> dpo2
 		val nz = (z - oz) >> dpo2
 
+		// we could theoretically consider catching the exception rather than double checking, probably wouldn't be
+		// faster though
 		if (nx >= 0 && ny >= 0 && nz >= 0 && nx < coreTaleaSize.x && ny < coreTaleaSize.y && nz < coreTaleaSize.z) {
 			val idx = (nx << xshift) + (ny << yshift) + (nz)
 			val cur = rawArray(idx)
 			if (cur != null) {
-				cur
+				cur.asInstanceOf[TaleaType]
 			} else {
-				val tmp: TaleaType = u
+				val tmp: TaleaType = creator(nx << dpo2,ny << dpo2, nz << dpo2)
 				updateRawArray(idx, tmp)
 			}
 		} else {
-			extraTaleae.getOrElseUpdate(Talea.hash(x, y, z), u)
+			extraTaleae.getOrElseUpdate(Talea.hash(x, y, z), creator(x,y,z))
 		}
 	}
-	def getOrElse(x: Int, y: Int, z: Int, u: TaleaType) = {
+	def getOrElse(x: Int, y: Int, z: Int, u: TaleaType) : TaleaType = {
 		val nx = (x - origin.x) >> Talea.dimensionPo2
 		val ny = (y - origin.y) >> Talea.dimensionPo2
 		val nz = (z - origin.z) >> Talea.dimensionPo2
@@ -76,9 +78,9 @@ class RawGrid[TaleaType <: AnyRef](val origin: VoxelCoord, val coreSize: ReadVec
 			val idx = (nx << xshift) + (ny << yshift) + (nz)
 			val cur = rawArray(idx)
 			if (cur != null) {
-				cur
+				cur.asInstanceOf[TaleaType]
 			} else {
-				u
+				u.asInstanceOf[TaleaType]
 			}
 		} else {
 			extraTaleae.getOrElse(Talea.hash(x, y, z), u)

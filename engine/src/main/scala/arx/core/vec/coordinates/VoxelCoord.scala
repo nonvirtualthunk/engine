@@ -57,6 +57,7 @@ trait VoxelCoord extends ReadVec3i with TMajorCoord {
 	def <= ( v : VoxelCoord ) : Boolean = { x <= v.x && y <= v.y && z <= v.z }
 	def < ( v : ReadVec3i ) : Boolean = x < v.x && y < v.y && z < v.z
 	def < ( i : Int ) : Boolean = x < i && y < i && z < i
+	def <= ( i : Int ) : Boolean = x <= i && y <= i && z <= i
 
 	def distanceInVoxelsTo (v : VoxelCoord) = {
 		val dx = this.x - v.x
