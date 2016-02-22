@@ -14,7 +14,7 @@ import arx.core.vec._
 import arx.core.vec.coordinates.VoxelCoord
 
 
-class Talea[@specialized(Byte,Short,Int) T : Manifest](val _position : VoxelCoord, var _defaultValue: T) extends TTalea[T] {
+class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _defaultValue: T) extends TTalea[T] {
 	hash = Talea.hash(_position.x,_position.y,_position.z)
 	protected[datastructures] var _size = Talea.dimension
 
@@ -29,15 +29,15 @@ class Talea[@specialized(Byte,Short,Int) T : Manifest](val _position : VoxelCoor
 	var data : TaleaDataContainer[T] = createDataContainer()
 	def nonDefaultCount : Int = _nonDefaultCount
 	def defaultValue = _defaultValue
-	var region: VoxelRegion = VoxelRegion.fromCorners(position, position + size)
-	override def subStore(region: VoxelRegion): VoxelStore[T] with BoundedVoxelView[T] = this
-	override def subView(region: VoxelRegion): VoxelView[T] with BoundedVoxelView[T] = this
+
+	override def subStore(region: VoxelRegion): VoxelStore[T] with BoundedVoxelView[T] = ???
+	override def subView(region: VoxelRegion): VoxelView[T] with BoundedVoxelView[T] = ???
 
 	protected[datastructures] var _loggedModifications = List[ LoggedVoxelModification[T] ]()
 	def loggedModifications = _loggedModifications
 
 
-	protected[datastructures] def getComponentType = manifest[T].runtimeClass
+	protected[datastructures] def getComponentType = _defaultValue.getClass
 	protected[datastructures] def withData (d : TaleaDataContainer[T]) = { data = d ; this }
 
 	override def equals ( a : Any ) : Boolean = {
@@ -60,6 +60,10 @@ class Talea[@specialized(Byte,Short,Int) T : Manifest](val _position : VoxelCoor
 
 	def apply (x: Int,y: Int,z: Int): T = {
 		data(x,y,z)
+	}
+
+	def loadRow(startX : Int, startY : Int, startZ : Int, xLength : Int, startOff : Int, out : Array[T]) = {
+		data.loadRow(startX,startY,startZ,xLength,startOff,out)
 	}
 
 	def getAndDecrementToMinimumOf(x: Int, y: Int, z: Int,minimumValue : T) = throw new UnsupportedOperationException
@@ -178,7 +182,7 @@ class Talea[@specialized(Byte,Short,Int) T : Manifest](val _position : VoxelCoor
 						_nonDefaultCount -= 1
 					}
 
-					if ( nonDefaultCount == 0 ){
+					if ( _nonDefaultCount == 0 ){
 						data = createDataContainer()
 					}
 					else{
@@ -259,7 +263,7 @@ class Talea[@specialized(Byte,Short,Int) T : Manifest](val _position : VoxelCoor
 	}
 
 
-	override def foreach(f: (Int, Int, Int, T) => Unit): Unit = {
+	def foreach(f: (Int, Int, Int, T) => Unit): Unit = {
 		var x = 0
 		var y = 0
 		var z = 0
@@ -269,10 +273,10 @@ class Talea[@specialized(Byte,Short,Int) T : Manifest](val _position : VoxelCoor
 			val v = data.getByIndex(index)
 			f(x,y,z,v)
 			index += 1
-			z += 1
-			y += (z / _size)
-			x += (y / _size)
-			z %= _size
+			x += 1
+			y += (x / _size)
+			z += (y / _size)
+			x %= _size
 			y %= _size
 		}
 	}

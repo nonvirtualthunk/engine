@@ -1,11 +1,11 @@
 package arx.core.introspection
 
 /**
- * Created with IntelliJ IDEA.
- * User: nvt
- * Date: 12/5/15
- * Time: 10:42 AM
- */
+  * Created with IntelliJ IDEA.
+  * User: nvt
+  * Date: 12/5/15
+  * Time: 10:42 AM
+  */
 
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -42,37 +42,53 @@ object ReflectionAssistant {
 		ref
 	}
 
-//	val provideInstanceOfMem = memoize((clazz : Class[_]) => {
-//		provideInstanceOfIntern(clazz).asInstanceOf[Class[_]]
-//	})
-//
-//	def provideInstanceOf[T: Manifest] = provideInstanceOfMem[T].apply(manifest[T].runtimeClass)
-//
-//	def provideInstanceOf[T](clazz: Class[T]) = provideInstanceOfMem[T].apply(clazz)
-//
-//	protected def provideInstanceOfIntern[T](clazz: Class[_]) = {
-//		val subClasses = reflections.getSubTypesOf[T](clazz.asInstanceOf[Class[T]])
-//		if (!clazz.isInterface && !Modifier.isAbstract(clazz.getModifiers)) {
-//			subClasses.add(clazz.asInstanceOf[Class[T]])
-//		}
-//
-//		if (subClasses.isEmpty) {
-//			throw new IllegalArgumentException("No implementation available for class: " + clazz.getName)
-//		}
-//
-//		subClasses.iterator().next().newInstance().
-//		// sort by some means
-//	}
-//
-	def arrayOf[T](c: Class[T], size: Int) = java.lang.reflect.Array.newInstance(c, size).asInstanceOf[Array[T]]
+	//	val provideInstanceOfMem = memoize((clazz : Class[_]) => {
+	//		provideInstanceOfIntern(clazz).asInstanceOf[Class[_]]
+	//	})
+	//
+	//	def provideInstanceOf[T: Manifest] = provideInstanceOfMem[T].apply(manifest[T].runtimeClass)
+	//
+	//	def provideInstanceOf[T](clazz: Class[T]) = provideInstanceOfMem[T].apply(clazz)
+	//
+	//	protected def provideInstanceOfIntern[T](clazz: Class[_]) = {
+	//		val subClasses = reflections.getSubTypesOf[T](clazz.asInstanceOf[Class[T]])
+	//		if (!clazz.isInterface && !Modifier.isAbstract(clazz.getModifiers)) {
+	//			subClasses.add(clazz.asInstanceOf[Class[T]])
+	//		}
+	//
+	//		if (subClasses.isEmpty) {
+	//			throw new IllegalArgumentException("No implementation available for class: " + clazz.getName)
+	//		}
+	//
+	//		subClasses.iterator().next().newInstance().
+	//		// sort by some means
+	//	}
+	//
+	def arrayOf[T](c: Class[T], size: Int) = {
+		if (c == classOf[Integer]) {
+			java.lang.reflect.Array.newInstance(classOf[Int], size).asInstanceOf[Array[T]]
+		} else if (c == classOf[java.lang.Float]) {
+			java.lang.reflect.Array.newInstance(classOf[Float], size).asInstanceOf[Array[T]]
+		} else if (c == classOf[java.lang.Double]) {
+			java.lang.reflect.Array.newInstance(classOf[Double], size).asInstanceOf[Array[T]]
+		} else if (c == classOf[java.lang.Short]) {
+			java.lang.reflect.Array.newInstance(classOf[Short], size).asInstanceOf[Array[T]]
+		} else if (c == classOf[java.lang.Byte]) {
+			java.lang.reflect.Array.newInstance(classOf[Byte], size).asInstanceOf[Array[T]]
+		} else if (c == classOf[java.lang.Long]) {
+			java.lang.reflect.Array.newInstance(classOf[Long], size).asInstanceOf[Array[T]]
+		} else {
+			java.lang.reflect.Array.newInstance(c, size).asInstanceOf[Array[T]]
+		}
+	}
 
-	def allSubTypesOf ( clazz : Class[_] ) : List[Class[_]] = reflections.getSubTypesOf(clazz).toList
-	def allSubTypesOf[T : Manifest] : List[Class[_ <: T]] = allSubTypesOf(manifest[T].runtimeClass).asInstanceOf[List[Class[_ <: T]]]
+	def allSubTypesOf(clazz: Class[_]): List[Class[_]] = reflections.getSubTypesOf(clazz).toList
+	def allSubTypesOf[T: Manifest]: List[Class[_ <: T]] = allSubTypesOf(manifest[T].runtimeClass).asInstanceOf[List[Class[_ <: T]]]
 
-	def isSingleton ( c : Class[_] ) = c.getSimpleName.endsWith("$") && ! c.getSimpleName.startsWith("$")
-	def getSingleton ( c : Class[_] ) = {
+	def isSingleton(c: Class[_]) = c.getSimpleName.endsWith("$") && !c.getSimpleName.startsWith("$")
+	def getSingleton(c: Class[_]) = {
 		var moduleField = c.getField("MODULE$").get(null)
-		if ( moduleField == null ) {
+		if (moduleField == null) {
 			val constructor = c.getDeclaredConstructor()
 			constructor.setAccessible(true)
 			constructor.newInstance()
@@ -89,19 +105,19 @@ object ReflectionAssistant {
 		}
 		moduleField
 	}
-	def instancesOf[T] ( l : List[Class[_]] ) : List[T] = {
+	def instancesOf[T](l: List[Class[_]]): List[T] = {
 		var ret = List[T]()
-		for ( clazz <- l if ! classOf[TNonDiscoverable].isAssignableFrom(clazz)) {
-			if ( isSingleton(clazz) ) {
+		for (clazz <- l if !classOf[TNonDiscoverable].isAssignableFrom(clazz)) {
+			if (isSingleton(clazz)) {
 				val singleton = getSingleton(clazz).asInstanceOf[T]
 				ret ::= singleton
 			} else {
-				val constructorOpt = clazz.getConstructors find { _.getParameterTypes.length == 0 }
+				val constructorOpt = clazz.getConstructors find {_.getParameterTypes.length == 0}
 				constructorOpt match {
 					case Some(constructor) => try {
 						ret ::= constructor.newInstance().asInstanceOf[T]
 					} catch {
-						case e : Exception =>
+						case e: Exception =>
 							e.printStackTrace
 					}
 					case None => Noto.finest("No default args constructor for class " + clazz.getName + ", cannot instantiate through reflection assistant")
@@ -110,18 +126,18 @@ object ReflectionAssistant {
 		}
 		ret
 	}
-	
-	def firstInstanceOf[T] ( l : List[Class[_]] ) : Option[T] = {
-		for ( clazz <- l ) {
-			if ( isSingleton(clazz ) ) { return Some(getSingleton(clazz).asInstanceOf[T]) }
+
+	def firstInstanceOf[T](l: List[Class[_]]): Option[T] = {
+		for (clazz <- l) {
+			if (isSingleton(clazz)) {return Some(getSingleton(clazz).asInstanceOf[T])}
 			else {
-				val constructorOpt = clazz.getConstructors find { _.getParameterTypes.length == 0 }
+				val constructorOpt = clazz.getConstructors find {_.getParameterTypes.length == 0}
 				constructorOpt match {
 					case Some(constructor) =>
 						try {
 							return Some(constructor.newInstance().asInstanceOf[T])
 						} catch {
-							case e : Exception =>
+							case e: Exception =>
 								Noto.error("Error while calling constructor for class : " + clazz.getSimpleName + " : " + e); e.printStackTrace()
 						}
 					case None => Noto.finest("No default args constructor for class " + clazz.getName + ", cannot instantiate through reflection assistant")
@@ -130,96 +146,98 @@ object ReflectionAssistant {
 		}
 		None
 	}
-	
-	def instancesOfSubtypesOf[T] ( clazz : Class[T] ) : List[T] = instancesOf[T]( allSubTypesOf(clazz).distinct )
-	def instancesOfSubtypesOf[T : Manifest] : List[T] = instancesOfSubtypesOf( manifest[T].erasure.asInstanceOf[Class[T]] )
+
+	def instancesOfSubtypesOf[T](clazz: Class[T]): List[T] = instancesOf[T](allSubTypesOf(clazz).distinct)
+	def instancesOfSubtypesOf[T: Manifest]: List[T] = instancesOfSubtypesOf(manifest[T].erasure.asInstanceOf[Class[T]])
 
 	def instantiate[T](man: Manifest[T]): T = { instantiate(man.erasure.asInstanceOf[Class[T]]) }
 	def instantiate[T](clazz: Class[T]): T = {
-		if ( isSingleton(clazz) ) { getSingleton(clazz).asInstanceOf[T] }
+		if (isSingleton(clazz)) {getSingleton(clazz).asInstanceOf[T]}
 		else {
-			val constructorOpt = clazz.getConstructors find { _.getParameterTypes.length == 0 }
+			val constructorOpt = clazz.getConstructors find {_.getParameterTypes.length == 0}
 			constructorOpt match {
-				case Some(constructor) =>constructor.newInstance().asInstanceOf[T]
+				case Some(constructor) => constructor.newInstance().asInstanceOf[T]
 				case None => throw new IllegalArgumentException("No default args constructor for class " + clazz.getName + ", cannot instantiate through reflection assistant")
 			}
 		}
 	}
-	def instantiateBounded[_,L](clazz: Class[_],lowerBound : Class[L]) : L = {
-		val constructorOpt = clazz.getConstructors find { _.getParameterTypes.length == 0 }
+	def instantiateBounded[_, L](clazz: Class[_], lowerBound: Class[L]): L = {
+		val constructorOpt = clazz.getConstructors find {_.getParameterTypes.length == 0}
 		constructorOpt match {
-			case Some(constructor) =>constructor.newInstance().asInstanceOf[L]
-			case None => if ( clazz == lowerBound ) {
+			case Some(constructor) => constructor.newInstance().asInstanceOf[L]
+			case None => if (clazz == lowerBound) {
 				throw new IllegalArgumentException("No default args constructor for class " + clazz.getName + ", cannot instantiate through reflection assistant")
 			} else {
-				instantiateBounded(clazz.getSuperclass,lowerBound)
+				instantiateBounded(clazz.getSuperclass, lowerBound)
 			}
 		}
 	}
 
-	def provideInstancesOfSubtypesOf[T : Manifest] : List[T] = {
-		allSubTypesOf(manifest[T].erasure).map( provideInstanceOf(_).asInstanceOf[T] )
+	def provideInstancesOfSubtypesOf[T: Manifest]: List[T] = {
+		allSubTypesOf(manifest[T].erasure).map(provideInstanceOf(_).asInstanceOf[T])
 	}
-	protected def provideInstanceOf ( clazz : Class[_] ) = {
+	protected def provideInstanceOf(clazz: Class[_]) = {
 		mem_provideInstanceOf(clazz)
 	}
-	def provideInstanceOf[T : Manifest] : T = {
+	def provideInstanceOf[T: Manifest]: T = {
 		//		allSubTypesOf(manifest[T].erasure) match {
 		//			case Nil => throw new IllegalArgumentException("No subclasses of " + manifest[T].erasure + " to instantiate")
 		//			case head :: _ => instantiate(head.asInstanceOf[Class[T]])
 		//		}
 		provideInstanceOf(manifest[T].erasure).asInstanceOf[T]
 	}
-	def provideInstanceOfClass ( clazz : Class[_] ) = provideInstanceOf(clazz)
+	def provideInstanceOfClass(clazz: Class[_]) = provideInstanceOf(clazz)
 
-	protected var cachedInstances = new mutable.HashMap[Class[_],AnyRef]
-	protected val mem_provideInstanceOf = arx.Prelude.memoize( ( clazz : Class[_]) => {
-		val selfClass = if ( clazz.isInterface || Modifier.isAbstract(clazz.getModifiers) ) { Nil } else { List(clazz) }
+	protected var cachedInstances = new mutable.HashMap[Class[_], AnyRef]
+	protected val mem_provideInstanceOf = arx.Prelude.memoize((clazz: Class[_]) => {
+		val selfClass = if (clazz.isInterface || Modifier.isAbstract(clazz.getModifiers)) {Nil} else {List(clazz)}
 		(selfClass ::: allSubTypesOf(clazz)) match {
 			case Nil =>
 				throw new IllegalArgumentException("No subclasses of " + clazz + " to instantiate")
 			case list =>
-				val instances = list.map( c => cachedInstances.getOrElseUpdate(c,instantiate(c).asInstanceOf[AnyRef]) )
+				val instances = list.map(c => cachedInstances.getOrElseUpdate(c, instantiate(c).asInstanceOf[AnyRef]))
 				val sortedInstances = instances.sortBy { i => {
 					try {
 						val rankMethod = i.getClass.getMethod("injectionRank")
 						rankMethod.invoke(i).asInstanceOf[Int]
 					} catch {
-						case e : Exception => 0
+						case e: Exception => 0
 					}
-				}}
+				}
+				}
 				sortedInstances.last
-		}} )
+		}
+	})
 
-	def collectAllFieldsFrom ( clazz : Class[_] ) : List[Field] = {
+	def collectAllFieldsFrom(clazz: Class[_]): List[Field] = {
 		clazz.getDeclaredFields.toList ::: (clazz.getSuperclass match {
 			case null => Nil
-			case objclass if ( objclass == classOf[Object] ) => Nil
-			case realClass : Class[_] => collectAllFieldsFrom(realClass)
-			case _ => Noto.error("WA?");Nil
+			case objclass if (objclass == classOf[Object]) => Nil
+			case realClass: Class[_] => collectAllFieldsFrom(realClass)
+			case _ => Noto.error("WA?"); Nil
 		})
 	}
 
-	def fieldType (obj : AnyRef, field : String) = {
+	def fieldType(obj: AnyRef, field: String) = {
 		obj.getClass.getMethod(field).getReturnType
 	}
-	def hasField (obj : AnyRef, field : String) = try {
-		obj.getClass.getMethod (field)
+	def hasField(obj: AnyRef, field: String) = try {
+		obj.getClass.getMethod(field)
 		true
 	} catch {
-		case e : Exception => false
+		case e: Exception => false
 	}
-	def getFieldValue ( obj : AnyRef , field : String ) : Any = {
+	def getFieldValue(obj: AnyRef, field: String): Any = {
 		obj.getClass.getMethod(field).invoke(obj)
 	}
-	def setFieldValue[T <: AnyRef : Manifest] ( obj : AnyRef , field : String , value : T ) {
-		setFieldValue(obj,field,value,manifest[T].runtimeClass)
+	def setFieldValue[T <: AnyRef : Manifest](obj: AnyRef, field: String, value: T) {
+		setFieldValue(obj, field, value, manifest[T].runtimeClass)
 	}
-	def setFieldValue ( obj : AnyRef , field : String , value : AnyRef , clazz : Class[_]) {
+	def setFieldValue(obj: AnyRef, field: String, value: AnyRef, clazz: Class[_]) {
 		try {
-			obj.getClass.getMethod (field + "_$eq",clazz).invoke(obj,value)
+			obj.getClass.getMethod(field + "_$eq", clazz).invoke(obj, value)
 		} catch {
-			case e : Exception =>
+			case e: Exception =>
 				Noto.error(f"Attempted to reflectively set field value $field to $value on $obj, but could not find method")
 		}
 	}

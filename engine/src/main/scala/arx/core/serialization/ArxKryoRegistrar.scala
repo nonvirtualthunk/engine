@@ -7,6 +7,7 @@ package arx.core.serialization
  * Time: 4:29 PM
  */
 
+import arx.core.introspection.ReflectionAssistant
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.minlog.Log
 

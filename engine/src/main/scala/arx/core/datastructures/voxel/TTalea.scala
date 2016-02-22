@@ -12,8 +12,8 @@ import arx.core.vec.ReadVec3i
 import arx.core.vec.coordinates.VoxelCoord
 import scalaxy.loops._
 
-trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] with BoundedVoxelView[T] {
-	@volatile var _modifiedCount: Int = 0
+trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] {
+	var _modifiedCount: Int = 0
 	var _edgeModifiedCount : Array[Int] = Array.ofDim[Int](6) //lx hx , ly hy , lz hy
 	var hash: Int = 0
 	var isLoggingEnabled = false

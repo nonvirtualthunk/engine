@@ -19,3 +19,7 @@ object THasAbsolutePosition{
 		def position: ObjectCoord = ObjectCoord.Sentinel
 	}
 }
+
+trait THasVoxelPosition {
+	def position : VoxelCoord
+}

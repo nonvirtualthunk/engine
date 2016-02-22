@@ -37,6 +37,10 @@ trait BoundedVoxelView[@specialized(Byte, Short, Int) T] extends VoxelView[T] {
 	}
 }
 
+trait BoundedVoxelStore[@specialized(Byte, Short, Int) T] extends VoxelStore[T] with BoundedVoxelView[T] {
+
+}
+
 object EmptyByteVoxelGrid extends VoxelStore[Byte] with BoundedVoxelView[Byte] {
 	override def update(x: Int, y: Int, z: Int, value: Byte): Unit = {}
 

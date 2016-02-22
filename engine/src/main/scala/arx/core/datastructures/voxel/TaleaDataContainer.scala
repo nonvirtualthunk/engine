@@ -7,6 +7,8 @@ package arx.core.datastructures.voxel
   * Time: 6:55 AM
   */
 
+import java.util
+
 import arx.Prelude._
 import scalaxy.loops._
 import arx.core.vec._
@@ -15,7 +17,11 @@ import arx.core.vec._
 class TaleaDataContainer[@specialized(Byte,Short,Int) T](val dimension:Int, val defaultValue:T, val componentClass : Class[T]) {
 	var dimensionPo2:Int = (math.log(dimension) / math.log(2)).toInt
 	var dimensionPo22:Int = dimensionPo2 + dimensionPo2
-	private[datastructures] var data: Array[T] = { val d = componentClass.newArray(1);d(0) = defaultValue;d }
+	private[datastructures] var data: Array[T] = {
+		val d = componentClass.newArray(1)
+		d(0) = defaultValue
+		d
+	}
 	var _mask : Int = 0x00000000
 	def mask : Int = _mask
 
@@ -71,6 +77,26 @@ class TaleaDataContainer[@specialized(Byte,Short,Int) T](val dimension:Int, val 
 	@inline def getByIndexUnsafe(i:Int) = data(i)
 	@inline def getByIndex(i:Int) = data(i & mask)
 	@inline def setByIndex(i:Int,b:T) { data(i) = b }
+
+	def loadRow(startX : Int, startY : Int, startZ : Int, xLength : Int, startOff : Int, out : Array[T]) = {
+		val arr = data
+		if (arr.length == 1) {
+			out(0) = defaultValue
+			var i = 1
+			while (i < xLength) {
+				val copyLen = if (xLength - i < i) {
+					xLength - i
+				} else {
+					i
+				}
+				System.arraycopy(out,0,out,i,copyLen)
+				i += 1
+			}
+		} else {
+			val index = toIndex(startX,startY,startZ)
+			System.arraycopy(data,index,out,startOff,xLength)
+		}
+	}
 
 	def getBlock2x2(x : Int,y: Int,z: Int,ret : Array[T]) {
 		val h1 = (z << dimensionPo22) + (y << dimensionPo2) + x
