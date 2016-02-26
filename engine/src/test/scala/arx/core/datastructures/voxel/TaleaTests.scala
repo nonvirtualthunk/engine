@@ -87,98 +87,48 @@ class TaleaTests extends FlatSpec {
 
 object PerformanceTestingVoxelGrid {
 	def main(args: Array[String]) {
+
+//		for (i <- 0 until 3 optimized) {
+//			val grid = new VoxelGrid[Byte]
+//
+//			val c = VoxelCoord.Center
+//			for (z <- 0 until 256 optimized; y <- 0 until 256 optimized; x <- 0 until 256 optimized) {
+//				grid(c.x + x, c.y + y, c.z + z) = (x + y + z).toByte
+//			}
+//
+//			var count = 0
+//			Metrics.timer("Sequential top-level access, with adjacents").timeStmt {
+//				for (z <- 1 until 255 optimized; y <- 1 until 255 optimized; x <- 1 until 255 optimized) {
+//					val ax = c.x + x
+//					val ay = c.y + y
+//					val az = c.z + z
+//					var sum: Int = grid(ax, ay, az)
+//					var expected: Int = (x + y + z).toByte
+//					for (q <- 0 until 6 optimized) {
+//						sum += grid(ax + Cardinals.cardinalsX(q), ay + Cardinals.cardinalsY(q), az + Cardinals.cardinalsZ(q))
+//						expected += (x + Cardinals.cardinalsX(q) + y + Cardinals.cardinalsY(q) + z + Cardinals.cardinalsZ(q)).toByte
+//					}
+//
+//					if (sum != expected) {
+//						println(s"Unexpected values $sum, $expected")
+//					} else {
+//						count += 1
+//					}
+//				}
+//			}
+//			println(s"count ${count}")
+//		}
+//		Metrics.prettyPrint()
+
 		for (i <- 0 until 3 optimized) {
-			val grid = new VoxelGrid[Byte]
-
-			val c = VoxelCoord.Center
-			for (z <- 0 until 256 optimized; y <- 0 until 256 optimized; x <- 0 until 256 optimized) {
-				grid(c.x + x, c.y + y, c.z + z) = (x + y + z).toByte
-			}
-
-			var count = 0
-			Metrics.timer("Sequential top-level access, with adjacents").timeStmt {
-				for (z <- 1 until 255 optimized; y <- 1 until 255 optimized; x <- 1 until 255 optimized) {
-					val ax = c.x + x
-					val ay = c.y + y
-					val az = c.z + z
-					var sum: Int = grid(ax, ay, az)
-					var expected: Int = (x + y + z).toByte
-					for (q <- 0 until 6 optimized) {
-						sum += grid(ax + Cardinals.cardinalsX(q), ay + Cardinals.cardinalsY(q), az + Cardinals.cardinalsZ(q))
-						expected += (x + Cardinals.cardinalsX(q) + y + Cardinals.cardinalsY(q) + z + Cardinals.cardinalsZ(q)).toByte
-					}
-
-					if (sum != expected) {
-						println(s"Unexpected values $sum, $expected")
-					} else {
-						count += 1
-					}
-				}
-			}
-			println(s"count ${count}")
-		}
-		Metrics.prettyPrint()
-
-		for (i <- 0 until 3 optimized) {
-			//			adjOpt2()
 			adjOpt3()
 		}
 
-		//		for (i <- 0 until 3 optimized) {
-		//			adjOpt1()
-		//		}
+		for (i <- 0 until 3 optimized) {
+			adjOpt4()
+		}
 		Metrics.prettyPrint()
 
-
-		//		for (i <- 0 until 3 optimized) {
-		//			Metrics.timer("Sequential top-level access").timeStmt {
-		//				val grid = new VoxelGrid[Byte]
-		//
-		//				val c = VoxelCoord.Center
-		//				for (z <- 0 until 512 optimized; y <- 0 until 512 optimized; x <- 0 until 512 optimized) {
-		//					grid(c.x + x,c.y + y,c.z + z) = (x + y + z).toByte
-		//				}
-		//
-		//				for (z <- 0 until 512 optimized; y <- 0 until 512 optimized; x <- 0 until 512 optimized) {
-		//					val readOut = grid(c.x + x,c.y + y,c.z + z)
-		//					if (readOut != (x + y + z).toByte) {
-		//						println("not equal")
-		//					}
-		//				}
-		//			}
-		//		}
-		//
-		//		Metrics.prettyPrint()
-		//
-		//		for (i <- 0 until 3 optimized) {
-		//			Metrics.timer("Sequential bucketed access").timeStmt {
-		//				val grid = new VoxelGrid[Byte]
-		//
-		//				val c = VoxelCoord.Center
-		//				for (x <- 0 until 512 by 32 optimized; y <- 0 until 512 by 32 optimized; z <- 0 until 512 by 32 optimized) {
-		//					val sub = grid.grid.getOrElseUpdate(c.x + x,c.y + y,c.z + z)
-		//
-		//					val cx = c.x + x
-		//					val cy = c.y + y
-		//					val cz = c.z + z
-		//					for (dz <- 0 until 32 optimized; dy <- 0 until 32 optimized; dx <- 0 until 32 optimized) {
-		//						sub(dx,dy,dz) = ((cx+dx) + (cy+dy) + (cz+dz)).toByte
-		//					}
-		//				}
-		//
-		//				for (x <- 0 until 512 by 32 optimized; y <- 0 until 512 by 32 optimized; z <- 0 until 512 by 32 optimized) {
-		//					val sub = grid.subStore(VoxelRegion(c + Vec3i(x,y,z),c + (Vec3i(x,y,z) + 31)))
-		//					sub.foreach((ax,ay,az,b) => {
-		//						if (b != (ax + ay + az).toByte) {
-		//							println(s"not equal: $ax, $ay, $az: $b, should be ${(ax + ay + az).toByte}")
-		//							System.in.read()
-		//						}
-		//					})
-		//				}
-		//			}
-		//		}
-		//
-		//		Metrics.prettyPrint()
 	}
 
 	def adjOpt1(): Unit = {
@@ -331,6 +281,35 @@ object PerformanceTestingVoxelGrid {
 			}
 		}
 		println(s"count ${count}")
+	}
+
+	def adjOpt4(): Unit = {
+		val grid = new VoxelGrid[Byte]
+
+		val c = VoxelCoord.Center
+		for (z <- -1 to 256 optimized; y <- -1 to 256 optimized; x <- -1 to 256 optimized) {
+			grid(c.x + x, c.y + y, c.z + z) = (x + y + z).toByte
+		}
+
+		var count = 0
+		val min = VoxelCoord(c)
+		val max = VoxelCoord(c + 255)
+		val iter = new VoxelItereator(grid, VoxelRegion(min,max))
+		Metrics.timer("Opt 4").timeStmt {
+			iter.foreachWithAdjacents((x,y,z,arr) => {
+				val sum = arr(0) + arr(1) + arr(2) + arr(3) + arr(4) + arr(5) + arr(6)
+
+				val expected = (x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z-1).toByte +(x+y+z+1).toByte +
+					(x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z).toByte
+
+				if (expected != sum) {
+					println(s"Not matched $expected, $sum")
+				} else {
+					count += 1
+				}
+			})
+		}
+		println("Count: " + count)
 	}
 
 	def loadRow(sx: Int, sy: Int, sz: Int, grid: VoxelGrid[Byte], arr: Array[Byte]): Unit = {
