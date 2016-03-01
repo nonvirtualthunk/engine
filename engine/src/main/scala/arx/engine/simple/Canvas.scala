@@ -11,7 +11,7 @@ import arx.Prelude._
 import arx.application.Noto
 import arx.core.vec._
 import arx.graphics.AVBO
-import arx.graphics.DynamicVBO
+import arx.graphics.VBO
 import arx.graphics.Image
 import arx.graphics.TextureBlock
 import arx.graphics.attributeprofiles.SimpleAttributeProfile
@@ -21,7 +21,7 @@ import scalaxy.loops._
 
 class Canvas {
 	protected val vbo = new AVBO(SimpleAttributeProfile)
-	vbo.state.set(DynamicVBO.Clean)
+	vbo.state.set(VBO.Clean)
 	protected val textureBlock = new TextureBlock(2048, 2048)
 
 	protected val blankTC = textureBlock(ResourceManager.image("default/blank.png"))
@@ -35,7 +35,7 @@ class Canvas {
 	}
 
 	protected[engine] def startDraw() = {
-		if (vbo.state.compareAndSet(DynamicVBO.Clean, DynamicVBO.Updating)) {
+		if (vbo.state.compareAndSet(VBO.Clean, VBO.Updating)) {
 			vbo.clear()
 			true
 		} else {
@@ -44,8 +44,7 @@ class Canvas {
 	}
 
 	protected[engine] def finishDraw() = {
-		vbo.lastUpdatedMarker = vbo.lastSolidifiedMarker + 1
-		if (!vbo.state.compareAndSet(DynamicVBO.Updating, DynamicVBO.Updated)) {
+		if (!vbo.state.compareAndSet(VBO.Updating, VBO.Updated)) {
 			Noto.error("Unexpected underlying vbo state in canvas")
 		}
 	}

@@ -15,7 +15,7 @@ import arx.core.vec.coordinates.VoxelCoord
 
 
 class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _defaultValue: T) extends TTalea[T] {
-	hash = Talea.hash(_position.x,_position.y,_position.z)
+	private var _hash = Talea.hash(_position.x,_position.y,_position.z)
 	protected[datastructures] var _size = Talea.dimension
 
 	def createDataContainer() = new TaleaDataContainer[T](Talea.dimension,_defaultValue,getComponentType.asInstanceOf[Class[T]])
@@ -48,15 +48,12 @@ class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _def
 					t.nonDefaultCount == this.nonDefaultCount &&
 					t.shiftedPosition.equals(this.shiftedPosition) &&
 					t._modifiedCount == this._modifiedCount &&
-					t.hash == this.hash &&
+					t.hashCode() == this.hashCode() &&
 					t.data.equals(this.data)
 			}
 			case _ => false
 		}
 	}
-
-
-	override def hashCode() = hash
 
 	def apply (x: Int,y: Int,z: Int): T = {
 		data(x,y,z)
@@ -284,16 +281,18 @@ class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _def
 	override def toString : String = {
 		"Talea " + position
 	}
+
+	final override def hashCode() : Int = _hash
 }
 
 
 
 
 object Talea {
-	val dimensionPo2 = 5//:Int = (Math.log(dimension) / Math.log(2)).toInt
-	val dimension = 1 << dimensionPo2
-	val dimensionf = dimension.toFloat
-	val dimensionM1 = dimension - 1
+	final val dimensionPo2 = 5//:Int = (Math.log(dimension) / Math.log(2)).toInt
+	final val dimension = 1 << dimensionPo2
+	final val dimensionf = dimension.toFloat
+	final val dimensionM1 = dimension - 1
 
 	def hash (x: Int,y: Int,z: Int): Int = {
 		((x >> dimensionPo2) << 20) | ((y >> dimensionPo2) << 10) | (z >> dimensionPo2)

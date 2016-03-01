@@ -15,7 +15,6 @@ import scalaxy.loops._
 trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] {
 	var _modifiedCount: Int = 0
 	var _edgeModifiedCount : Array[Int] = Array.ofDim[Int](6) //lx hx , ly hy , lz hy
-	var hash: Int = 0
 	var isLoggingEnabled = false
 
 	def defaultValue : T
@@ -60,6 +59,4 @@ trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] {
 
 	def enableLogging () { isLoggingEnabled = true }
 	def disableLogging () { isLoggingEnabled = false }
-
-	override def hashCode() = hash
 }

@@ -120,15 +120,15 @@ object PerformanceTestingVoxelGrid {
 //		}
 //		Metrics.prettyPrint()
 
-		for (i <- 0 until 3 optimized) {
+		for (i <- 0 until 15 optimized) {
 			adjOpt3()
 		}
 
-		for (i <- 0 until 3 optimized) {
-			adjOpt4()
+		for (i <- 0 until 15 optimized) {
+			adjOpt6()
 		}
 		Metrics.prettyPrint()
-
+		System.exit(0)
 	}
 
 	def adjOpt1(): Unit = {
@@ -308,6 +308,135 @@ object PerformanceTestingVoxelGrid {
 					count += 1
 				}
 			})
+		}
+		println("Count: " + count)
+	}
+
+	def adjOpt5(): Unit = {
+		val grid = new VoxelGrid[Byte]
+
+		val c = VoxelCoord.Center
+		for (z <- -1 to 256 optimized; y <- -1 to 256 optimized; x <- -1 to 256 optimized) {
+			grid(c.x + x, c.y + y, c.z + z) = (x + y + z).toByte
+		}
+
+		var count = 0
+		val min = VoxelCoord(c)
+		val max = VoxelCoord(c + 255)
+		val iter = new VoxelItereator2(grid, VoxelRegion(min,max))
+//var count = 0
+		Metrics.timer("Opt 5").timeStmt {
+			val oride = new Overrider[Byte](grid,VoxelRegion(min,max)) {
+				var internCount = 0
+
+				@inline override protected
+				def visit(): Unit = {
+//					val sum = curYRow(dx) +
+//						curYRow(dx+1) +
+//						curYRow(dx+2) +
+//						prevYRow(dx+1) +
+//						underRow(dx) +
+//						overRow(dx) +
+//						nextYRow(dx+1)
+//					val sum = out(0)+out(1)+out(2)+out(3)+out(4)+out(5)+out(6)
+					val sum = left + center + right + up + down + front + back
+//					var sum = 0
+//					for (q <- 0 until 7 optimized) {
+//						sum += adj(q)
+//					}
+
+					val x = tx + dx
+					val y = ty + dy
+					val z = tz + dz
+
+					val expected = (x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z-1).toByte +(x+y+z+1).toByte +
+						(x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z).toByte
+
+					if (expected != sum) {
+						println(s"Not matched $expected, $sum")
+					} else {
+						internCount += 1
+					}
+				}
+				override protected def after(): Unit = {
+					count = internCount
+				}
+			}
+			oride.foreachWithAdjacents()
+
+			// min - 200ms
+//			while (iter.next()) {
+//				val sum = iter.curYRow(iter.dx) +
+//					iter.curYRow(iter.dx+1) +
+//					iter.curYRow(iter.dx+2) +
+//					iter.prevYRow(iter.dx+1) +
+//					iter.underRow(iter.dx) +
+//					iter.overRow(iter.dx) +
+//					iter.nextYRow(iter.dx+1)
+//
+//				val x = iter.tx + iter.dx
+//				val y = iter.ty + iter.dy
+//				val z = iter.tz + iter.dz
+//
+//				val expected = (x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z-1).toByte +(x+y+z+1).toByte +
+//					(x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z).toByte
+//
+//				if (expected != sum) {
+////					println(s"Not matched $expected, $sum")
+//				} else {
+//					count += 1
+//				}
+//			}
+		}
+		println("Count: " + count)
+	}
+
+	def adjOpt6 (): Unit = {
+		val grid = new VoxelGrid[Byte]
+
+		val c = VoxelCoord.Center
+		for (z <- -1 to 256 optimized; y <- -1 to 256 optimized; x <- -1 to 256 optimized) {
+			grid(c.x + x, c.y + y, c.z + z) = (x + y + z).toByte
+		}
+
+
+		val min = VoxelCoord(c)
+		val max = VoxelCoord(c + 255)
+
+		val po2 = Talea.dimensionPo2
+		val shiftedStart = min >> Talea.dimensionPo2
+		val shiftedEnd = max >> Talea.dimensionPo2
+		var count = 0
+		Metrics.timer("Opt 5").timeStmt {
+			var internCount = 0
+			for (sx <- shiftedStart.x to shiftedEnd.x optimized;
+				  sy <- shiftedStart.y to shiftedEnd.y optimized;
+				  sz <- shiftedStart.z to shiftedEnd.z optimized) {
+				val tx = sx << po2
+				val ty = sy << po2
+				val tz = sz << po2
+				val iter = TaleaIterator.withAdjacents(grid, VoxelCoord(sx << po2, sy << po2, sz << po2))
+				for (dz <- 0 until 32 optimized; dy <- 0 until 32 optimized; dx <- 0 until 32 optimized) {
+					iter.moveTo(dx,dy,dz)
+
+					val sum = iter.left + iter.center + iter.right + iter.up + iter.down + iter.front + iter.back
+
+					val x = tx + dx
+					val y = ty + dy
+					val z = tz + dz
+
+					val expected = (x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z-1).toByte +(x+y+z+1).toByte +
+						(x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z).toByte
+
+					if (expected != sum) {
+//						println(s"Not matched $expected, $sum")
+					} else {
+						internCount += 1
+					}
+				}
+
+			}
+			count = internCount
 		}
 		println("Count: " + count)
 	}

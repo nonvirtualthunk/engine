@@ -13,13 +13,14 @@ import arx.core.Dependency
 import arx.core.datastructures.UpdateThread
 import arx.core.units.UnitOfTime
 import arx.engine.EnginePiece
+import arx.engine.event.EventBus
 import arx.engine.graphics.GraphicsEngine.PovComponent
 import arx.engine.graphics.components.GraphicsComponent
 import arx.engine.world.World
 import arx.graphics.pov.EyeCamera
 import arx.graphics.pov.TCamera
 
-class GraphicsEngine(world : World) extends EnginePiece[GraphicsComponent] {
+class GraphicsEngine(world : World, val eventBus : EventBus) extends EnginePiece[GraphicsComponent] {
 	def graphicsComponents = components
 	var pov : TCamera = new EyeCamera()
 

@@ -10,12 +10,13 @@ package arx.engine.game
 import arx.core.datastructures.UpdateThread
 import arx.core.units.UnitOfTime
 import arx.engine.EnginePiece
+import arx.engine.event.EventBus
 import arx.engine.game.components.GameComponent
 import arx.engine.world.World
 import arx.Prelude._
 import scalaxy.loops._
 
-class GameEngine(val world: World) extends EnginePiece[GameComponent] {
+class GameEngine(val world: World, val eventBus : EventBus) extends EnginePiece[GameComponent] {
 	val self = this
 
 	parallelism = 4

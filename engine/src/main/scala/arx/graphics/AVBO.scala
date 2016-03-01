@@ -12,13 +12,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import arx.application.Application
 import arx.application.Noto
+import arx.core.datastructures.SynchronizedQueue
 import arx.core.vec._
+import arx.graphics.data.PointBuilder
 import arx.graphics.traits.TRenderTarget
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL15._
 import org.lwjgl.opengl._
+import arx.Prelude._
 
-import scala.collection.mutable.SynchronizedQueue
 
 class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	var points = new GLData(GL_FLOAT) //The GL_FLOAT doesn't actually have any particular purpose here, by the way, only used for indices
@@ -26,19 +28,27 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	indices.shortStride = 1
 	points.byteStride = _attribProfile.byteStride
 
-	@volatile var lastUpdatedMarker: Long = 0
-	var lastSolidifiedMarker: Long = 0
-	var state : AtomicInteger = new AtomicInteger(DynamicVBO.Clean)
-	protected var _writingActive: Boolean = false
+	protected var _state : AtomicInteger = new AtomicInteger(VBO.Updated)
 	var deferredUntilAfterWrite = new SynchronizedQueue[() => Unit]()
 	var vao = 0
 
-	def writingActive : Boolean = _writingActive
-	def writingActive_= ( b : Boolean ) {
-		if ( _writingActive && ! b ) {
-			_writingActive = b
-			while ( deferredUntilAfterWrite.nonEmpty ) { (deferredUntilAfterWrite.dequeue())() }
-		} else { _writingActive = b }
+
+	def state = _state
+	def changeState(fromState : Int, toState : Int) = {
+		if (_state.compareAndSet(fromState, toState)) {
+			// if we moved from updating to updated we should be ok to apply all the deferred tasks
+			// that were waiting until writing was finished
+			if (fromState == VBO.Updating) {
+				while ( deferredUntilAfterWrite.nonEmpty ) {
+					deferredUntilAfterWrite.dequeueOpt() pmatch {
+						case Some(task) => task.apply()
+					}
+				}
+			}
+			true
+		} else {
+			false
+		}
 	}
 
 	def attribProfile_= ( p : AttributeProfile ) {
@@ -72,7 +82,7 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 		if ( points.numElements > 0 ) {
 			setOpenGLPointers()
 		}
-		state.set( DynamicVBO.Solidified )
+		state.set( VBO.Solidified )
 	}
 
 	def solidify (usage: Int, numPointsToSolidify : Int , numIndicesToSolidify : Int ) {
@@ -91,11 +101,10 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 		}
 	}
 
-	def wouldSolidifyIfNecessary : Boolean = lastUpdatedMarker > lastSolidifiedMarker && ! writingActive
+	def wouldSolidifyIfNecessary : Boolean = state.get() == VBO.Updated
 	def solidifyIfNecessary(usage: Int = GL15.GL_DYNAMIC_DRAW) = {
 		if ( wouldSolidifyIfNecessary ) {
-			if ( state.compareAndSet(DynamicVBO.Updated,DynamicVBO.Solidifying) ) {
-				lastSolidifiedMarker = lastUpdatedMarker
+			if ( state.compareAndSet(VBO.Updated,VBO.Solidifying) ) {
 				solidify(usage)
 				true
 			} else { false }
@@ -111,23 +120,19 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 		   the VBO, because the thing moved out of view before it had finished. This way we let it finish what it's
 		   doing before we nuke, it potentially wastes some time, but it's much safer, and gives more reasonable
 		   guarantees to the code using the VBO */
-		if ( writingActive ) { deferredUntilAfterWrite.enqueue( () => this.clear() ) }
+		if ( state.get() == VBO.Updating ) { deferredUntilAfterWrite.enqueue( () => this.clear() ) }
 		else {
 			points.clear()
 			indices.clear()
-			lastUpdatedMarker = 0
 		}
 	}
 
-	def drawElements (primitive: Int,start: Int = 0,length: Int = -1,skipPostDraw : Boolean = false){
+	def drawElements (primitive: Int = GL11.GL_TRIANGLES,start: Int = 0,length: Int = -1,skipPostDraw : Boolean = false){
 		if ( ! GL.disabled ) {
 			val effectiveLength = if ( length == -1 ) { indices.numSolidifiedElements - start } else { length }
 			if ( effectiveLength > 0 ) {
 				if ( vao != 0 ) {
 					VAO.bind(vao)
-//					glDrawElements(primitive,effectiveLength,indices.dataType,start * indices.byteStride)
-//					GL12.glDrawRangeElements(primitive,start,start+effectiveLength,effectiveLength,indices.dataType,start * indices.byteStride)
-//					glDrawElements(primitive,effectiveLength,indices.dataType,start * indices.byteStride)
 					GL.backing.glDrawElements(primitive,effectiveLength,indices.dataType,start * indices.byteStride)
 					if ( ! skipPostDraw ) {
 						VAO.unbind()
@@ -143,7 +148,6 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 			if ( effectiveLength > 0 ) {
 				if ( vao != 0 ) {
 					VAO.bind(vao)
-//					glDrawArrays(primitive,start,effectiveLength)
 					GL.backing.glDrawArrays(primitive,start,effectiveLength)
 					VAO.unbind()
 				}
@@ -158,7 +162,6 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 				val attribute = _attribProfile.attributes(i)
 				val normalize = attribute.normalize && (attribute.dataType == GL_BYTE || attribute.dataType == GL_UNSIGNED_BYTE || attribute.dataType == GL_SHORT || attribute.dataType == GL_UNSIGNED_SHORT ||
 										attribute.dataType == GL_INT || attribute.dataType == GL_UNSIGNED_INT)
-//				GL20.glVertexAttribPointer(i,attribute.size,attribute.dataType,normalize,_attribProfile.byteStride,attribute.byteOffset)
 
 				if ( ! attribute.rawInteger ) {
 					GL.backing.glVertexAttribPointer(i,attribute.size,attribute.dataType,normalize,_attribProfile.byteStride,attribute.byteOffset)
@@ -172,8 +175,7 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	}
 
 	def lcl_subSolidify(data: GLData , bufferType: Int, usage: Int, limit : Int = -1){
-		//		data.synchronized {
-		if ( writingActive ) { throw new IllegalStateException("Writing active while solidifying") }
+		if ( state.get() == VBO.Updating ) { throw new IllegalStateException("Writing active while solidifying") }
 		val tmpBuffer = data.rawData.asReadOnlyBuffer()
 		val effectiveLimit = if ( limit == -1 ) { data.numElements * data.byteStride } else { limit * data.byteStride } //convert the numElements realm limit into byte limit
 
@@ -182,23 +184,20 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 			tmpBuffer.limit(effectiveLimit)
 
 			if ( data.name == 0 ){
-//				data.name = glGenBuffers()
 				data.name = GL.backing.glGenBuffers()
 			}
 			VBO.bindBuffer(bufferType,data.name)
 
-//			glBufferData(bufferType,tmpBuffer,usage)
 			GL.backing.glBufferData(bufferType,tmpBuffer,usage)
 		}
 
 		data.numSolidifiedElements = effectiveLimit / data.byteStride //account for the possibility of a supplied limit
-		//		}
 	}
 
 	def unsolidify () {
 		lcl_subUnsolidify(points)
 		lcl_subUnsolidify(indices)
-		lastSolidifiedMarker = 0
+		// TODO: should this change the state to Dirty?
 	}
 
 	def lcl_subUnsolidify(data: GLData) {
@@ -228,9 +227,14 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	}
 
 
-	def setA (attribIndex: Int,n : Int, v : ReadVec2f) { points.set(n,_attribProfile.attributes(attribIndex).floatOffset,v) }
-	def setA (attribIndex: Int,n : Int, v : ReadVec3f) { points.set(n,_attribProfile.attributes(attribIndex).floatOffset,v) }
-	def setA (attribIndex: Int,n : Int, v : ReadVec4f) { points.set(n,_attribProfile.attributes(attribIndex).floatOffset,v) }
+	def setPoint(n : Int, buf : PointBuilder): Unit = {
+		points.rawData.position(n * points.byteStride)
+		buf.bytes.rewind()
+		points.rawData.put(buf.bytes)
+	}
+	def setA (attribIndex: Int,n : Int, v : ReadVec2f) { points.setV2(n,_attribProfile.attributes(attribIndex).floatOffset,v) }
+	def setA (attribIndex: Int,n : Int, v : ReadVec3f) { points.setV3(n,_attribProfile.attributes(attribIndex).floatOffset,v) }
+	def setA (attribIndex: Int,n : Int, v : ReadVec4f) { points.setV4(n,_attribProfile.attributes(attribIndex).floatOffset,v) }
 	def setA (attribIndex: Int,n : Int, x : Float ) { points.set(n,_attribProfile.attributes(attribIndex).floatOffset,x) }
 	def setA (attribIndex: Int,n : Int, x : Float, y : Float) { points.set(n,_attribProfile.attributes(attribIndex).floatOffset,x,y) }
 	def setA (attribIndex: Int,n : Int, x : Float, y : Float, z : Float) { points.set(n,_attribProfile.attributes(attribIndex).floatOffset,x,y,z) }
@@ -321,9 +325,9 @@ case class AttribInfo(size : Int, dataType : Int, byteOffset : Int , name : Stri
 }
 
 object AVBO {
-	val Clean = DynamicVBO.Clean
-	val Dirty = DynamicVBO.Dirty
-	val Updating = DynamicVBO.Updating
-	val Updated = DynamicVBO.Updated
-	val Solidified = DynamicVBO.Solidified
+	val Clean = VBO.Clean
+	val Dirty = VBO.Dirty
+	val Updating = VBO.Updating
+	val Updated = VBO.Updated
+	val Solidified = VBO.Solidified
 }

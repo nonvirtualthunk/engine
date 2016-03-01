@@ -11,6 +11,7 @@ import arx.Prelude._
 import arx.core.vec.ReadVec2f
 import arx.engine.EngineCore
 import arx.engine.control.event.Event._
+import arx.engine.event.EventBus
 import arx.engine.game.GameEngine
 import arx.engine.graphics.GraphicsEngine
 import arx.engine.world.World
@@ -19,8 +20,9 @@ import scalaxy.loops._
 
 class Engine extends EngineCore with TEventUser {
 	val world = new World
-	val gameEngine = new GameEngine(world)
-	val graphicsEngine = new GraphicsEngine(world)
+	val eventBus = new EventBus
+	val gameEngine = new GameEngine(world, eventBus)
+	val graphicsEngine = new GraphicsEngine(world, eventBus)
 
 	override def update(deltaSeconds: Float): Unit = {
 		gameEngine.update(deltaSeconds)
