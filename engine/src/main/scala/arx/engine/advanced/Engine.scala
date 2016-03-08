@@ -24,6 +24,8 @@ class Engine extends EngineCore with TEventUser {
 	val gameEngine = new GameEngine(world, eventBus)
 	val graphicsEngine = new GraphicsEngine(world, eventBus)
 
+	var first = true
+
 	override def update(deltaSeconds: Float): Unit = {
 		gameEngine.update(deltaSeconds)
 		graphicsEngine.update(deltaSeconds)
@@ -32,7 +34,7 @@ class Engine extends EngineCore with TEventUser {
 	override def draw(): Unit = {
 		graphicsEngine.draw()
 	}
-	
+
 	eventFallback {
 		case e : Event => graphicsEngine.pov.handleEvent(e)
 	}

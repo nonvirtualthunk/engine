@@ -18,6 +18,9 @@ class GameEntity(var name : String = "") extends TGameEntity with THasInternalAu
 	if (name.isEmpty) {
 		name = "GameEntity(" + id + ")"
 	}
+	protected var _archetype : Option[GameArchetype] = None
+	override def archetype: Option[GameArchetype] = _archetype
+	override def archetype_= (arc : GameArchetype) { _archetype = Some(arc) }
 
 	override def hashCode() = id.hashCode()
 	override def equals(obj: scala.Any): Boolean = obj match {

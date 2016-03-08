@@ -50,3 +50,44 @@ class ByteMapping[T <: TIdentifiable] ( sentinelValue : T )(implicit man : Manif
 
 	def typeManifest = man
 }
+
+class ShortMapping[T <: TIdentifiable] ( sentinelValue : T )(implicit man : Manifest[T])  {
+	val forward = new mutable.HashMap[String,Short]
+	var backward = new GrowableArray[T]()(man)
+
+	this.apply(sentinelValue)
+
+	def apply ( t : T ) = {
+		forward.getOrElseUpdate(t.identifier,{
+			backward.append(t)
+			(backward.size - 1).toShort
+		})
+	}
+
+	def set ( b : Byte , t : T ) = {
+		val setTo = forward.getOrElseUpdate(t.identifier,{
+			val i = b & 0xffff
+			backward.ensureSize(i+1)
+			backward(i) = t
+			i.toShort
+		})
+		if ( setTo != b ) { Noto.warn("ByteMappting.set(...) called, but reference already existed at different index") }
+		setTo
+	}
+
+	def apply ( b : Byte ) = {
+		backward(b & 0xff)
+	}
+	def apply ( b : Short ) = {
+		backward(b & 0xffff)
+	}
+	def apply ( b : Int ) = {
+		backward(b)
+	}
+
+	def size = backward.size
+
+	def toList = backward.toList
+
+	def typeManifest = man
+}

@@ -10,10 +10,23 @@ package arx.engine.game.components
 import arx.Prelude._
 import arx.core.TDependable
 import arx.core.traits.TUpdateable
+import arx.core.units.UnitOfTime
 import arx.engine.game.GameEngine
 import arx.engine.world.World
 import scalaxy.loops._
 
 abstract class GameComponent(gameEngine: GameEngine, world : World) extends TDependable with TUpdateable {
+	protected var initialized = false
 
+	override def updateSelf(dt: UnitOfTime): Unit = {
+		if (!initialized) {
+			initialize()
+			initialized = true
+		}
+		super.updateSelf(dt)
+	}
+
+	protected def initialize(): Unit = {
+
+	}
 }

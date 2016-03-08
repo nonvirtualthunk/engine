@@ -161,7 +161,7 @@ class RawGrid[TaleaType <: AnyRef](val origin: VoxelCoord, val coreSize: ReadVec
 		}
 	}
 
-	def values = rawArray.filterNot(_ == null).toList ::: extraTaleae.values.toList
+	def values = (rawArray.filterNot(_ == null).toList ::: extraTaleae.values.toList).asInstanceOf[List[TaleaType]]
 
 	def getRawArray = rawArray
 

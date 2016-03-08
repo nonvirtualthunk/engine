@@ -28,7 +28,7 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	indices.shortStride = 1
 	points.byteStride = _attribProfile.byteStride
 
-	protected var _state : AtomicInteger = new AtomicInteger(VBO.Updated)
+	protected var _state : AtomicInteger = new AtomicInteger(VBO.Dirty)
 	var deferredUntilAfterWrite = new SynchronizedQueue[() => Unit]()
 	var vao = 0
 

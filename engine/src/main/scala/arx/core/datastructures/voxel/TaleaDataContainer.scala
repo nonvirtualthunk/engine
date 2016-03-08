@@ -81,7 +81,10 @@ class TaleaDataContainer[@specialized(Byte,Short,Int) T](val dimension:Int, val 
 	def loadRow(startX : Int, startY : Int, startZ : Int, xLength : Int, startOff : Int, out : Array[T]) = {
 		val arr = data
 		if (arr.length == 1) {
-			out(0) = defaultValue
+//			for (i <- startOff until startOff + xLength optimized) {
+//				out(i) = defaultValue
+//			}
+			out(startOff) = defaultValue
 			var i = 1
 			while (i < xLength) {
 				val copyLen = if (xLength - i < i) {
@@ -89,8 +92,8 @@ class TaleaDataContainer[@specialized(Byte,Short,Int) T](val dimension:Int, val 
 				} else {
 					i
 				}
-				System.arraycopy(out,0,out,i,copyLen)
-				i += 1
+				System.arraycopy(out,startOff,out,startOff+i,copyLen)
+				i += i
 			}
 		} else {
 			val index = toIndex(startX,startY,startZ)

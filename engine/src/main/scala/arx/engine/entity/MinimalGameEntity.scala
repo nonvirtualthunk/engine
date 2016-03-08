@@ -17,6 +17,8 @@ class MinimalGameEntity(val id : Long) extends TGameEntity with THasExternalAuxD
 		MinimalGameEntity.auxStore
 	}
 
+	override def archetype: Option[GameArchetype] = this.aux[ArchetypeAuxData].archetype
+	override def archetype_= (arc : GameArchetype) { this.aux[ArchetypeAuxData].archetype = Some(arc) }
 	def name = "MinimalEntity(" + id + ")"
 }
 
@@ -24,6 +26,10 @@ class MinimalGameEntityWrapper extends TGameEntity with THasExternalAuxData[TGam
 	var id = 0L
 	def name = "MinimalEntityWrapper(" + id + ")"
 
+
+
+	override def archetype: Option[GameArchetype] = this.aux[ArchetypeAuxData].archetype
+	override def archetype_= (arc : GameArchetype) { this.aux[ArchetypeAuxData].archetype = Some(arc) }
 	override def externalStore: TExternalAuxDataStore[TGameEntityAuxData] = {
 		MinimalGameEntity.auxStore
 	}
@@ -34,4 +40,8 @@ object MinimalGameEntity {
 
 	def apply(id : Long) = new MinimalGameEntity(id)
 	def apply() = new MinimalGameEntity(TGameEntity.IdCounter.getAndIncrement)
+}
+
+protected[entity] class ArchetypeAuxData extends TGameEntityAuxData {
+	var archetype : Option[GameArchetype] = None
 }

@@ -263,7 +263,6 @@ abstract class EngineCore {
 		// Set the clear color
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
 
-		// TODO: This *2 should only be there on mac
 		glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
 		arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
 
@@ -299,7 +298,7 @@ abstract class EngineCore {
 			// Poll for window events. The key callback above will only be
 			// invoked during this call.
 			glfwPollEvents()
-			if (fullPause) {
+			if (!hasFocus || fullPause) {
 				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
 			}
 		}

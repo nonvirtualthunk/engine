@@ -20,7 +20,8 @@ trait TGameEntity extends THasAuxData[TGameEntityAuxData] {
 	var world : World = World.Sentinel
 
 	def name : String
-
+	def archetype : Option[GameArchetype]
+	def archetype_= (arc : GameArchetype)
 
 	override def withData[R <: TGameEntityAuxData : Manifest] : WrappedWithData[TGameEntityAuxData,R,TGameEntity] =
 		new WrappedWithData[TGameEntityAuxData, R, TGameEntity](this)

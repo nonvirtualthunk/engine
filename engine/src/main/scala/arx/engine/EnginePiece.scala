@@ -60,6 +60,9 @@ abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest]
 
 		components = allComponents
 		nonComponents.foreach(nc => Noto.info(s"Instantiated non-component for engine: $nc"))
+		// Do one synchronous update of every game component, we want to ensure they have a chance to do any necessary
+		// initialization
+		components.par.foreach(_.updateSelf(0.01.seconds))
 		initialized = true
 	}
 }

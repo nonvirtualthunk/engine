@@ -183,4 +183,10 @@ object VoxelCoord {
 	val Center : VoxelCoord = new MutableVoxelCoord(2048,2048,2048)
 
 	val Sentinel : VoxelCoord = new SentinelVoxelCoord
+
+	def transformToRelative[T]( f : (Int,Int,Int) => T) = {
+		(x:Int,y:Int,z:Int) => {
+			f(x - VoxelCoord.Center.x, y - VoxelCoord.Center.y, z - VoxelCoord.Center.z)
+		}
+	}
 }

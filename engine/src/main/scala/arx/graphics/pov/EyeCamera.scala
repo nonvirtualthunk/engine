@@ -42,6 +42,9 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 	var deltaAngles : Vec2f = Vec2f(0.0f,0.0f)
 	var deltaEye : Vec3f = Vec3f(0.0f,0.0f,0.0f)
 
+	var eyeAccel = 0.0f
+	var turnAccel = 0.0f
+
 	import EyeCamera._
 	onEvent {
 		case kpe: KeyPressEvent => handleKey(kpe)
@@ -93,6 +96,22 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 				val effMS = effectiveMoveSpeed
 				val effTS = effectiveTurnSpeed
 
+				if (deltaEye.x.abs < 0.01f && deltaEye.y.abs < 0.01f && deltaEye.z.abs < 0.01f) {
+					eyeAccel = 0.1f
+				} else {
+					if (eyeAccel < 1.0f) {
+						eyeAccel += 0.15f
+					}
+				}
+
+				if (deltaAngles.x.abs < 0.01f && deltaAngles.y.abs < 0.01f) {
+					turnAccel = 0.1f
+				} else {
+					if (turnAccel < 1.0f) {
+						turnAccel = (turnAccel * 2.0f).clamp(0.0f,1.0f)
+					}
+				}
+
 				if ( useGlobalUp ) {
 					val forwardLength = (forward * Vec3f(1.0f,1.0f,0.0f)).lengthSafe
 					val tforward = forward * Vec3f(1.0f,1.0f,0.0f) * deltaEye.x
@@ -101,12 +120,12 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 					//up, since it is derived from (up x forward), whereas forward is derived
 					//from the transform, so looking down results in slower movement
 					val tup = Vec3f(0.0f,0.0f,1.0f) * deltaEye.z
-					eye += (tforward * effMS.x + tortho * effMS.y + tup * effMS.z) * f
+					eye += (tforward * effMS.x + tortho * effMS.y + tup * effMS.z) * f * eyeAccel
 				} else {
-					eye += ((forward * deltaEye.x * effMS.x) + (up * deltaEye.z * effMS.z) + (ortho * deltaEye.y * effMS.y)) * f
+					eye += ((forward * deltaEye.x * effMS.x) + (up * deltaEye.z * effMS.z) + (ortho * deltaEye.y * effMS.y)) * f * eyeAccel
 				}
 
-				angles += deltaAngles * f * 0.025f * effTS
+				angles += deltaAngles * f * 0.025f * effTS * turnAccel
 
 
 				val transform = (Mat3x4 rotateY angles.y) rotateZ angles.x

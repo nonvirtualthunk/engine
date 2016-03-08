@@ -19,7 +19,10 @@ import arx.core.vec._
 class VoxelGrid[@specialized(Byte, Short, Int) T](val defaultValue: T = null.asInstanceOf[T],
 																  coreSize: ReadVec3i = Vec3i(2048)) extends VoxelStore[T] {
 	/* Must be vars because of bug https://issues.scala-lang.org/browse/SI-4511 */
-	protected[datastructures] var dummyTalea = new Talea[T](VoxelCoord(-1, -1, -1), defaultValue)
+	protected[datastructures] var dummyTalea = new Talea[T](VoxelCoord(-1, -1, -1), defaultValue) {
+		override def update(x: Int, y: Int, z: Int, b: T): Unit = throw new IllegalStateException("Wrote to dummy talea")
+		override def apply(x: Int, y: Int, z: Int): T = defaultValue
+	}
 	protected[datastructures] var _grid = new RawGrid[Talea[T]](VoxelCoord.Center, coreSize, createTalea)
 	def grid = _grid
 
@@ -31,6 +34,14 @@ class VoxelGrid[@specialized(Byte, Short, Int) T](val defaultValue: T = null.asI
 	override def update(x: Int, y: Int, z: Int, value: T): Unit = {
 		val talea = _grid.getOrElseUpdate(x, y, z)
 		talea(x - talea.x, y - talea.y, z - talea.z) = value
+	}
+
+	def taleaAtRO(x:Int, y:Int, z:Int) = {
+		grid.getOrElse(x, y, z, dummyTalea)
+	}
+
+	def taleaAt(x:Int, y:Int, z:Int) = {
+		grid.getOrElseUpdate(x, y, z)
 	}
 
 	protected[datastructures] def createTalea(x: Int, y: Int, z: Int) = {

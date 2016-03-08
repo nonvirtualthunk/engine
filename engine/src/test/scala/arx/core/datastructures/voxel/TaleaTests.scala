@@ -121,7 +121,7 @@ object PerformanceTestingVoxelGrid {
 //		Metrics.prettyPrint()
 
 		for (i <- 0 until 15 optimized) {
-			adjOpt3()
+//			adjOpt3()
 		}
 
 		for (i <- 0 until 15 optimized) {
@@ -392,7 +392,7 @@ object PerformanceTestingVoxelGrid {
 	}
 
 	def adjOpt6 (): Unit = {
-		val grid = new VoxelGrid[Byte]
+		val grid = new VoxelGrid[Short]
 
 		val c = VoxelCoord.Center
 		for (z <- -1 to 256 optimized; y <- -1 to 256 optimized; x <- -1 to 256 optimized) {
@@ -407,7 +407,7 @@ object PerformanceTestingVoxelGrid {
 		val shiftedStart = min >> Talea.dimensionPo2
 		val shiftedEnd = max >> Talea.dimensionPo2
 		var count = 0
-		Metrics.timer("Opt 5").timeStmt {
+		Metrics.timer("Opt 6").timeStmt {
 			var internCount = 0
 			for (sx <- shiftedStart.x to shiftedEnd.x optimized;
 				  sy <- shiftedStart.y to shiftedEnd.y optimized;

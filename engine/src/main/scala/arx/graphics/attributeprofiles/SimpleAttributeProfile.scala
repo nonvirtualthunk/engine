@@ -1,3 +1,4 @@
+
 package arx.graphics.attributeprofiles
 
 /**
@@ -8,6 +9,7 @@ package arx.graphics.attributeprofiles
  * Created by nonvirtualthunk
  */
 
+import arx.core.vec.ReadVec2f
 import arx.graphics.AttributeProfile
 import arx.graphics.data.PointBuilder
 import org.lwjgl.opengl.GL11._
@@ -30,6 +32,12 @@ object SimpleAttributeProfile extends AttributeProfile(List("vertex" -> (3,GL_FL
 			bytes.putFloat(x)
 			bytes.putFloat(y)
 			bytes.putFloat(z)
+		}
+
+		def setTC(v : ReadVec2f): Unit = {
+			bytes.position(tcoff)
+			bytes.putFloat(v.x)
+			bytes.putFloat(v.y)
 		}
 
 		def setTC(x:Float,y:Float): Unit = {
