@@ -8,6 +8,7 @@ package arx.core.vec.coordinates
  * Created by nonvirtualthunk
  */
 
+import arx.core.datastructures.voxel.Talea
 import arx.core.vec._
 import arx.Prelude._
 import Cardinals._
@@ -26,6 +27,9 @@ trait VoxelCoord extends ReadVec3i with TMajorCoord {
 	override def - ( v : ReadVec3i ) : MutableVoxelCoord = { new MutableVoxelCoord(x - v.x,y - v.y,z - v.z) }
 	override def << ( s : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x << s, y << s, z << s) }
 	override def >> ( s : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x >> s, y >> s, z >> s) }
+
+	def downShifted = this >> Talea.dimensionPo2
+	def upShifted = this << Talea.dimensionPo2
 
 	def + ( v : (Int,Int,Int) ) : MutableVoxelCoord = { new MutableVoxelCoord(x + v._1,y + v._2,z + v._3) }
 	def - ( v : (Int,Int,Int) ) : MutableVoxelCoord = { new MutableVoxelCoord(x - v._1,y - v._2,z - v._3) }

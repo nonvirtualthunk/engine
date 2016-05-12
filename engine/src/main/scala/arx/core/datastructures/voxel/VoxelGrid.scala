@@ -23,7 +23,7 @@ class VoxelGrid[@specialized(Byte, Short, Int) T](val defaultValue: T = null.asI
 		override def update(x: Int, y: Int, z: Int, b: T): Unit = throw new IllegalStateException("Wrote to dummy talea")
 		override def apply(x: Int, y: Int, z: Int): T = defaultValue
 	}
-	protected[datastructures] var _grid = new RawGrid[Talea[T]](VoxelCoord.Center, coreSize, createTalea)
+	protected[datastructures] var _grid = new RawGrid[Talea[T]](VoxelCoord.Center - coreSize/2, coreSize, createTalea)
 	def grid = _grid
 
 	override def apply(x: Int, y: Int, z: Int): T = {

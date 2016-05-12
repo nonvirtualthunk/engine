@@ -79,7 +79,10 @@ class RawGrid[TaleaType <: AnyRef](val origin: VoxelCoord, val coreSize: ReadVec
 					updateRawArray(idx, tmp)
 				}
 			} else {
-					extraTaleae.getOrElseUpdate(Talea.hash(x, y, z), creator(x,y,z))
+				val sx = x >> dpo2
+				val sy = y >> dpo2
+				val sz = z >> dpo2
+					extraTaleae.getOrElseUpdate(Talea.hashPreShifted(sx, sy, sz), creator(sx<<dpo2,sy<<dpo2,sz<<dpo2))
 			}
 
 			mostRecentWrite = ret

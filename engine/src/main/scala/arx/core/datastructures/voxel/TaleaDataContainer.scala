@@ -36,23 +36,33 @@ class TaleaDataContainer[@specialized(Byte,Short,Int) T](val dimension:Int, val 
 		data = componentClass.newArray(dimension * dimension * dimension)
 		_mask = 0xffffffff
 	}
-	def allocate (defaultValue : T) {
-		allocate()
+	@volatile def allocate (defaultValue : T) {
+		val tmp = componentClass.newArray(dimension * dimension * dimension)
 		//If defaultValue is not the built-in default
-		if ( data(0) != defaultValue ) {
-			var i = 0
+		if ( tmp(0) != defaultValue ) {
 			val size = dimension * dimension * dimension
 
-			while ( i < size ) {
-				data(i) = defaultValue
-				i += 1
+			tmp(0) = defaultValue
+			var i = 1
+			while (i < size) {
+				val copyLen = if (size - i < i) {
+					size - i
+				} else {
+					i
+				}
+				System.arraycopy(tmp,0,tmp,i,copyLen)
+				i += i
 			}
 		}
+
+		data = tmp
+		_mask = 0xffffffff
 	}
 	def deallocate (){
 		_mask = 0x00000000
-		data = componentClass.newArray(1)
-		data(0) = defaultValue
+		val tmp = componentClass.newArray(1)
+		tmp(0) = defaultValue
+		data = tmp
 	}
 
 	def compress (keepOriginal: Boolean = false){
@@ -97,8 +107,13 @@ class TaleaDataContainer[@specialized(Byte,Short,Int) T](val dimension:Int, val 
 			}
 		} else {
 			val index = toIndex(startX,startY,startZ)
-			System.arraycopy(data,index,out,startOff,xLength)
+			System.arraycopy(arr,index,out,startOff,xLength)
 		}
+	}
+
+	def storeRow(startY: Int, startZ: Int, in: Array[T], startOff : Int): Unit = {
+		val index = toIndex(0,startY,startZ)
+		System.arraycopy(in,startOff,data,index,dimension)
 	}
 
 	def getBlock2x2(x : Int,y: Int,z: Int,ret : Array[T]) {

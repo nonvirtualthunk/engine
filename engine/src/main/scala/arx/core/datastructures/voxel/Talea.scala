@@ -12,11 +12,20 @@ import arx.Prelude._
 import arx.core.datastructures.voxelregions.voxelregions.VoxelRegion
 import arx.core.vec._
 import arx.core.vec.coordinates.VoxelCoord
+import scalaxy.loops._
 
+
+object Breaker {
+	def break(): Unit = {
+		println("...")
+	}
+}
 
 class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _defaultValue: T) extends TTalea[T] {
 	private var _hash = Talea.hash(_position.x,_position.y,_position.z)
 	protected[datastructures] var _size = Talea.dimension
+
+//	Breaker.break()
 
 	def createDataContainer() = new TaleaDataContainer[T](Talea.dimension,_defaultValue,getComponentType.asInstanceOf[Class[T]])
 
@@ -59,8 +68,51 @@ class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _def
 		data(x,y,z)
 	}
 
+	/**
+	  * Load a row of voxel data into the given output
+	  */
 	def loadRow(startX : Int, startY : Int, startZ : Int, xLength : Int, startOff : Int, out : Array[T]) = {
 		data.loadRow(startX,startY,startZ,xLength,startOff,out)
+	}
+
+	/**
+	  * Store a full row of voxel data at the given (y,z), x will always be 0, this only operates on entire rows.
+	  * The input is provided as the first array, the second array argument, buf, is for the function's internal usage.
+	  *
+	  * The startOff is how far offset into the input array reading should be done
+	  */
+	def storeRow(startY : Int, startZ: Int, in : Array[T], startOff : Int, buf : Array[T]): Unit = {
+		synchronized {
+			data.loadRow(0,startY,startZ,size,0,buf)
+			for (i <- 0 until size optimized) {
+				val oldV = buf(i)
+				val newV = in(i)
+
+				if (oldV != newV) {
+					if (oldV == _defaultValue) {
+						_nonDefaultCount += 1
+					} else if (newV == _defaultValue) {
+						_nonDefaultCount -= 1
+					}
+
+					markModified(i,startY,startZ)
+					if ( isLoggingEnabled ) { _loggedModifications ::= LoggedVoxelModification(x,y,z,oldV,newV,_modifiedCount) }
+				}
+			}
+
+			if (_nonDefaultCount == 0) {
+				if (data.mask != 0x00000000) {
+					// TODO: uncertain if this is absolutely safe, not sure if mask->0x0000000 is guaranteed to happen before
+					// array swap out
+					data.deallocate()
+				}
+			} else {
+				if (data.mask == 0x00000000) {
+					data.allocate(_defaultValue)
+				}
+				data.storeRow(startY, startZ, in, startOff)
+			}
+		}
 	}
 
 	def getAndDecrementToMinimumOf(x: Int, y: Int, z: Int,minimumValue : T) = throw new UnsupportedOperationException
@@ -238,9 +290,9 @@ class Talea[@specialized(Byte,Short,Int) T](val _position : VoxelCoord, var _def
 
 	def markModified ( x : Int , y : Int , z : Int ) {
 		_modifiedCount += 1
-		if ( x == 0 ) { _edgeModifiedCount(Cardinals.Left) += 1 } else if ( x == Talea.dimensionM1 ) { _edgeModifiedCount(Cardinals.Right) += 1 }
-		if ( y == 0 ) { _edgeModifiedCount(Cardinals.Back) += 1 } else if ( y == Talea.dimensionM1 ) { _edgeModifiedCount(Cardinals.Front) += 1 }
-		if ( z == 0 ) { _edgeModifiedCount(Cardinals.Bottom) += 1 } else if ( z == Talea.dimensionM1 ) { _edgeModifiedCount(Cardinals.Top) += 1 }
+		if ( x == 0 ) { _edgeModifiedCount(Cardinals.Left) += 1 } else if ( x == size - 1 ) { _edgeModifiedCount(Cardinals.Right) += 1 }
+		if ( y == 0 ) { _edgeModifiedCount(Cardinals.Back) += 1 } else if ( y == size - 1 ) { _edgeModifiedCount(Cardinals.Front) += 1 }
+		if ( z == 0 ) { _edgeModifiedCount(Cardinals.Bottom) += 1 } else if ( z == size - 1 ) { _edgeModifiedCount(Cardinals.Top) += 1 }
 	}
 
 	def areAll (b: T): Boolean = { nonDefaultCount == 0 && _defaultValue == b }
