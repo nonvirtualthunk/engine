@@ -54,6 +54,7 @@ class ReadVec3f extends InternVec3f with SelfModdable[ReadVec3f]{
 	def min = math.min(math.min(x,y),z)
 	def max = math.max(math.max(x,y),z)
 	def ceil = new Vec3f(math.ceil(x).toFloat,math.ceil(y).toFloat,math.ceil(z).toFloat)
+	def ceili = new Vec3i(math.ceil(x).toInt,math.ceil(y).toInt,math.ceil(z).toInt)
 	def floor = new Vec3f(math.floor(x).toFloat,math.floor(y).toFloat,math.floor(z).toFloat)
 	override def toString = "(" + x + "," + y + "," + z+ ")"
 	def resolve = this

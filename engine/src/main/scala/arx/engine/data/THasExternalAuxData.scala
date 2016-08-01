@@ -30,7 +30,7 @@ trait THasExternalAuxData[U <: TAuxData] extends THasAuxData[U] {
 	override protected[engine] def storeAuxData(d: U): Unit = externalStore.storeAuxData(id, d)
 
 	override def hasAuxData[T <: U : Manifest]: Boolean = {
-		externalStore.getAuxDataOrElse[T](id, manifest[T].runtimeClass.asInstanceOf[Class[T]], null.asInstanceOf[T]) == null.asInstanceOf[T]
+		externalStore.getAuxDataOrElse[T](id, manifest[T].runtimeClass.asInstanceOf[Class[T]], null.asInstanceOf[T]) != null.asInstanceOf[T]
 	}
 
 	override def removeAuxData[T <: U](clazz: Class[T]): Unit = externalStore.removeAuxData[T](id, clazz.asInstanceOf[Class[T]])

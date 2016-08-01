@@ -25,6 +25,22 @@ trait VoxelStore[@specialized(Byte, Short, Int) T] extends VoxelView[T] {
 	}
 
 	def subStore(region: VoxelRegion): VoxelStore[T] with BoundedVoxelView[T]
+
+	// optional functions
+	def setIfEqual(x : Int, y : Int, z : Int, oldV : T, newV : T) = {
+		val cur = this.apply(x,y,z)
+		if (cur == oldV) {
+			this.update(x,y,z,newV)
+		}
+		cur
+	}
+	def setIfNotEqual ( x : Int, y : Int,z : Int, oldV : T, newV : T ) : T = {
+		val cur = this.apply(x,y,z)
+		if (cur != oldV) {
+			this.update(x,y,z,newV)
+		}
+		cur
+	}
 }
 
 trait BoundedVoxelView[@specialized(Byte, Short, Int) T] extends VoxelView[T] {

@@ -15,6 +15,7 @@ import arx.resource.ResourceManager
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.opengl.GL11._
 import scalaxy.loops._
+import EngineCore._
 
 abstract class SimpleEngine extends EngineCore {
 	val canvas = new Canvas
@@ -22,7 +23,7 @@ abstract class SimpleEngine extends EngineCore {
 	val shader = ResourceManager.shader("shaders/Simple")
 
 	val modelview = arx.graphics.GL.lookAt(Vec3f(0.0f,0.0f,5.0f),Vec3f(0.0f,0.0f,0.0f),Vec3f(0.0f,1.0f,0.0f))
-	val projection = arx.graphics.GL.perspective(50.0f,WindowWidth/WindowHeight.toFloat,0.1f,1000.0f)
+	val projection = arx.graphics.GL.perspective(50.0f,windowWidth/windowHeight.toFloat,0.1f,1000.0f)
 
 
 

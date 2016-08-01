@@ -1,0 +1,16 @@
+#version 150 core
+
+in vec3 Vertex;
+in vec3 HSB;
+
+out vec3 hsb;
+
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+
+void main () {
+    vec4 basePos = ModelViewMatrix * vec4(Vertex,1.0);
+	gl_Position = ProjectionMatrix * basePos;
+
+	hsb = HSB;
+}

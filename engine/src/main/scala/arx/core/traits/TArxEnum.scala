@@ -8,8 +8,15 @@ package arx.core.traits
  * Created by nonvirtualthunk
  */
 
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+
 import arx.Prelude._
 import arx.application.Noto
+import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.KryoSerializable
+import com.esotericsoftware.kryo.io.Input
+import com.esotericsoftware.kryo.io.Output
 import scala.collection.mutable
 
 @SerialVersionUID(1L)
@@ -26,7 +33,7 @@ trait TArxEnum extends Serializable {
 	}
 
 	override def equals ( other : Any ) = other match {
-		case ar : AnyRef => this eq ar
+		case ar : TArxEnum => this.getClass == ar.getClass && this.key == ar.key
 		case _ => false
 	}
 	override def hashCode = key.hashCode

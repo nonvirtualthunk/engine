@@ -257,4 +257,11 @@ object Moddable{
 			case other => other
 		}
 	}
+
+	def forward[T] ( m : () => Moddable[T]) = new ForwardingModdable[T](m)
+}
+
+object ImplicitModdable {
+	implicit def rawToModdable[T](t : T) : Moddable[T] = Moddable(t)
+	implicit def funcToModdable[T](f : () => T) : Moddable[T] = Moddable(f)
 }

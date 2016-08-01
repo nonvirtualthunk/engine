@@ -1,0 +1,64 @@
+Use of Tengwar-Gandalf. 
+-----------------------
+The method for using this font is essentially that described in the appendices
+to The Lord of the Rings.  Almost all of the letters are the same as in the
+book, with a few changes made for ease of use.  The basic rules are as follows:
+
+1.  Vowels are written above the letter that follows them.  In the word
+'aggregate,' written thus:
+
+
+	the first 'a' is written above the first 'g', the 'e' is written above
+it's following 'g' and the last 'a' is written above the following 't'.  
+
+2.  A silent, or following 'e', is as in the word 'aggregate' above, is written
+below the previous letter of the word.  Therefore, in the above illustration,
+the silent 'e' is written below the 't'.  You can do this by typing
+OPTION-e-SPACE for the silent 'e'. 
+
+3.  Double letters, such as in 'aggregate' above, are written with a large flag,
+or stripe, attached to the letter, or written above the letter (as in the
+letters 's', 'w', 'z', etc.) in letters that don't have ascending or descending
+stems.  You can type a double letter by tying SHIFT-OPTION-letter.  
+
+4.  Double vowels, such as in the word 'keep', are written with
+SHIFT-OPTION-vowel.  
+
+5.  Words that have multiple vowels that are side-by-side can cause problems.
+In this case, the first letter is written with a descending stem, and the
+second vowel is written as usual.  Thus, the word 'scour' would be written
+like this:
+
+
+Notice that the 'o' is written with a stem below it, and the following 'u'
+is written above the last letter, 'r'.  This way, the vowels won't be printed
+on top of each other on your screen or printer.  Stemmed vowels are also
+used to write free-standing letters, such as the 'a' in the sentence 'this
+is a font'.  To type a vowel with a stem under it, just type SHIFT-letter.  
+
+6.  There are no 'capitalized' letters on this font.  The SHIFT key is used
+alone only to add stems to vowels, and, with the OPTION key, to signify a
+double letter.  When the SHIFT key is used alone, all letters but the vowels
+remain the same.  
+
+7.  Words that end in "s" are written with a small, curved flag attached to
+the next-to-the-last letter.  Thus, the word "hobbits" would be written
+like this:
+
+You can type the "following" "s" by typing OPTION-s.
+
+Tengwar-Gandalf is freeware.  Sort of.  Well, actually, itUs postcardware.
+All that I ask is that you send me a postcard with the following: one lawyer
+joke, and one Hillary Clinton joke.  As a medical student, I am very
+interested in collecting both.  You can send to postcards to the following
+address: 
+
+Michael S. Elliott
+702 NE 14th
+Oklahoma City, OK  73104
+
+I'd also appreciate any comments that you might have about this font.
+Include them on the postcard, or write me email at America Online at:
+
+MikeE60369  (that's a zero, not a letter 'oh'). Enjoy!
+

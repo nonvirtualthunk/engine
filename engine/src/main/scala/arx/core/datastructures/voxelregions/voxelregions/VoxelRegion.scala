@@ -13,6 +13,7 @@ import arx.core.traits.TSafetyPromotableArxTraversable
 import arx.core.units.Dimensions
 import arx.core.vec.ReadVec3f
 import arx.core.vec.coordinates.TMajorCoord
+import arx.core.vec.coordinates.TaleaCoord
 import arx.core.vec.coordinates.VoxelCoord
 
 trait VoxelRegion extends TSafetyPromotableArxTraversable[VoxelCoord] {
@@ -140,4 +141,5 @@ object VoxelRegion {
 			hollowCube(center,dim)
 		}
 	}
+	def ofTalea (taleaCoord : TaleaCoord) = new SingleTaleaVoxelRegion(taleaCoord)
 }

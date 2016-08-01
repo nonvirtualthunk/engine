@@ -8,6 +8,7 @@ package arx.engine.entity
  */
 
 import arx.Prelude._
+import arx.core.traits.TSentinel
 import arx.engine.data.TGameEntityAuxData
 import arx.engine.data.THasInternalAuxData
 import arx.engine.world.World
@@ -26,5 +27,16 @@ class GameEntity(var name : String = "") extends TGameEntity with THasInternalAu
 	override def equals(obj: scala.Any): Boolean = obj match {
 		case ge : GameEntity => ge.id == this.id
 		case _ => false
+	}
+	override def toString() : String = this.archetype match {
+		case Some(arch) => "GameEntity(" + arch.name + ", " + id + ")";
+		case None => "GameEntity(" + id + ")";
+	}
+}
+
+
+object GameEntity {
+	val Sentinel : GameEntity = new GameEntity with TSentinel {
+
 	}
 }

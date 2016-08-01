@@ -17,6 +17,7 @@ import arx.graphics.TextureBlock
 import arx.graphics.attributeprofiles.SimpleAttributeProfile
 import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL15
 import scalaxy.loops._
 
 class Canvas {
@@ -30,7 +31,7 @@ class Canvas {
 		textureBlock.bind()
 
 		vbo.bind()
-		vbo.solidifyIfNecessary()
+		vbo.solidifyIfNecessary(GL15.GL_DYNAMIC_DRAW)
 		vbo.drawElements(GL11.GL_TRIANGLES, skipPostDraw = true)
 	}
 
@@ -115,6 +116,11 @@ class Canvas {
 
 	def quad(center : ReadVec2f) = new QuadBuilder().withPosition(center)
 	def quad(center : ReadVec3f) = new QuadBuilder().withPosition(center)
+
+	def useTexFilters(minFilter : Int, magFilter : Int): Unit = {
+		textureBlock.magFilter = magFilter
+		textureBlock.minFilter = minFilter
+	}
 
 	protected class QuadBuilder {
 		var position = Vec3f.Zero

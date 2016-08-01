@@ -15,15 +15,3 @@ import scalaxy.loops._
 trait TAuxData {
 	def onAssignedToObject ( entity : THasAuxData[_] ) {}
 }
-
-
-class AuxDataObject[U <: TAuxData : Manifest] {
-	private final val internalId =  AuxDataObject.IdCounter.getAndIncrement
-	val clazz : Class[U] = manifest[U].runtimeClass.asInstanceOf[Class[U]]
-
-	def id = internalId
-}
-
-object AuxDataObject {
-	protected final val IdCounter = new AtomicInteger(1)
-}

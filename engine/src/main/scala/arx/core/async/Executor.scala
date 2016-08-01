@@ -7,28 +7,36 @@ package arx.core.async
  * Time: 9:23 AM
  */
 
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.{Callable, Executors}
 
 import arx.Prelude._
 import arx.application.Application
 import arx.core.datastructures.SynchronizedQueue
+import arx.core.units.UnitOfTime
+
 import scalaxy.loops._
 
-object Async {
+object Executor {
 	val threadpool = Executors.newCachedThreadPool()
+	val scheduledThreadpool = Executors.newSingleThreadScheduledExecutor()
 
-	def submit[T] (func : () => T) = {
+	def submitAsync[T](func : () => T) = {
 		threadpool.submit(new Callable[T] {
 			override def call(): T = func()
 		})
 	}
 
-	def submit (runnable : Runnable): Unit = {
+	def submitAsync(runnable : Runnable): Unit = {
 		threadpool.submit(runnable)
 	}
 
-	def submit[T] (callable : Callable[T]) = {
+	def submitAsync[T](callable : Callable[T]) = {
 		threadpool.submit(callable)
+	}
+
+	def schedulePeriodic(interval : UnitOfTime, func : () => Unit) = {
+		scheduledThreadpool.schedule(func,interval.inMilliseconds.toLong, TimeUnit.MILLISECONDS)
 	}
 
 	def shutDownThreadPool () {

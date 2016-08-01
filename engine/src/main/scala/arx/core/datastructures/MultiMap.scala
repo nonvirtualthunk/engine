@@ -19,6 +19,11 @@ class MultiMap[K,V] {
 		intern.getOrElseUpdate(k,new ListBuffer[V]).append(v)
 	}
 	def addAll ( k : K , v : Traversable[V] ) { for ( subV <- v ) { add(k,subV) } }
+	def addAll[U <: K] (m : MultiMap[U,V]): Unit =  {
+		for ((k,vlist) <- m.intern) {
+			this.addAll(k, vlist)
+		}
+	}
 	def remove ( k : K , v : V ) : Boolean = {
 		val buf = intern.getOrElse(k,new ListBuffer[V])
 		buf.indexOf(v) match {
@@ -94,5 +99,24 @@ class MultiMap[K,V] {
 				v
 			}
 		}
+	}
+}
+object MultiMap {
+	def empty[K,V] = new MultiMap[K,V]()
+
+	def from[K,V](m : Map[K,V]) = {
+		val ret = new MultiMap[K,V]
+		for ((k,v) <- m) {
+			ret.add(k,v)
+		}
+		ret
+	}
+
+	def apply[K,V](tups : (K,V)*) = {
+		val ret = new MultiMap[K,V]
+		for ((k,v) <- tups) {
+			ret.add(k,v)
+		}
+		ret
 	}
 }

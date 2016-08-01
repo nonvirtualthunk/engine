@@ -11,8 +11,11 @@ import arx.Prelude._
 import arx.application.Noto
 import arx.core.Dependency
 import arx.core.TDependable
+import arx.core.datastructures.KillableThread
 import arx.core.datastructures.UpdateThread
 import arx.core.traits.TUpdateable
+
+import scalaxy.loops.rangeExtensions
 
 abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest] {
 	var parallelism = 4
@@ -20,20 +23,20 @@ abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest]
 
 	protected var initialized = false
 
-	def createUpdateThread(i: Int): UpdateThread = {
-		new UpdateThread(0.01.seconds) {
-			// divide up the components such that each graphics thread has its own share
-			val localComponents = components.zipWithIndex.filter {
-				case(comp, index) => index % parallelism == i
-			}.unzip.left
+//	def createUpdateThread(i: Int): KillableThread = {
+//		new UpdateThread(0.01.seconds) {
+//			// divide up the components such that each graphics thread has its own share
+//			val localComponents = components.zipWithIndex.filter {
+//				case(comp, index) => index % parallelism == i
+//			}.unzip.left
+//
+//			override def update(): Unit = {
+//				localComponents.foreach(c => c.updateSelf(rawInterval.seconds))
+//			}
+//		}
+//	}
 
-			override def update(): Unit = {
-				localComponents.foreach(c => c.updateSelf(rawInterval.seconds))
-			}
-		}
-	}
-
-	protected lazy val updateThreads = fillList(parallelism)(i => createUpdateThread(i))
+//	protected lazy val updateThreads = fillList(parallelism)(i => createUpdateThread(i))
 
 	def addComponent[T <: Component: Manifest] = {
 		components ::= instantiateComponent(List(manifest[T].runtimeClass)).asInstanceOf[Component]
@@ -46,11 +49,17 @@ abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest]
 			initialize()
 		}
 
-		updateThreads.foreach(t => t.timePassed(deltaSeconds.seconds))
+//		updateThreads.foreach(t => t.timePassed(deltaSeconds.seconds))
 	}
 
-	def updateSerial (deltaSeconds : Float): Unit = {
-		components.foreach(c => c.updateSelf(deltaSeconds.seconds))
+	def updateSerial (deltaSeconds : Float, nSteps : Int = 1): Unit = {
+		if (!initialized) {
+			initialize()
+		}
+
+		for (n <- 0 until nSteps optimized) {
+			components.foreach(c => c.updateSelf(deltaSeconds.seconds))
+		}
 	}
 
 	def initialize(): Unit = {

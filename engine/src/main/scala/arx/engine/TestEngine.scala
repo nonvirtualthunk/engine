@@ -55,7 +55,7 @@ object TestEngine extends EngineCore {
 	lazy val texture = Texture.fromImage(image)
 
 	val modelview = arx.graphics.GL.lookAt(Vec3f(-15.0f,0.0f,-5.0f),Vec3f(-5.0f,0.0f,0.0f),Vec3f(0.0f,1.0f,0.0f))
-	val projection = arx.graphics.GL.perspective(50.0f,WindowWidth/WindowHeight.toFloat,0.1f,1000.0f)
+	val projection = arx.graphics.GL.perspective(50.0f,EngineCore.windowWidth/EngineCore.windowHeight.toFloat,0.1f,1000.0f)
 	val pov = new EyeCamera(Vec3f(-15,0,-5),Vec3f.UnitX,Vec3f.UnitY)
 
 	//	val modelview = Mat4x4.Identity

@@ -45,6 +45,7 @@ class UnitOfMeasureFloat(val f : Float) extends AnyVal {
 	def kilometer = this.km
 
 	def seconds = new UnitOfTime(Second,f)
+	def nanoseconds = new UnitOfTime(Second,f / 1000000000.0f)
 	def second = this.seconds
 	def minute = new UnitOfTime(Minute,f)
 	def minutes = this.minute

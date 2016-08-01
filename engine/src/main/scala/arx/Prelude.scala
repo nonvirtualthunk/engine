@@ -10,9 +10,11 @@ import arx.core.mathutil.Solver
 import arx.core.metrics.Metrics.RichTimer
 import arx.core.representation.ConfigValue
 import arx.application.Noto
+import arx.core.MutableModdable
 import arx.core.vec._
 import arx.core.richer._
 import arx.core.units._
+import arx.core.vec.coordinates.VoxelCoord
 import arx.resource.ResourceManager
 import arx.serialization.DecompressibleInputStream
 import com.codahale.metrics.Timer
@@ -53,6 +55,8 @@ object Prelude {
 	implicit def toArxKryo (k : Kryo): ArxKryo = new ArxKryo(k)
 
 	implicit def unboxModdable[T] (m : Moddable[T]) : T = m.resolve()
+
+	def MM (t : Float) = new MutableModdable(t)
 	// ========================== Collections functions =========================================
 	def fillArray[T : Manifest] ( size : Int )( f : (Int) => T ) = {
 		val ret = manifest[T].newArray(size)
@@ -81,6 +85,9 @@ object Prelude {
 		}
 		override def toString = base
 	}
+
+
+	def none[T] : Option[T] = None
 
 	// ========================== Meta functions =================================================
 	def memoize[T,U] ( f : (T) => U ) = new MemoizingFunction(f)
@@ -202,6 +209,10 @@ object Prelude {
 	implicit var zeroMeters2 : UnitOfArea = 0.meters2
 	implicit var zeroMeters3 : UnitOfVolume = 0.meters3
 	implicit var zeroKg : UnitOfMass = 0.kg
+
+
+	def VC (x:Int,y:Int,z:Int) = VoxelCoord(x,y,z)
+	def VCR(dx:Int,dy:Int,dz:Int) = VoxelCoord.fromRelative(dx,dy,dz)
 
 	// =========================== Math functions =================================================
 	implicit def tup2FloatRange ( tup : (Float,Float) ) : FloatRange = new FloatRange(tup._1,tup._2)

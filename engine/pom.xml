@@ -15,6 +15,42 @@
     <version>0.1.0-SNAPSHOT</version>
     <name>vel</name>
 
+    <profiles>
+        <profile>
+            <id>windows-profile</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <properties>
+                <native.target>natives-windows</native.target>
+            </properties>
+        </profile>
+        <profile>
+            <id>linux-profile</id>
+            <activation>
+                <os>
+                    <family>Linux</family>
+                </os>
+            </activation>
+            <properties>
+                <native.target>natives-linux</native.target>
+            </properties>
+        </profile>
+        <profile>
+            <id>OSX-profile</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <native.target>natives-osx</native.target>
+            </properties>
+        </profile>
+    </profiles>
+
 
     <dependencies>
         <dependency>
@@ -32,15 +68,15 @@
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
-            <version>3.0.0b</version>
+            <version>3.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-platform</artifactId>
-            <version>3.0.0b</version>
+            <version>3.0.0</version>
             <scope>compile</scope>
-            <classifier>natives-osx</classifier>
+            <classifier>${native.target}</classifier>
         </dependency>
         <dependency>
             <groupId>com.carrotsearch</groupId>
@@ -50,7 +86,7 @@
         <dependency>
             <groupId>com.boundary</groupId>
             <artifactId>high-scale-lib</artifactId>
-            <version>1.0.3</version>
+            <version>1.0.6</version>
         </dependency>
         <dependency>
             <groupId>com.yuvimasory</groupId>
@@ -88,7 +124,7 @@
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryonet</artifactId>
-            <version>2.22.0-RC1-arx</version>
+            <version>2.22.0-RC1</version>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware</groupId>

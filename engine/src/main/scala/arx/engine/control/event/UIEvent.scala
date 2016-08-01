@@ -12,7 +12,12 @@ import arx.core.vec.Vec3f
 import org.lwjgl.glfw.GLFW
 
 class UIEvent extends Event {
+	var origin: Option[AnyRef] = None
 
+	def withOrigin(o : AnyRef) = {
+		origin = Some(o)
+		this
+	}
 }
 
 class KeyEvent(var _key: Int,var _modifiers: KeyModifiers,var press: Boolean) extends UIEvent {

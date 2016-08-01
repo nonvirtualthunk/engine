@@ -10,9 +10,11 @@ package arx.core.datastructures.voxel
 import arx.Prelude._
 import arx.core.vec.ReadVec3i
 import arx.core.vec.coordinates.VoxelCoord
+import arx.engine.data.TAuxData
+import arx.engine.data.THasAuxData
 import scalaxy.loops._
 
-trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] {
+trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] with THasAuxData[TAuxData] {
 	var _modifiedCount: Int = 0
 	var _edgeModifiedCount : Array[Int] = Array.ofDim[Int](6) //lx hx , ly hy , lz hy
 	var isLoggingEnabled = false
@@ -30,8 +32,6 @@ trait TTalea[@specialized(Byte,Short,Int) T] extends VoxelStore[T] {
 	def getAndDecrementToMinimumOf (x:Int,y:Int,z:Int,minimumValue : T):T
 	def getBlock2x2 (x:Int,y:Int,z:Int,ret:Array[T]);
 	def getWithAdj (x:Int,y:Int,z:Int,ret:Array[T])
-	def setIfEqual ( x : Int, y : Int,z : Int, curV : T , newV : T ) : T
-	def setIfNotEqual ( x : Int, y : Int,z : Int, curV : T, newV : T ) : T
 	def setIfEqualRaw ( x : Int ,y  : Int,z : Int, curV : T , newV : T ) : T
 	/** Sets voxel to v, if v > current, returns current */
 	def setIfGreater ( x : Int , y : Int, z : Int, newV : T ) : T

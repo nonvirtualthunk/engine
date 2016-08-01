@@ -40,6 +40,7 @@ class Vec3f extends ReadVec3f{
 object Vec3f{
 	def apply (xa : Float,ya : Float,za : Float) = new Vec3f(xa : Float,ya : Float,za : Float)
 	def apply (v : ReadVec3f) = new Vec3f(v.x,v.y,v.z)
+	def apply (v : ReadVec2f, z : Float) = new Vec3f(v.x,v.y,z)
 	implicit def toWriteable (v : ReadVec3f) = new Vec3f(v.x,v.y,v.z)
 	def apply (s : Float) = new Vec3f(s,s,s)
 	val UnitX = new ReadVec3f(1,0,0)

@@ -13,12 +13,13 @@ import arx.core.representation.ConfigAssistant
 import arx.core.representation.ConfigValue
 import arx.core.traits.TIdentifiable
 import arx.core.traits.TSentinel
+import arx.core.traits.TSentinelable
 
 import scala.collection.mutable
 import scalaxy.loops._
 import arx.core.vec._
 
-class GameArchetype(nomen: String, val kind: String) extends GameEntity(nomen) with TIdentifiable {
+class GameArchetype(nomen: String, val kind: TArchetypeKind) extends GameEntity(nomen) with TIdentifiable with TSentinelable {
 	protected val baseIdentifier = kind + "-" + name
 	def identifier = baseIdentifier
 	var displayName = name
@@ -31,31 +32,34 @@ class GameArchetype(nomen: String, val kind: String) extends GameEntity(nomen) w
 		case _ => false
 	}
 	override def toString: String = {
-		nomen + "(" + kind + ")"
+		kind + "(" + nomen+ ")"
+	}
+
+	if (!isSentinel) {
+		GameArchetype.addArchetype(this)
 	}
 }
 
-object GameArchetype {
-	val Sentinel: GameArchetype = new GameArchetype("Sentinel", "Sentinel") with TSentinel {
+object GameArchetype extends TArchetypeKind{
+	val Sentinel: GameArchetype = new GameArchetype("Sentinel", GameArchetype) with TSentinel {}
 
-	}
-
-	protected val _archetypes = new mutable.HashMap[CaseInsensitiveString, Map[String, GameArchetype]]
-	def archetype(kind: String, name: String) = _archetypes.get(kind).flatMap(m => m.get(name.toLowerCase)).getOrElse(Sentinel)
-	def archetypes(kind: String) = _archetypes.getOrElse(kind, Map())
+	protected val _archetypes = new mutable.HashMap[String, Map[String, GameArchetype]]
+	def archetype(kind: TArchetypeKind, identifier: String) = _archetypes.get(kind.kindStr)
+			.flatMap(m => m.get(identifier.toLowerCase))
+			.getOrElse(kind.Sentinel)
+	def archetypes(kind: TArchetypeKind) = _archetypes.getOrElse(kind.kindStr, Map())
 
 	def addArchetype(arch: GameArchetype): Unit = {
-		val existing = _archetypes.getOrElse(arch.kind, Map())
-		_archetypes.put(arch.kind, existing + (arch.name.toLowerCase() -> arch))
+		val existing = _archetypes.getOrElse(arch.kind.kindStr, Map())
+		_archetypes.put(arch.kind.kindStr, existing + (arch.identifier.toLowerCase.dropWhile(_ != '-').drop(1) -> arch))
 	}
-
 
 	def loadAllArchetypes(baseConfLocation: String, leafField: String, constr: (String, ConfigValue) => GameArchetype): Unit = {
 		val byPackage = ConfigAssistant.loadAllConfigsByPackage(baseConfLocation, leafField)
 
 		byPackage.foreach{ case (name, obj) =>
 			val newArch = constr(name.toString, obj)
-			addArchetype(newArch)
+//			addArchetype(newArch) // no longer necessary, implicitly added on construction
 		}
 	}
 }

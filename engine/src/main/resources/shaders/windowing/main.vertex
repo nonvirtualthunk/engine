@@ -1,0 +1,23 @@
+#version 150 core
+
+in vec2 Vertex;
+in vec2 TexCoord;
+in vec4 Color;
+in vec4 Bounds;
+
+out vec2 VClipCoord;
+out vec4 VBounds;
+out vec2 VTexCoord;
+out vec4 VColor;
+
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+
+void main () {
+    gl_Position = ProjectionMatrix * ModelViewMatrix * vec4(Vertex,0.0,1.0);
+
+	VColor = Color;
+	VClipCoord = Vertex;
+	VTexCoord = TexCoord;
+	VBounds = Bounds;
+}

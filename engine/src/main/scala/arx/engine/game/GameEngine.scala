@@ -24,18 +24,18 @@ class GameEngine(val world: World, val eventBus : EventBus) extends EnginePiece[
 
 	addComponent[GameEngine.TimeComponent]
 
-	protected def instantiateComponent(l: List[Class[_]]): AnyRef = {
-		l.find(c => try {c.getConstructor(classOf[GameEngine], classOf[World]) != null} catch {case e: Exception => false}) match {
+	protected def instantiateComponent(l : List[Class[_]]) : AnyRef = {
+		l.find(c => try {c.getConstructor(classOf[GameEngine]) != null} catch {case e: Exception => false}) match {
 			case Some(clazz) =>
-				val constructor = clazz.getConstructor(classOf[GameEngine], classOf[World]);
-				constructor.newInstance(this, world).asInstanceOf[GameComponent]
+				val constructor = clazz.getConstructor(classOf[GameEngine]);
+				constructor.newInstance(this).asInstanceOf[GameComponent]
 			case None => throw new IllegalStateException(s"Could not instantiate graphics component of possible types $l")
 		}
 	}
 
-	override def createUpdateThread(i: Int): UpdateThread = {
+	def createUpdateThread(i: Int): UpdateThread = {
 		val world = self.world
-		new UpdateThread(0.01.seconds) {
+		new UpdateThread(0.008.seconds) {
 			val timeData = world.timeData
 			// divide up the components such that each graphics thread has its own share
 			val localComponents = components.zipWithIndex.filter {
@@ -64,9 +64,16 @@ class GameEngine(val world: World, val eventBus : EventBus) extends EnginePiece[
 			}
 		}
 	}
+
+	protected lazy val updateThreads = fillList(parallelism)(i => createUpdateThread(i))
+
+	override def update(deltaSeconds: Float): Unit = {
+		super.update(deltaSeconds)
+		updateThreads.foreach(t => t.timePassed(deltaSeconds.seconds))
+	}
 }
 object GameEngine {
-	class TimeComponent(engine:GameEngine,world : World) extends GameComponent(engine,world) {
+	class TimeComponent(engine:GameEngine) extends GameComponent(engine) {
 		override protected def update(dt: UnitOfTime): Unit = {
 			world.timeData.time += dt
 		}

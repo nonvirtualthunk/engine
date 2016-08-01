@@ -1,0 +1,93 @@
+#version 150 core
+
+in vec3 hsb;
+
+out vec4 o_FragColor;
+
+void main (){
+    vec4 finalColor = vec4(0.0,0.0,0.0,1.0);
+
+    float hue = hsb.x;
+    float sat = hsb.y;
+    float bri = hsb.z;
+
+    if ( sat == 0.0 ) {
+        finalColor = vec4(bri,bri,bri,1.0);
+    } else {
+        float h = (hue - floor(hue)) * 6.0;
+        float f = h - floor(h);
+        float p = bri * (1.0 - sat);
+        float q = bri * (1.0 - sat * f);
+        float t = bri * (1.0 - (sat * (1.0 - f)));
+
+        int hi = int(h);
+        if ( hi == 0 ) {
+            finalColor.r = bri;
+            finalColor.g = t;
+            finalColor.b = p;
+        } else if ( hi == 1 ) {
+            finalColor.r = q;
+            finalColor.g = bri;
+            finalColor.b = p;
+        } else if ( hi == 2 ) {
+            finalColor.r = p;
+            finalColor.g = bri;
+            finalColor.b = t;
+        } else if ( hi == 3 ) {
+            finalColor.r = p;
+            finalColor.g = q;
+            finalColor.b = bri;
+        } else if ( hi == 4 ) {
+            finalColor.r = t;
+            finalColor.g = p;
+            finalColor.b = bri;
+        } else if ( hi == 5 ) {
+            finalColor.r = bri;
+            finalColor.g = p;
+            finalColor.b = q;
+        }
+    }
+
+    o_FragColor = finalColor;
+}
+
+
+/*
+ float h = (hue - (float)Math.floor(hue)) * 6.0f;
+             float f = h - (float)java.lang.Math.floor(h);
+             float p = brightness * (1.0f - saturation);
+             float q = brightness * (1.0f - saturation * f);
+             float t = brightness * (1.0f - (saturation * (1.0f - f)));
+             switch ((int) h) {
+             case 0:
+                 r = (int) (brightness * 255.0f + 0.5f);
+                 g = (int) (t * 255.0f + 0.5f);
+                 b = (int) (p * 255.0f + 0.5f);
+                 break;
+             case 1:
+                 r = (int) (q * 255.0f + 0.5f);
+                 g = (int) (brightness * 255.0f + 0.5f);
+                 b = (int) (p * 255.0f + 0.5f);
+                 break;
+             case 2:
+                 r = (int) (p * 255.0f + 0.5f);
+                 g = (int) (brightness * 255.0f + 0.5f);
+                 b = (int) (t * 255.0f + 0.5f);
+                 break;
+             case 3:
+                 r = (int) (p * 255.0f + 0.5f);
+                 g = (int) (q * 255.0f + 0.5f);
+                 b = (int) (brightness * 255.0f + 0.5f);
+                 break;
+             case 4:
+                 r = (int) (t * 255.0f + 0.5f);
+                 g = (int) (p * 255.0f + 0.5f);
+                 b = (int) (brightness * 255.0f + 0.5f);
+                 break;
+             case 5:
+                 r = (int) (brightness * 255.0f + 0.5f);
+                 g = (int) (p * 255.0f + 0.5f);
+                 b = (int) (q * 255.0f + 0.5f);
+                 break;
+             }
+*/

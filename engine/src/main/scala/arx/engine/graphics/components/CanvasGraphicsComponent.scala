@@ -15,7 +15,7 @@ import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11._
 import arx.Prelude._
 
-abstract class CanvasGraphicsComponent(ge : GraphicsEngine, world : World) extends GraphicsComponent(ge,world) {
+abstract class CanvasGraphicsComponent(ge : GraphicsEngine) extends GraphicsComponent(ge) {
 	val shader = ResourceManager.shader("shaders/Simple")
 	val canvas = new Canvas
 

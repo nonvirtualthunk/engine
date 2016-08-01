@@ -7,6 +7,7 @@ import arx.application.Application
 import arx.application.Noto
 import arx.core.mat.Mat4x4
 import arx.core.mat.ReadMat4x4
+import arx.core.math.Rectf
 import arx.core.math.Recti
 import arx.core.vec._
 import arx.graphics.shader.Shader
@@ -97,6 +98,12 @@ object GL {
 	def destroyTexture ( texture : TextureBlock ) {
 		texturesToDestroy.enqueue(texture.textureID)
 	}
+
+	def setViewport(r : Recti): Unit = {
+		backing.glViewport(r.x,r.y,r.w,r.h)
+		viewport = r
+	}
+	def setViewport(r : Rectf): Unit = setViewport(r.toRecti)
 
 	@inline
 	protected def enhancedTruth ( setting : Int , truth : Boolean ) = {
@@ -324,12 +331,12 @@ object GL {
 		code, because of the whole ordering thing.
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   */
-	def unproject (win : ReadVec3f,model : ReadMat4x4,proj : ReadMat4x4,viewport : ReadVec4f) = {
+	def unproject (win : ReadVec3f,model : ReadMat4x4,proj : ReadMat4x4,viewport : Recti) = {
 		val inverse = this.inverse(model * proj)
 
 		var tmp = Vec4f(win.x,win.y,win.z,1.0f)
-		tmp(0) = (tmp(0) - viewport(0)) / viewport(2)
-		tmp(1) = (tmp(1) - viewport(1)) / viewport(3)
+		tmp(0) = (tmp(0) - viewport.x.toFloat) / viewport.w.toFloat
+		tmp(1) = (tmp(1) - viewport.y.toFloat) / viewport.h.toFloat
 		tmp = tmp * 2.0f - 1.0f
 
 		val obj = tmp * inverse

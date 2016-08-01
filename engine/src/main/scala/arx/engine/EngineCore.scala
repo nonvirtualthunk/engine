@@ -12,12 +12,13 @@ import java.util.concurrent.locks.LockSupport
 import arx.Prelude.int2RicherInt
 import arx.application.Application
 import arx.application.Noto
-import arx.core.async.Async
+import arx.core.async.Executor
 import arx.core.datastructures.KillableThread
 import arx.core.introspection.NativeLibraryHandler
 import arx.core.math.Recti
 import arx.core.metrics.Metrics
-import arx.core.vec.{Vec2i, Vec2f}
+import arx.core.vec.Vec4f
+import arx.core.vec.{Vec2f, Vec2i}
 import arx.engine.control.event.Event.KeyboardMirror
 import arx.engine.control.event.Event.Mouse
 import arx.engine.control.event.Event.MouseButton
@@ -31,12 +32,6 @@ import org.lwjgl.system.MemoryUtil._
 
 
 abstract class EngineCore {
-	var WindowWidth = 1920
-	var WindowHeight = 1200
-
-	var FramebufferWidth = WindowWidth
-	var FramebufferHeight = WindowHeight
-
 	var errorCallback: GLFWErrorCallback = null
 	var keyCallback: GLFWKeyCallback = null
 	var mouseButtonCallbackIntern: GLFWMouseButtonCallback = null
@@ -53,21 +48,26 @@ abstract class EngineCore {
 	var hasFocus = true
 	var fullPause = false
 
+	var mouseGrabbed = false
+
+	var clearColor = Vec4f(0.0f,0.0f,0.0f,1.0f)
+
 
 	def run(): Unit = {
+		System.setProperty("java.awt.headless", "true")
 		try {
 			init()
 			loop()
 
 			// Release window and window callbacks
 			glfwDestroyWindow(window)
-			keyCallback.release()
+			keyCallback.free()
 		} finally {
 			KillableThread.kill()
-			Async.onQuit()
+			Executor.onQuit()
 			glfwTerminate()
 			if (errorCallback != null) {
-				errorCallback.release()
+				errorCallback.free()
 			}
 		}
 	}
@@ -81,7 +81,7 @@ abstract class EngineCore {
 		glfwSetErrorCallback(errorCallback)
 
 		// Initialize GLFW. Most GLFW functions will not work before doing this.
-		if (glfwInit() != GLFW_TRUE) {
+		if (!glfwInit()) {
 			throw new IllegalStateException("Unable to initialize GLFW")
 		}
 
@@ -99,14 +99,14 @@ abstract class EngineCore {
 		// Create the window
 		if (fullscreen) {
 			val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor())
-			WindowWidth = vidMode.width
-			WindowHeight = vidMode.height
-			window = glfwCreateWindow(WindowWidth, WindowHeight, "Hello World!", glfwGetPrimaryMonitor(), NULL)
+			EngineCore.windowWidth = vidMode.width
+			EngineCore.windowHeight = vidMode.height
+			window = glfwCreateWindow(EngineCore.windowWidth, EngineCore.windowHeight, "Hello World!", glfwGetPrimaryMonitor(), NULL)
 		} else {
-			window = glfwCreateWindow(WindowWidth, WindowHeight, "Hello World!", NULL, NULL)
+			window = glfwCreateWindow(EngineCore.windowWidth, EngineCore.windowHeight, "Hello World!", NULL, NULL)
 		}
 
-		updateWindowSize();
+		updateWindowSize()
 
 
 		if (window == NULL) {
@@ -117,8 +117,8 @@ abstract class EngineCore {
 		keyCallback = new GLFWKeyCallback() {
 			def invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
 				if (key == GLFW_KEY_Q && (mods.isBitSet(GLFW_MOD_CONTROL) || mods.isBitSet(GLFW_MOD_SUPER))) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE)
 				} else if (key == GLFW_KEY_F3 && mods.isBitSet(GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
+					glfwSetWindowShouldClose(window, true)
 					Metrics.prettyPrint()
 				} else if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
 					fullPause = ! fullPause
@@ -177,8 +177,8 @@ abstract class EngineCore {
 
 		sizeCallback = new GLFWWindowSizeCallback {
 			override def invoke(window: Long, width: Int, height: Int): Unit = {
-				WindowWidth = width
-				WindowHeight = height
+				EngineCore.windowWidth = width
+				EngineCore.windowHeight = height
 				updateWindowSize()
 				windowSizeCallback(width, height)
 			}
@@ -186,11 +186,8 @@ abstract class EngineCore {
 		glfwSetWindowSizeCallback(window, sizeCallback)
 
 		focusCallback = new GLFWWindowFocusCallback {
-			override def invoke(window: Long, focus: Int): Unit = {
-				hasFocus = focus match {
-					case GLFW_TRUE => true
-					case GLFW_FALSE => false
-				}
+			override def invoke(l: Long, focus: Boolean): Unit = {
+				hasFocus = focus
 			}
 		}
 		glfwSetWindowFocusCallback(window, focusCallback)
@@ -202,8 +199,8 @@ abstract class EngineCore {
 			// Center our window
 			glfwSetWindowPos(
 				window,
-				(vidmode.width() - WindowWidth) / 2,
-				(vidmode.height() - WindowHeight) / 2
+				(vidmode.width() - EngineCore.windowWidth) / 2,
+				(vidmode.height() - EngineCore.windowHeight) / 2
 			)
 		}
 
@@ -247,12 +244,12 @@ abstract class EngineCore {
 		println(s"Current window size: ${xb.get(0)}, ${yb.get(0)}")
 		glfwGetFramebufferSize(window, xb, yb)
 		println(s"Frame buffer size: ${xb.get(0)}, ${yb.get(0)}")
-		FramebufferWidth = xb.get(0)
-		FramebufferHeight = yb.get(0)
+		EngineCore.pixelWidth = xb.get(0)
+		EngineCore.pixelHeight = yb.get(0)
 	}
 
 	def desiredViewportSize = {
-		Vec2i(FramebufferWidth, FramebufferHeight)
+		Vec2i(EngineCore.pixelWidth, EngineCore.pixelHeight)
 	}
 
 	def loop(): Unit = {
@@ -261,46 +258,50 @@ abstract class EngineCore {
 		Application.openGLThread.set(true)
 
 		// Set the clear color
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+		glClearColor(clearColor.r,clearColor.g,clearColor.b,clearColor.a)
 
-		glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-		arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+		arx.graphics.GL.setViewport(Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y))
 
+		arx.graphics.GL.glSetState(GL_BLEND,enable = true)
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
 
 		var lastUpdated = GLFW.glfwGetTime()
 
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
-			if (hasFocus && ! fullPause) {
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
-				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
-					glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-					arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-				}
-			}
+		while (!glfwWindowShouldClose(window)) {
+//			if (hasFocus && ! fullPause) {
+//				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+//
+//				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
+//					glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+//					arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+//				}
+//			}
 
 			val curTime = GLFW.glfwGetTime()
 			val deltaSeconds = curTime - lastUpdated
 			lastUpdated = curTime
-			if (!fullPause) {
-				update(deltaSeconds.toFloat)
+			if (deltaSeconds > (0.016666667 * 1.25)) {
+				Noto.info("Long update time: " + deltaSeconds)
 			}
 
-			if (hasFocus && ! fullPause) {
-				draw()
+//			if (!fullPause) {
+//				update(deltaSeconds.toFloat)
+//			}
+
+//			if (hasFocus && ! fullPause) {
+//				draw()
 
 				glfwSwapBuffers(window) // swap the color buffers
-			}
+//			}
 
 			// Poll for window events. The key callback above will only be
 			// invoked during this call.
 			glfwPollEvents()
-			if (!hasFocus || fullPause) {
-				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
-			}
+//			if (!hasFocus || fullPause) {
+//				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
+//			}
 		}
 	}
 
@@ -316,5 +317,15 @@ abstract class EngineCore {
 		} else {
 			Noto.error("Could not find module field to run")
 		}
+	}
+}
+object EngineCore {
+	var windowWidth = 800
+	var windowHeight = 600
+	var pixelWidth = windowWidth
+	var pixelHeight = windowHeight
+
+	def pixelScaleFactor = {
+		EngineCore.pixelWidth.toFloat / EngineCore.windowWidth.toFloat
 	}
 }

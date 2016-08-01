@@ -13,6 +13,7 @@ import arx.core.query.ContinuousQuery
 import arx.core.query.TContinuousQuerySource
 import arx.core.synchronization.ReadWriteLock
 import arx.core.traits.TSentinel
+import arx.core.traits.TSentinelable
 import arx.engine.data._
 import arx.engine.entity.GameEntity
 import arx.engine.entity.MinimalGameEntity
@@ -22,7 +23,7 @@ import com.carrotsearch.hppc.LongObjectOpenHashMap
 import com.carrotsearch.hppc.LongOpenHashSet
 import scalaxy.loops._
 
-class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxData] {
+class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxData] with TSentinelable {
 	protected[engine] var entityAuxDataQueries = Map[Class[_],ContinuousQuery[TGameEntity]]()
 	protected[engine] var entityQueries = List[ContinuousQuery[TGameEntity]]()
 
@@ -35,15 +36,21 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 	protected[engine] val timeData : TimeData = this.auxData[TimeData]
 	def time = timeData.time
 
+	def addEntities(es : TGameEntity*): Unit = {
+		es.foreach(addEntity)
+	}
 	def addEntity(e : TGameEntity): Unit = {
 		entityLock.writeLock {
 			e match {
-				case full : GameEntity => fullEntities.put(full.id,full)
-				case minimal : MinimalGameEntity => minimalEntities.add(minimal.id)
+				case full : GameEntity =>
+					fullEntities.put(full.id,full)
+				case minimal : MinimalGameEntity =>
+					minimalEntities.add(minimal.id)
 				case wrapper : MinimalGameEntityWrapper =>
 					Noto.warn("Adding a wrapper entity to the world, you should avoid doing that")
 					minimalEntities.add(wrapper.id)
 			}
+			e.world = this
 			// The lock is reentrant, so this shouldn't deadlock, probably
 			entityQueries.foreach(_.add(e))
 		}
@@ -58,6 +65,7 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 					Noto.warn("Removing a wrapper entity to the world, you should avoid doing that")
 					minimalEntities.remove(wrapper.id)
 			}
+			e.world = World.Sentinel
 			// The lock is reentrant, so this shouldn't deadlock, probably
 			entityQueries.foreach(_.remove(e))
 		}
@@ -137,6 +145,8 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 
 	// Transient initialization
 	protected[engine] def entityLock = { if (_entityLock == null) { _entityLock = new ReadWriteLock } ; _entityLock }
+
+	override def toString() : String = "World"
 }
 
 object World {

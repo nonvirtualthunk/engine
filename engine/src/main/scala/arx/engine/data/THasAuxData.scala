@@ -3,6 +3,7 @@ package arx.engine.data
 import arx.core.introspection.ReflectionAssistant
 
 import scala.collection.mutable
+import scala.language.implicitConversions
 
 trait THasAuxData[U <: TAuxData] {
 	def auxData[T <: U](clazz: Class[T]): T
@@ -36,9 +37,6 @@ trait THasAuxData[U <: TAuxData] {
 
 	def aux[T <: U : Manifest] = auxData[T]
 
-
-	def ->[T <: U](classWrap: AuxDataObject[T]) = auxData(classWrap.clazz)
-
 	def apply[T <: U : Manifest] = auxData[T]
 
 	def auxDataOpt[T <: U : Manifest]: Option[T]
@@ -46,6 +44,10 @@ trait THasAuxData[U <: TAuxData] {
 	def hasAuxData[T <: U : Manifest]: Boolean
 
 	def withData[R <: U : Manifest] : WrappedWithData[U,R,THasAuxData[U]] = new WrappedWithData[U, R, THasAuxData[U]](this)
+
+	protected def auxByName(str : String) = {
+		allAuxData.filter(a => a.getClass.getSimpleName.endsWith(str)).head
+	}
 }
 
 

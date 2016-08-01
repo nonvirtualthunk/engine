@@ -22,7 +22,7 @@ trait TExternalAuxDataStore[U <: TAuxData] {
 
 class MapBackedExternalAuxDataStore[U <: TAuxData : Manifest] extends TExternalAuxDataStore[U] {
 	val backingClasses = ReflectionAssistant.allSubTypesOf[U].toSet
-	val backingMaps = Array.ofDim[LongObjectOpenHashMap[U]](backingClasses.size)
+	val backingMaps = Array.fill(backingClasses.size)(new LongObjectOpenHashMap[U])
 	val indices = backingClasses.zipWithIndex.toMap
 
 	override def getAuxDataOrElse[T <: U](id: Long, clazz: Class[T], orElse: T): T = {

@@ -31,6 +31,7 @@ trait TCamera extends TEventUser with TSentinelable {
 	var near = 0.1f
 	var viewDistance = 100.0f
 	def far = viewDistance * 1.1f
+	var fovy = 50.0f
 
 	def update (dt : UnitOfTime)
 

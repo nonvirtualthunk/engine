@@ -115,12 +115,12 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	 * Clears the last updated marker, the points and indices. Does not alter any of the data
 	 * already on the graphics card, nor the lastSolidifiedMarker
 	 */
-	def clear (){
+	def clear (allowDuringUpdate : Boolean = true){
 		/* We were getting illegal arg exceptions in the byte buffers because we were being cleared while populating
 		   the VBO, because the thing moved out of view before it had finished. This way we let it finish what it's
 		   doing before we nuke, it potentially wastes some time, but it's much safer, and gives more reasonable
 		   guarantees to the code using the VBO */
-		if ( state.get() == VBO.Updating ) { deferredUntilAfterWrite.enqueue( () => this.clear() ) }
+		if ( ! allowDuringUpdate && state.get() == VBO.Updating ) { deferredUntilAfterWrite.enqueue( () => this.clear() ) }
 		else {
 			points.clear()
 			indices.clear()

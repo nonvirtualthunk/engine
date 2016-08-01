@@ -15,7 +15,8 @@ import arx.engine.game.GameEngine
 import arx.engine.world.World
 import scalaxy.loops._
 
-abstract class GameComponent(gameEngine: GameEngine, world : World) extends TDependable with TUpdateable {
+abstract class GameComponent(gameEngine: GameEngine) extends TDependable with TUpdateable {
+	val world = gameEngine.world
 	protected var initialized = false
 
 	override def updateSelf(dt: UnitOfTime): Unit = {

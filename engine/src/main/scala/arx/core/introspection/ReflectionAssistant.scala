@@ -12,7 +12,7 @@ import java.lang.reflect.Modifier
 
 import arx.Prelude._
 import arx.application.Noto
-import arx.core.async.Async
+import arx.core.async.Executor
 import arx.core.datastructures.OneOrMore.fromSingle
 import arx.core.metrics.Metrics
 import arx.core.traits.TNonDiscoverable
@@ -24,7 +24,7 @@ import scala.collection.JavaConversions._
 import scalaxy.loops._
 
 object ReflectionAssistant {
-	val reflectionsFuture = Async.submit(loadReflections _)
+	val reflectionsFuture = Executor.submitAsync(loadReflections _)
 
 	def reflections = reflectionsFuture.get()
 
@@ -36,7 +36,9 @@ object ReflectionAssistant {
 
 		import scala.collection.JavaConversions._
 		for (c <- ref.getSubTypesOf(classOf[TEagerSingleton])) {
-			getSingleton(c)
+			if (isSingleton(c)) {
+				getSingleton(c)
+			}
 		}
 
 		ref
@@ -82,7 +84,7 @@ object ReflectionAssistant {
 		}
 	}
 
-	def allSubTypesOf(clazz: Class[_]): List[Class[_]] = reflections.getSubTypesOf(clazz).toList
+	def allSubTypesOf(clazz: Class[_]): List[Class[_]] = reflections.getSubTypesOf(clazz).toList.filterNot(cz => classOf[TNonDiscoverable].isAssignableFrom(cz))
 	def allSubTypesOf[T: Manifest]: List[Class[_ <: T]] = allSubTypesOf(manifest[T].runtimeClass).asInstanceOf[List[Class[_ <: T]]]
 
 	def isSingleton(c: Class[_]) = c.getSimpleName.endsWith("$") && !c.getSimpleName.startsWith("$")

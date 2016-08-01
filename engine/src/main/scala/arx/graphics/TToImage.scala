@@ -10,7 +10,7 @@ package arx.graphics
 
 import arx.Prelude._
 import arx.application.{Application, Noto}
-import arx.core.async.Async
+import arx.core.async.Executor
 import arx.resource.ResourceManager
 import java.util.concurrent.Executors
 import arx.core.Moddable
@@ -49,7 +49,7 @@ object LazyImageFunc {
 
 
 	def load (func : => Image,holder : LazyImageFunc) {
-		Async.submit(new ImageLoaderRunnable(func,holder))//execute(new ImageLoaderRunnable(func,holder))
+		Executor.submitAsync(new ImageLoaderRunnable(func,holder))//execute(new ImageLoaderRunnable(func,holder))
 	}
 
 	class ImageLoaderRunnable(func : => Image,holder : LazyImageFunc) extends Runnable {

@@ -18,4 +18,10 @@ class ArxOption[T](val opt : Option[T]) extends AnyVal {
 			opt
 		}
 	}
+
+	def ifPresent (func : (T) => Unit): Unit = {
+		if (opt.isDefined) {
+			func(opt.get)
+		}
+	}
 }

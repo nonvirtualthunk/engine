@@ -12,12 +12,13 @@ import arx.core.datastructures.voxelregions.voxelregions.EmptyVoxelRegion
 import arx.core.datastructures.voxelregions.voxelregions.VoxelRegion
 import arx.core.traits.TArxTraversable
 import arx.core.vec.coordinates.VoxelCoord
+import scala.collection.TraversableLike
 import scala.language.postfixOps
 import scalaxy.loops._
 import arx.core.vec._
 
 class VoxelGrid[@specialized(Byte, Short, Int) T](val defaultValue: T = null.asInstanceOf[T],
-																  coreSize: ReadVec3i = Vec3i(2048)) extends VoxelStore[T] {
+																  coreSize: ReadVec3i = Vec3i(2048)) extends VoxelStore[T] with TaleaStore[T] {
 	/* Must be vars because of bug https://issues.scala-lang.org/browse/SI-4511 */
 	protected[datastructures] var dummyTalea = new Talea[T](VoxelCoord(-1, -1, -1), defaultValue) {
 		override def update(x: Int, y: Int, z: Int, b: T): Unit = throw new IllegalStateException("Wrote to dummy talea")
@@ -70,6 +71,8 @@ class VoxelGrid[@specialized(Byte, Short, Int) T](val defaultValue: T = null.asI
 	override def subView(region: VoxelRegion): VoxelView[T] with BoundedVoxelView[T] = {
 		subStore(region)
 	}
+
+	override def allTaleae: Traversable[TTalea[T]] = _grid.values
 }
 
 class SingleTaleaWrapper[@specialized(Byte, Short, Int) T](talea : Talea[T]) extends BoundedVoxelStore[T] {

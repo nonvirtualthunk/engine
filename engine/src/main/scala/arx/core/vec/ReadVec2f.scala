@@ -24,6 +24,7 @@ class ReadVec2f extends InternVec2f with SelfModdable[ReadVec2f]{
 	protected def x_= ( s : Float ) { xi = s }
 	def y = yi
 	protected def y_= ( s : Float ) { yi = s }
+	def xy = this
 	def length : Float = {
 		val e = xi*xi + yi*yi
 		math.sqrt(e).toFloat

@@ -8,6 +8,7 @@ package arx.engine.advanced
  */
 
 import arx.Prelude._
+import arx.control.ControlEngine
 import arx.core.vec.ReadVec2f
 import arx.engine.EngineCore
 import arx.engine.control.event.Event._
@@ -15,28 +16,52 @@ import arx.engine.event.EventBus
 import arx.engine.game.GameEngine
 import arx.engine.graphics.GraphicsEngine
 import arx.engine.world.World
+import arx.gui2.WindowingSystem2
 import org.lwjgl.glfw.GLFW
+
 import scalaxy.loops._
 
-class Engine extends EngineCore with TEventUser {
+abstract class Engine extends EngineCore with TEventUser {
 	val world = new World
-	val eventBus = new EventBus
-	val gameEngine = new GameEngine(world, eventBus)
-	val graphicsEngine = new GraphicsEngine(world, eventBus)
+	val gameEventBus = new EventBus
+	val graphicsEventBus = new EventBus
+	val gameEngine = new GameEngine(world, gameEventBus)
+	val graphicsEngine = new GraphicsEngine(world, graphicsEventBus, gameEventBus)
+	val windowingSystem = new WindowingSystem2(this)
+	val controlEngine = new ControlEngine(world, graphicsEventBus, gameEventBus, graphicsEngine, windowingSystem)
 
 	var first = true
 
+	def setUpEngine()
+
+
+	override def init(): Unit = {
+		super.init()
+
+		setUpEngine();
+	}
+
 	override def update(deltaSeconds: Float): Unit = {
-		gameEngine.update(deltaSeconds)
-		graphicsEngine.update(deltaSeconds)
+		gameEngine.updateSerial(deltaSeconds)
+		graphicsEngine.updateSerial(deltaSeconds)
+		windowingSystem.update(deltaSeconds)
+		controlEngine.update(deltaSeconds)
 	}
 
 	override def draw(): Unit = {
 		graphicsEngine.draw()
+		windowingSystem.draw()
 	}
 
 	eventFallback {
-		case e : Event => graphicsEngine.pov.handleEvent(e)
+		case e : Event =>
+			windowingSystem.handleEvent(e)
+			if (e.notConsumed) {
+				controlEngine.handleEvent(e)
+				if (e.notConsumed) {
+					graphicsEngine.pov.handleEvent(e)
+				}
+			}
 	}
 
 	// Transform callbacks into event objects

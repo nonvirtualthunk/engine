@@ -39,6 +39,9 @@ trait TEventUser {
 		eventListeners ::= (func,false,1)
 	}
 
+	@deprecated
+	def fireEvent (event : Event) : Boolean = handleEvent(event)
+
 	def handleEvent ( event: Event ) : Boolean = {
 		TEventUser.pushEvent(event)
 		// Sort the event listeners in order of precedence

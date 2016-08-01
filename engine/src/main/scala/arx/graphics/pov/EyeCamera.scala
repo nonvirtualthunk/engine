@@ -32,8 +32,6 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 	def effectiveMoveSpeed : ReadVec3f = moveSpeed
 	def effectiveTurnSpeed : ReadVec2f = turnSpeed
 
-	var fovy = 50.0f
-
 	def keyCombinationStr = "camera"
 
 	def modelviewMatrix = GL.lookAt(eye,eye + forward,up)
@@ -77,16 +75,16 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 	def manualUpdate() {
 		if ( lastManualUpdate < 0 ) { lastManualUpdate = System.nanoTime() }
 		else {
-			Metrics.timer("Camera.initialChecks").timeStmt {
+//			Metrics.timer("Camera.initialChecks").timeStmt {
 				if ( ! Keymap.mappingActive(keymapNamespace, PanLeft) && ! Keymap.mappingActive(keymapNamespace,PanRight) ) { deltaAngles.x = 0.0f }
 				if ( ! Keymap.mappingActive(keymapNamespace,PanDown) && ! Keymap.mappingActive(keymapNamespace,PanUp) ) { deltaAngles.y = 0.0f }
 
 				if ( ! Keymap.mappingActive(keymapNamespace,MoveForward) && ! Keymap.mappingActive(keymapNamespace,MoveBack) ) { deltaEye.x = 0.0f }
 				if ( ! Keymap.mappingActive(keymapNamespace,MoveLeft) && ! Keymap.mappingActive(keymapNamespace,MoveRight) ) { deltaEye.y = 0.0f }
 				if ( ! Keymap.mappingActive(keymapNamespace,MoveUp) && ! Keymap.mappingActive(keymapNamespace,MoveDown) ) { deltaEye.z = 0.0f }
-			}
+//			}
 
-			Metrics.timer("Camera.computation").timeStmt {
+//			Metrics.timer("Camera.computation").timeStmt {
 				val curTime = System.nanoTime()
 				val f = ((curTime - lastManualUpdate) / 1.66667e7).toFloat
 				lastManualUpdate = curTime
@@ -132,7 +130,7 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 				forward = transform transformVector baseForward
 				up = transform transformVector baseUp
 				ortho = forward cross up
-			}
+//			}
 		}
 	}
 }
