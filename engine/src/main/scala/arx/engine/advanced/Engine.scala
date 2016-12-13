@@ -42,8 +42,8 @@ abstract class Engine extends EngineCore with TEventUser {
 	}
 
 	override def update(deltaSeconds: Float): Unit = {
-		gameEngine.updateSerial(deltaSeconds)
-		graphicsEngine.updateSerial(deltaSeconds)
+		gameEngine.update(deltaSeconds)
+		graphicsEngine.update(deltaSeconds)
 		windowingSystem.update(deltaSeconds)
 		controlEngine.update(deltaSeconds)
 	}

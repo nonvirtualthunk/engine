@@ -54,6 +54,7 @@ abstract class EngineCore {
 
 
 	def run(): Unit = {
+		println("GLFW Version: " + GLFW.glfwGetVersionString());
 		System.setProperty("java.awt.headless", "true")
 		try {
 			init()
@@ -87,13 +88,14 @@ abstract class EngineCore {
 
 		// Configure our window
 		glfwDefaultWindowHints() // optional, the current window hints are already the default
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE) // the window will stay hidden after creation
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE) // the window will be resizable
+//		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE) // the window will stay hidden after creation
+//		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE) // the window will be resizable
 
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE)
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4)
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1)
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2)
+//		glfwWindowHint(GLFW_STENCIL_BITS, 8)
 
 
 		// Create the window
@@ -207,7 +209,7 @@ abstract class EngineCore {
 		// Make the OpenGL context current
 		glfwMakeContextCurrent(window)
 		// Enable v-sync
-		glfwSwapInterval(1)
+		glfwSwapInterval(0)
 
 //		// Make the window visible
 		glfwShowWindow(window)
@@ -270,14 +272,14 @@ abstract class EngineCore {
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
 		while (!glfwWindowShouldClose(window)) {
-//			if (hasFocus && ! fullPause) {
-//				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-//
-//				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
-//					glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-//					arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-//				}
-//			}
+			if (hasFocus && ! fullPause) {
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+
+				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
+					glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+					arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+				}
+			}
 
 			val curTime = GLFW.glfwGetTime()
 			val deltaSeconds = curTime - lastUpdated
@@ -286,22 +288,22 @@ abstract class EngineCore {
 				Noto.info("Long update time: " + deltaSeconds)
 			}
 
-//			if (!fullPause) {
-//				update(deltaSeconds.toFloat)
-//			}
+			if (!fullPause) {
+				update(deltaSeconds.toFloat)
+			}
 
-//			if (hasFocus && ! fullPause) {
-//				draw()
+			if (hasFocus && ! fullPause) {
+				draw()
 
 				glfwSwapBuffers(window) // swap the color buffers
-//			}
+			}
 
 			// Poll for window events. The key callback above will only be
 			// invoked during this call.
 			glfwPollEvents()
-//			if (!hasFocus || fullPause) {
-//				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
-//			}
+			if (!hasFocus || fullPause) {
+				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
+			}
 		}
 	}
 

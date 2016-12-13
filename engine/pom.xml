@@ -15,38 +15,38 @@
     <version>0.1.0-SNAPSHOT</version>
     <name>vel</name>
 
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <lwjgl.version>3.1.0</lwjgl.version>
+    </properties>
+
     <profiles>
         <profile>
-            <id>windows-profile</id>
+            <id>lwjgl-natives-linux></id>
             <activation>
-                <os>
-                    <family>Windows</family>
-                </os>
+                <os><family>unix</family></os>
             </activation>
             <properties>
-                <native.target>natives-windows</native.target>
+                <lwjgl.natives>natives-linux</lwjgl.natives>
             </properties>
         </profile>
         <profile>
-            <id>linux-profile</id>
+            <id>lwjgl-natives-macos></id>
             <activation>
-                <os>
-                    <family>Linux</family>
-                </os>
+                <os><family>mac</family></os>
             </activation>
             <properties>
-                <native.target>natives-linux</native.target>
+                <lwjgl.natives>natives-macos</lwjgl.natives>
             </properties>
         </profile>
         <profile>
-            <id>OSX-profile</id>
+            <id>lwjgl-natives-windows></id>
             <activation>
-                <os>
-                    <family>mac</family>
-                </os>
+                <os><family>windows</family></os>
             </activation>
             <properties>
-                <native.target>natives-osx</native.target>
+                <lwjgl.natives>natives-windows</lwjgl.natives>
             </properties>
         </profile>
     </profiles>
@@ -64,19 +64,6 @@
             <artifactId>scala-compiler</artifactId>
             <version>${scala.version}</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl</artifactId>
-            <version>3.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-platform</artifactId>
-            <version>3.0.0</version>
-            <scope>compile</scope>
-            <classifier>${native.target}</classifier>
         </dependency>
         <dependency>
             <groupId>com.carrotsearch</groupId>
@@ -146,6 +133,73 @@
             <artifactId>scalatest_2.11</artifactId>
             <version>2.2.1</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- LWJGL -->
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-glfw</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-jemalloc</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-openal</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-opengl</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-stb</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.natives}</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-glfw</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.natives}</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-jemalloc</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.natives}</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-openal</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.natives}</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-stb</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.natives}</classifier>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
     <repositories>
