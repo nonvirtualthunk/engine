@@ -14,6 +14,7 @@ import java.io.ObjectInput
 import java.io.ObjectOutput
 
 import arx.core.vec.ReadVec2f
+import arx.core.vec.ReadVec2i
 import arx.core.vec.Vec2f
 import arx.graphics.GL
 import arx.graphics.Image
@@ -62,4 +63,5 @@ class PixelFont(dir : File) extends TBitmappedFont with Externalizable {
 	def characterHeight(c: Char) = { throw new Error("Pixel font character widths not yet implemented") }
 
 	def maxCharacterDimensions = throw new IllegalStateException("Not implemented")
+	override def maxCharacterDimensionsPixels: ReadVec2i = ???
 }

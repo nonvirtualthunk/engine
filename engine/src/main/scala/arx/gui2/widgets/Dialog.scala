@@ -17,6 +17,7 @@ import arx.core.ImplicitModdable._
 import arx.core.Moddable
 import arx.core.vec.Cardinals._
 import arx.engine.control.event.Event.KeyPressEvent
+import arx.graphics.helpers.HSBA
 import arx.gui2.events.TextInputEnter
 import arx.resource.ResourceManager.image
 import org.lwjgl.glfw.GLFW

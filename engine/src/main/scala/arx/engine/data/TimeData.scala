@@ -43,4 +43,12 @@ class TimeData extends TWorldAuxData {
 			Noto.warn("Negative time acceleration is not permitted")
 		}
 	}
+	def pause(): Unit = {
+		_timeAcceleration = 0.0f
+	}
+
+	override def equals(obj: scala.Any): Boolean = obj match {
+		case o : TimeData => time == o.time && timeAcceleration == o.timeAcceleration && timeWarp == o.timeWarp
+		case _ => false
+	}
 }

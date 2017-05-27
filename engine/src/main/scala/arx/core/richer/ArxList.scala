@@ -80,4 +80,10 @@ class ArxList[+T](val intern : List[T]) extends AnyVal{
 		}
 		maxElem -> maxWeight
 	}
+
+	def cross[U >: T] (other : Traversable[U], join : (U,U) => U) = {
+		for (x <- intern; y <- other) yield {
+			join(x,y)
+		}
+	}
 }

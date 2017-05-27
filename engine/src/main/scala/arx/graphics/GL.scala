@@ -36,7 +36,9 @@ object GL {
 
 	var disabled = false
 
-	var viewport = Recti(0,0,1440,900)
+	var maximumViewport = Recti(0,0,1440,900)
+	var _viewportStack = List(maximumViewport)
+	def viewport = _viewportStack.head
 	def viewportSize = ReadVec2i(viewport.width,viewport.height)
 
 	var boundTexture = Array(0,0,0,0,0,0,0,0,0,0,0)
@@ -100,10 +102,19 @@ object GL {
 	}
 
 	def setViewport(r : Recti): Unit = {
-		backing.glViewport(r.x,r.y,r.w,r.h)
-		viewport = r
+		_viewportStack = r :: _viewportStack.tail
+		backing.glViewport(_viewportStack.head.x,_viewportStack.head.y,_viewportStack.head.w,_viewportStack.head.h)
 	}
 	def setViewport(r : Rectf): Unit = setViewport(r.toRecti)
+
+	def pushViewport(r : Recti): Unit = {
+		_viewportStack ::= r
+		backing.glViewport(r.x,r.y,r.w,r.h)
+	}
+	def popViewport(): Unit = {
+		_viewportStack = _viewportStack.tail
+		backing.glViewport(_viewportStack.head.x,_viewportStack.head.y,_viewportStack.head.w,_viewportStack.head.h)
+	}
 
 	@inline
 	protected def enhancedTruth ( setting : Int , truth : Boolean ) = {

@@ -7,6 +7,7 @@ package arx.gui2.testbed
  * Time: 8:13 AM
  */
 
+import arx.application.Noto
 import arx.core.vec.Vec4f
 import arx.engine.advanced.Engine
 import arx.engine.control.event.Event.Event
@@ -19,10 +20,11 @@ class BasicApplication( mainWidget : => Widget) extends Engine {
 		clearColor = Vec4f.One
 
 		val w = mainWidget
-		windowingSystem.addTopLevelWidget(w)
-		if (windowingSystem.focusedWidget.isEmpty) {
-			windowingSystem.lastWidgetUnderMouse = Some(w)
-			windowingSystem.giveFocusTo(w)
-		}
+		Noto.severeError("Windowing system disabled right now, will need to adapt to re-enable")
+//		windowingSystem.addTopLevelWidget(w)
+//		if (windowingSystem.focusedWidget.isEmpty) {
+//			windowingSystem.lastWidgetUnderMouse = Some(w)
+//			windowingSystem.giveFocusTo(w)
+//		}
 	}
 }

@@ -8,6 +8,7 @@ package arx.engine.data
   */
 
 import arx.application.Noto
+import arx.core.introspection.CopyAssistant
 import arx.engine.world.World
 
 trait TWorldAuxData extends TAuxData {
@@ -28,3 +29,6 @@ trait TWorldAuxData extends TAuxData {
 		case _ => Noto.severeError("World data assigned to non-world")
 	}
 }
+
+
+

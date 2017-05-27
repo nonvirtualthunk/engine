@@ -41,7 +41,7 @@ class GrowableArray[T <: AnyRef](implicit man : Manifest[T]) extends Traversable
 	@inline
 	def update ( i : Int , t : T ) {
 		intern(i) = t
-		if (i <= _size) {
+		if (i >= _size) {
 			_size = i+1
 		}
 	}
@@ -57,15 +57,24 @@ class GrowableArray[T <: AnyRef](implicit man : Manifest[T]) extends Traversable
 		i += 1}
 	}
 
-	def remove ( v : T ) {
+	override def find(f : (T) => Boolean) : Option[T] = {
+		var i = 0; while ( i < size ) {
+			if ( f(intern(i)) ) {
+				return Some(intern(i))
+			}
+		i += 1}
+		None
+	}
+
+	def removeBySwapAndPop(v : T ) {
 		var i = 0; while ( i < size ) {
 			if ( intern(i) == v ) {
-				remove(i)
+				swapAndPop(i)
 				i = size
 			}
 		i += 1}
 	}
-	def remove ( i : Int ) {
+	def swapAndPop(i : Int ) {
 		intern(i) = intern(size-1) //pop and swap
 		_size -= 1
 	}
@@ -76,6 +85,14 @@ class GrowableArray[T <: AnyRef](implicit man : Manifest[T]) extends Traversable
 				return i
 			}
 		i += 1}
+		-1
+	}
+	def indexOf(t : T) : Int = {
+		var i = 0; while ( i < size ) {
+			if (intern(i) == t) {
+				return i
+			}
+			i += 1}
 		-1
 	}
 
@@ -92,15 +109,15 @@ class GrowableSortableArray[T <: THasSortKey : Manifest] extends GrowableArray[T
 		util.Arrays.sort(intern,0,size,comparator)
 	}
 
-	override def remove ( i : Int ) {
-		//We don't do a pop-and-swap here as we may have done in the normal growable array, since that would
-		//defeat any ordering that had been done
-
-		if ( i != _size - 1 ) { //If the one deleted is the last one, we don't care, just chop it off
-			System.arraycopy(intern,i+1,intern,i,size - i - 1)
-		}
-		_size -= 1
-	}
+//	override def remove ( i : Int ) {
+//		//We don't do a pop-and-swap here as we may have done in the normal growable array, since that would
+//		//defeat any ordering that had been done
+//
+//		if ( i != _size - 1 ) { //If the one deleted is the last one, we don't care, just chop it off
+//			System.arraycopy(intern,i+1,intern,i,size - i - 1)
+//		}
+//		_size -= 1
+//	}
 }
 
 class GrowableFloatArray extends Traversable[Float] {

@@ -21,5 +21,4 @@ class EitherFloat ( val a : Float , val b : Float ) {
 	def + ( p : Float ) : EitherFloat = new EitherFloat(a + p,b + p)
 	def - ( p : Float ) : EitherFloat = new EitherFloat(a - p,b - p)
 	def * ( p : Float ) : EitherFloat = new EitherFloat(a * p,b * p)
-
 }

@@ -20,6 +20,7 @@ import arx.graphics.shader.Shader
 import arx.graphics.AVBO
 import arx.graphics.AttributeProfile
 import arx.graphics.GL
+import arx.graphics.helpers.HSBA
 import arx.gui2.Widget
 import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11

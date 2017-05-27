@@ -41,6 +41,7 @@ class RingBuffer[@specialized(Int,Short,Byte) T : Manifest](sizeHintPo2 : Int = 
 	override def isEmpty = startIndex == endIndex
 	override def nonEmpty = startIndex != endIndex
 	override def size = endIndex - startIndex
+	def maxSize = 1 << sizePo2
 	override def head = backingArray(startIndex)
 
 	def enqueue( x : T, y : T ) { enqueue(x);enqueue(y); }

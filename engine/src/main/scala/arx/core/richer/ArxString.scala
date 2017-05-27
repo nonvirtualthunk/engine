@@ -13,6 +13,9 @@ import java.util.regex.Pattern
 
 import arx.application.Noto
 
+import scala.language.postfixOps
+import scalaxy.loops._
+
 class ArxString(val intern: String) extends AnyVal {
 	def -(other: String) : String = {
 		var tmp = intern
@@ -33,11 +36,23 @@ class ArxString(val intern: String) extends AnyVal {
 
 	def toCamelCase : String = {
 		val sb = new StringBuilder
-		for ( i <- 0 until intern.size ) {
+		for ( i <- 0 until intern.length optimized) {
 			if ( i != 0 && intern(i-1) == ' ' ) {
 				sb.append(intern(i).toUpper)
 			} else if ( intern(i) != ' ' ) {
 				sb.append(intern(i))
+			}
+		}
+		sb.toString()
+	}
+
+	def toSnakeCase : String = {
+		val sb = new StringBuilder
+		for (i <- 0 until intern.length optimized) {
+			if (intern(i) != ' ') {
+				sb.append(intern(i).toLower)
+			} else {
+				sb.append('_')
 			}
 		}
 		sb.toString()

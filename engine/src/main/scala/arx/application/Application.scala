@@ -8,6 +8,8 @@ package arx.application
  */
 
 import arx.Prelude._
+import org.lwjgl.glfw.GLFW
+
 import scalaxy.loops._
 
 object Application {
@@ -15,6 +17,6 @@ object Application {
 	var openGLThread = new ThreadLocal[Boolean]{override def initialValue() = false}
 
 	def isOpenGLThread() = {
-		openGLThread.get();
+		openGLThread.get()
 	}
 }

@@ -10,6 +10,7 @@ package arx.core.math
 import arx.Prelude._
 import arx.core.vec.ReadVec2f
 import arx.core.vec.ReadVec2i
+import arx.core.vec.Vec2f
 
 import scalaxy.loops._
 
@@ -35,11 +36,17 @@ case class Rectf (var x : Float, var y : Float, var width : Float, var height : 
 	}
 
 	def toRecti : Recti = Recti(x.toInt,y.toInt,w.toInt,h.toInt)
+	def xy = Vec2f(x,y)
+	def dimensions = Vec2f(width,height)
 }
 
 object Rectf {
 	def apply(r : Rectf) : Rectf = {
 		Rectf(r.x,r.y,r.width,r.height)
+	}
+
+	def fromMinAndMax(min : ReadVec2f, max : ReadVec2f) = {
+		Rectf(min.x,min.y,max.x - min.x, max.y - min.y)
 	}
 }
 
@@ -54,4 +61,6 @@ case class Recti (var x : Int, var y : Int, var width : Int, var height : Int) {
 
 	def min = ReadVec2i(minX,minY)
 	def max = ReadVec2i(maxX,maxY)
+
+	def dimensions = ReadVec2i(width,height)
 }

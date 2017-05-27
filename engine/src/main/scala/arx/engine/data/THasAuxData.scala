@@ -6,9 +6,9 @@ import scala.collection.mutable
 import scala.language.implicitConversions
 
 trait THasAuxData[U <: TAuxData] {
-	def auxData[T <: U](clazz: Class[T]): T
+	def auxDataByClass[T <: U](clazz: Class[T]): T
 
-	def auxData[T <: U : Manifest]: T = auxData(manifest[T].runtimeClass.asInstanceOf[Class[T]])
+	def auxData[T <: U : Manifest]: T = auxDataByClass(manifest[T].runtimeClass.asInstanceOf[Class[T]])
 
 	protected def onNewAuxDataCreated(gead: U) {}
 
@@ -41,7 +41,9 @@ trait THasAuxData[U <: TAuxData] {
 
 	def auxDataOpt[T <: U : Manifest]: Option[T]
 
-	def hasAuxData[T <: U : Manifest]: Boolean
+	final def hasAuxData[T <: U : Manifest]: Boolean = hasAuxDataByClass(manifest[T].runtimeClass.asInstanceOf[Class[T]])
+
+	def hasAuxDataByClass[T <: U](clazz : Class[T]) : Boolean
 
 	def withData[R <: U : Manifest] : WrappedWithData[U,R,THasAuxData[U]] = new WrappedWithData[U, R, THasAuxData[U]](this)
 
@@ -52,22 +54,22 @@ trait THasAuxData[U <: TAuxData] {
 
 
 class WrappedWithData[BaseT <: TAuxData, T <: BaseT : Manifest, +E <: THasAuxData[BaseT]](protected val intern: E) extends THasAuxData[BaseT] {
-	@transient protected var cached = intern.auxData(manifest[T].runtimeClass.asInstanceOf[Class[T]])
+	@transient protected var cached = intern.auxDataByClass(manifest[T].runtimeClass.asInstanceOf[Class[T]])
 
 	def getAuxData = {
 		if (cached == null) {
-			cached = intern.auxData(manifest[T].runtimeClass.asInstanceOf[Class[T]])
+			cached = intern.auxDataByClass(manifest[T].runtimeClass.asInstanceOf[Class[T]])
 		}
 		cached
 	}
 
 	override def withData[U <: BaseT : Manifest] : WrappedWithData2[BaseT,U,WrappedWithData[BaseT,T,E]] = new WrappedWithData2[BaseT,U,WrappedWithData[BaseT,T,E]](this)
 
-	override def auxData[U <: BaseT](clazz: Class[U]): U = intern.auxData[U](clazz)
+	override def auxDataByClass[U <: BaseT](clazz: Class[U]): U = intern.auxDataByClass[U](clazz)
 
 	override protected[engine] def storeAuxData(d: BaseT): Unit = intern.storeAuxData(d)
 
-	override def hasAuxData[U <: BaseT : Manifest]: Boolean = intern.hasAuxData[U]
+	override def hasAuxDataByClass[U <: BaseT](clazz : Class[U]) = intern.hasAuxDataByClass(clazz)
 
 	override def removeAuxData[U <: BaseT](clazz: Class[U]): Unit = intern.removeAuxData(clazz)
 

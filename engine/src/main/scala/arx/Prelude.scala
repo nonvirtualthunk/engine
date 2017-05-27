@@ -19,6 +19,7 @@ import arx.resource.ResourceManager
 import arx.serialization.DecompressibleInputStream
 import com.codahale.metrics.Timer
 import com.esotericsoftware.kryo.Kryo
+import org.lwjgl.glfw.GLFW
 
 import scala.io.Source
 import scala.language.implicitConversions
@@ -66,12 +67,33 @@ object Prelude {
 		ret
 	}
 
+	def fillArray[T : Manifest] ( sizeX : Int, sizeY : Int)( f : (Int, Int) => T ) : Array[Array[T]] = {
+		val ret = manifest[T].wrap.newArray(sizeX)
+		var i = 0; while ( i < sizeX  ) {
+			val tmp = manifest[T].newArray(sizeY)
+			ret(i) = tmp
+			var j = 0; while (j < sizeY) {
+				tmp(j) = f(i,j)
+				j += 1
+			}
+			i += 1}
+		ret
+	}
+
 	def fillList[T] ( size : Int ) ( f : (Int) => T ) = {
 		var ret = List[T]()
 		var i = 0; while ( i < size ) {
 			ret ::= f(i)
 			i += 1}
 		ret.reverse
+	}
+
+	def fillVector[T] ( size : Int ) ( f : (Int) => T ) = {
+		var ret = Vector[T]()
+		var i = 0; while ( i < size ) {
+			ret :+= f(i)
+			i += 1}
+		ret
 	}
 
 	implicit class CaseInsensitiveString ( base : String ) {
@@ -212,6 +234,7 @@ object Prelude {
 
 
 	def VC (x:Int,y:Int,z:Int) = VoxelCoord(x,y,z)
+	def VC (xy:ReadVec2i,z:Int) = VoxelCoord(xy.x,xy.y,z)
 	def VCR(dx:Int,dy:Int,dz:Int) = VoxelCoord.fromRelative(dx,dy,dz)
 
 	// =========================== Math functions =================================================
@@ -221,6 +244,7 @@ object Prelude {
 	implicit def tup2MeasureRange[T <: UnitOfMeasure[T]] ( tup : (T,T) ) : UnitOfMeasureRange[T] = new UnitOfMeasureRange(tup._1,tup._2)
 
 	implicit def float2RicherFloat ( f : Float ) : RicherFloat = new RicherFloat(f)
+	implicit def double2RicherFloat ( f : Double ) : RicherDouble = new RicherDouble(f)
 	implicit def tuple2EitherFloat ( t : (Float,Float) ) : EitherFloat = new EitherFloat(t._1,t._2)
 	implicit def int2RicherInt ( i : Int ) : RicherInt = new RicherInt(i)
 
@@ -290,12 +314,23 @@ object Prelude {
 
 	def roundf ( f : Float ) = math.round(f).toFloat
 
-	def sign ( i : Int ) = if ( i < 0 ) { -1 } else if ( i > 0 ) { 1 } else { 0 }
-	def sign ( f : Float ) = if ( f < 0 ) { -1 } else if ( f > 0 ) { 1 } else { 0 }
-	def signN0 ( f : Float ) = if ( f < 0 ) { -1 } else { 1 }
+	@inline def sign ( i : Int ) = Integer.signum(i)
+	@inline def sign ( f : Float ) = Math.signum(f)
+	@inline def signN0 ( f : Float ) = if ( f < 0 ) { -1 } else { 1 }
+	@inline def sameSign (a : Float, b : Float) = Math.signum(a) == Math.signum(b)
 
 	def fract ( f : Float ) = f - math.floor(f).toFloat
 	def toRad ( deg : Float ) = math.toRadians(deg).toFloat
+
+	def pickByAxis[T](x : => T, y : => T, axis : Int) : T = axis match {
+		case 0 => x
+		case 1 => y
+	}
+	def pickByAxis[T](x : => T, y : => T, z : => T, axis : Int) : T = axis match {
+		case 0 => x
+		case 1 => y
+		case 2 => z
+	}
 
 	protected def interpolateCosF ( x : Float , controlPoints : Seq[(Float,_)] ) : (Int,Int,Float) = {
 		controlPoints match {
@@ -551,4 +586,8 @@ object Prelude {
 		bos.close()
 		ret.asInstanceOf[T]
 	}
+
+	def curTimeSeconds() = GLFW.glfwGetTime().toFloat
+	def curTimeMillis() = curTimeSeconds * 1000.0f
+	def curTime() = GLFW.glfwGetTime().seconds
 }

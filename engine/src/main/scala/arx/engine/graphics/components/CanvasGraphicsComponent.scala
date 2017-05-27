@@ -14,31 +14,64 @@ import arx.engine.world.World
 import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11._
 import arx.Prelude._
+import arx.core.introspection.ReflectionAssistant
+import arx.engine.simple.CustomCanvas
+import arx.graphics.GL
 
-abstract class CanvasGraphicsComponent(ge : GraphicsEngine) extends GraphicsComponent(ge) {
-	val shader = ResourceManager.shader("shaders/Simple")
-	val canvas = new Canvas
+abstract class CustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Manifest](ge : GraphicsEngine) extends GraphicsComponent(ge) {
+	var shader = ResourceManager.shader("shaders/Simple")
+	val _canvas : CanvasType = ReflectionAssistant.instantiate[CanvasType](manifest[CanvasType])
+	var viewport = GL.viewport
+	var depthTest = false
+
+	def canvas = _canvas
+
+	def createCanvas = new Canvas
+
+	def needsUpdate = true
+	def updateStarted() {}
+	def updateComplete() {}
+
+	def preDraw() {}
 
 	override def updateSelf(dt: UnitOfTime): Unit = {
 		super.updateSelf(dt)
 
-		if (canvas.startDraw()) {
-			draw(canvas)
-			canvas.finishDraw()
+		if (needsUpdate) {
+			if (canvas.startDraw()) {
+				updateStarted()
+				draw(canvas)
+				canvas.finishDraw()
+				updateComplete()
+			}
 		}
 	}
 
 	override def draw(): Unit = {
+		val originalViewport = GL.viewport
+		val desiredViewport = canvas.viewportOverride match {
+			case Some(ovFunc) => ovFunc(GL.viewport)
+			case None => GL.viewport
+		}
+		GL.pushViewport(desiredViewport)
+		viewport = desiredViewport
+
 		arx.graphics.GL.glSetState(GL_CULL_FACE, enable = false)
-		arx.graphics.GL.glSetState(GL_DEPTH_TEST, enable = false)
+		arx.graphics.GL.glSetState(GL_DEPTH_TEST, enable = depthTest)
 		arx.graphics.GL.glSetState(GL_BLEND, enable = true)
 
 		shader.bind()
 
 		pov.look()
 
+		preDraw()
+
 		canvas.render()
+
+		GL.popViewport()
 	}
 
-	def draw(canvas : Canvas): Unit
+	def draw(canvas : CanvasType): Unit
 }
+
+abstract class CanvasGraphicsComponent(ge:GraphicsEngine) extends CustomCanvasGraphicsComponent[Canvas](ge)

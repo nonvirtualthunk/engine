@@ -17,6 +17,8 @@ object Noto {
 	val Info = 0
 	val Fine = 2
 	val Finest = 4
+	
+	var indentation = 0
 
 	var debugOn = "true".equals(System.getProperty("logDebug"))
 	def finestOn = globalLoggingLevel >= Finest
@@ -34,10 +36,23 @@ object Noto {
 
 	var listeners : List[ (String,Int) => Unit ] = Nil
 
+	
+	def printIndentation(): Unit = {
+		var i = 0
+		while (i < indentation) {
+			print("\t")
+			i += 1
+		}
+	}
+
+	def printMsg(msg : String): Unit = {
+		printIndentation()
+		println(msg)
+	}
 
 	@elidable(elidable.INFO) def info ( msg : => String ) {
 		if ( infoOn ) {
-			println(msg)
+			printMsg(msg)
 			for ( listener <- listeners ) { listener(msg + "\n",Info) }
 			if ( debugOn || finestOn || fineOn ) {
 				writeToFile(msg + "\n")
@@ -47,7 +62,7 @@ object Noto {
 
 	@elidable(elidable.INFO) def info ( llp : TLoggingLevelProvider , msg : => String ) {
 		if ( llp.loggingLevel >= Noto.Info ) {
-			println(msg)
+			printMsg(msg)
 			for ( listener <- listeners ) { listener(msg + "\n",Info) }
 			if ( debugOn || finestOn || fineOn || llp.loggingLevel > Noto.Info ) {
 				writeToFile(msg + "\n")
@@ -57,7 +72,7 @@ object Noto {
 
 	@elidable(elidable.FINE) def debug ( msg : => String ) {
 		if ( debugOn ) {
-			println(msg)
+			printMsg(msg)
 			for ( listener <- listeners ) { listener(msg + "\n",Info) }
 			writeToFile(msg + "\n")
 		}
@@ -65,14 +80,14 @@ object Noto {
 
 	@elidable(elidable.FINEST) def finest ( llp: TLoggingLevelProvider , msg : => String ) {
 		if ( llp.loggingLevel >= Noto.Finest ) {
-			println(msg)
+			printMsg(msg)
 			for ( listener <- listeners ) { listener(msg + "\n",Finest) }
 			writeToFile(msg + "\n")
 		}
 	}
 	@elidable(elidable.FINEST) def finest ( msg : => String ) {
 		if ( finestOn ) {
-			println(msg)
+			printMsg(msg)
 			for ( listener <- listeners ) { listener(msg + "\n",Finest) }
 			writeToFile(msg + "\n")
 		}
@@ -80,7 +95,7 @@ object Noto {
 
 	@elidable(elidable.FINE) def fine ( llp: TLoggingLevelProvider, msg : => String ) {
 		if ( llp.loggingLevel >= Noto.Fine ) {
-			println(msg)
+			printMsg(msg)
 			for ( listener <- listeners ) { listener(msg + "\n",Fine) }
 			writeToFile(msg + "\n")
 		}
@@ -88,7 +103,7 @@ object Noto {
 	@elidable(elidable.FINE) def fine ( msg : => String , appendNewLine : Boolean = true ) {
 		if ( finestOn || fineOn ) {
 			if ( appendNewLine ) {
-				println(msg)
+				printMsg(msg)
 				for ( listener <- listeners ) { listener(msg + "\n",Fine) }
 				writeToFile(msg + "\n")
 			} else {
@@ -99,19 +114,19 @@ object Noto {
 	}
 
 	@elidable(elidable.WARNING) def warn ( msg : => String ) {
-		println("<warning> " + msg)
+		printMsg("<warning> " + msg)
 		for ( listener <- listeners ) { listener("<warning> " + msg + "\n",None) }
 		writeToFile("<warning> " + msg + "\n")
 	}
 	def error ( msg : => String ) {
-		println("<error> " + msg)
+		printMsg("<error> " + msg)
 		writeToFile("<error> " + msg + "\n")
 	}
 
 	def severeError ( msg : => String ) {
 		val e = new Exception()
 		val effectiveMessage = msg + "\nstack trace:\n" + e.getStackTraceString
-		println("<error> " + effectiveMessage)
+		printMsg("<error> " + effectiveMessage)
 		for ( listener <- listeners ) { listener("<error> " + effectiveMessage+ "\n",None) }
 		writeToFile("<error> " + effectiveMessage)
 	}

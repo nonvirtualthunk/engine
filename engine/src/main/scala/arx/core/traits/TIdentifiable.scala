@@ -8,8 +8,16 @@ package arx.core.traits
  */
 
 import arx.Prelude._
+import arx.engine.entity.GameArchetype
+
 import scalaxy.loops._
 
 trait TIdentifiable {
 	def identifier : String
+
+	override def hashCode(): Int = identifier.hashCode
+	override def equals(obj: Any): Boolean = obj match {
+		case ident: TIdentifiable => ident.identifier == this.identifier
+		case _ => false
+	}
 }

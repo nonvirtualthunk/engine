@@ -11,13 +11,14 @@ package arx.graphics.helpers
 import arx.Prelude
 import arx.core.vec.ReadVec3f
 import arx.core.vec.ReadVec4f
+import arx.core.vec.ReadVec4i
 import arx.core.vec.Vec3f
 import arx.core.vec.Vec4f
-import arx.gui2.widgets.HSB
-import arx.gui2.widgets.HSBA
+import arx.core.vec.Vec4i
 
 object Color {
 	def apply ( r : Int , g : Int , b : Int , a : Int ) = Vec4f( r.toFloat/255.0f , g.toFloat/255.0f , b.toFloat/255.0f, a.toFloat/255.0f )
+	def apply ( r : Int , g : Int , b : Int ) = Vec3f( r.toFloat/255.0f , g.toFloat/255.0f , b.toFloat/255.0f)
 	def apply ( rgb : Int , a : Int ) = Vec4f( rgb.toFloat/255.0f , rgb.toFloat/255.0f , rgb.toFloat/255.0f, a.toFloat/255.0f )
 	def apply ( rgb : Float , a : Float ) = Vec4f( rgb, rgb , rgb , a )
 
@@ -36,6 +37,12 @@ object Color {
 		val b = ((i & 0x0000ff00) >>> 8) / 255.0f
 		val a = (i & 0x000000ff) / 255.0f
 		Vec4f(r,g,b,a)
+	}
+	def toInt (v : ReadVec4i) : Int = {
+		(v.r<<24) | (v.g << 16) | (v.b << 8) | v.a
+	}
+	def toInt (v : ReadVec4f) : Int = {
+		toInt(Vec4i(v / 255.0f))
 	}
 
 
@@ -150,4 +157,64 @@ object Color {
 		hsb.b = Prelude.clamp(hsb.b,0.0f,1.0f)
 		hsb
 	}
+}
+
+class HSB(ha:Float,sa:Float,ba:Float) extends Vec3f(ha,sa,ba) {
+	def h = x
+	def s = y
+	override def b = z
+
+	def h_= ( f : Float ) { x = f }
+	def s_= ( f : Float ) { y = f }
+	override def b_= ( f : Float ) { z = f }
+
+	def toRGBA = Color.HSBtoRGB(this)
+
+}
+
+class HSBA(ha:Float,sa:Float,ba:Float,aa:Float) extends Vec4f(ha,sa,ba,aa) {
+	def this() { this(0.0f,0.0f,0.0f,0.0f) }
+	def h = r
+	def s = g
+//	override def b = super.b
+
+	def h_= ( f : Float ) { r = f }
+	def s_= ( f : Float ) { g = f }
+//	override def b_= ( f : Float ) { super.b_=(f) }
+
+
+	def toRGBA = Color.HSBAtoRGBA(this)
+	def toRGBAi = Vec4i(Color.HSBAtoRGBA(this) * 255)
+	def hsb = HSB(h,s,b)
+
+	def * (other : HSBA) = HSBA(h * other.h, s * other.s, b * other.b, a * other.a)
+
+	protected def hueShiftedH(target : Float, pcnt : Float) = {
+		val newH = if ((ha - target).abs < (ha - (target + 1.0f)).abs) {
+			ha + (target - ha) * pcnt
+		} else {
+			ha + ((target + 1.0f) - ha) * pcnt
+		}
+		if (newH > 1.0f) { newH - 1.0f } else { newH }
+	}
+
+	def hueShifted(target : Float, pcnt : Float) = {
+		HSBA(hueShiftedH(target,pcnt), s, b, a)
+	}
+	def saturationShifted(target : Float, pcnt : Float) = {
+		HSBA(h,s * (target - s) * pcnt,b,a)
+	}
+	def mix(other : HSBA, pcnt : Float) = {
+		HSBA(hueShiftedH(other.h,pcnt), s + (other.s - s) * pcnt, b + (other.b - b) * pcnt, a + (other.a - a) * pcnt)
+	}
+}
+
+object HSB {
+	def apply ( h : Float , s : Float , b : Float ) : HSB = new HSB(h,s,b)
+	def apply ( v : ReadVec3f ) : HSB = apply(v.x,v.y,v.z)
+}
+object HSBA {
+	def apply ( h : Float , s : Float , b : Float , a : Float) : HSBA = new HSBA(h,s,b,a)
+	def apply ( v : ReadVec3f, a : Float) : HSBA = apply(v.x,v.y,v.z,a)
+	def apply ( v : ReadVec4f ) : HSBA = apply(v.r,v.g,v.b,v.a)
 }

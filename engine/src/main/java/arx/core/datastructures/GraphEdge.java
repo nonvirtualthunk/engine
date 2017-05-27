@@ -7,12 +7,12 @@ package arx.core.datastructures;
  * Time: 6:43 AM
  */
 public class GraphEdge {
-    public VornoiEdge e;
+    public VornoiEdge voronoiEdge;
     public float x1, y1, x2, y2;
-
-    GraphEdge next;
+    public int p0index;
+    public int p1index;
 
     public GraphEdge(VornoiEdge e) {
-        this.e = e;
+        this.voronoiEdge = e;
     }
 }

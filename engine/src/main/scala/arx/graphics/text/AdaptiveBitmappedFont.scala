@@ -13,6 +13,7 @@ import arx.core.richer.IntRange
 import arx.core.vec.ReadVec2f
 import arx.core.vec.ReadVec2i
 import arx.core.vec.Vec2f
+import arx.core.vec.Vec2i
 import arx.graphics.Image
 import arx.graphics.TextureBlock
 import org.lwjgl.opengl.GL11
@@ -42,6 +43,7 @@ class AdaptiveBitmappedFont(var glyphSources: List[GlyphSource], backingTextureB
 	var unicodeCharacterPixelDimensions = new mutable.HashMap[Char, ReadVec2i]
 
 	var _maxCharacterDimensions = Vec2f(0.0f, 0.0f)
+	var _maxCharacterDimensionsPixels = Vec2i(0,0)
 
 	var needsSolidification = false
 
@@ -64,19 +66,23 @@ class AdaptiveBitmappedFont(var glyphSources: List[GlyphSource], backingTextureB
 					case None => Image.Sentinel
 				}
 
-				//					val charWidth = img.width.toFloat / fontHelper.pixelSize
-				//					val charHeight = img.height.toFloat / fontHelper.pixelSize
-				val charWidth = img.width.toFloat / img.height.toFloat
-				val charHeight = 1.0f
+				if (img.width > 0 && img.height > 0) {
+					//					val charWidth = img.width.toFloat / fontHelper.pixelSize
+					//					val charHeight = img.height.toFloat / fontHelper.pixelSize
+					val charWidth = img.width.toFloat / img.height.toFloat
+					val charHeight = 1.0f
 
-				val tc = textureBlock.getOrElseUpdate(img)
-				asciiTexCoords(ch) = tc
-				asciiCharacterWidths(ch) = charWidth
-				asciiCharacterHeights(ch) = charHeight
-				asciiCharacterPixelWidths(ch) = img.width
-				asciiCharacterPixelHeights(ch) = img.height
-				_maxCharacterDimensions.x = math.max(_maxCharacterDimensions.x, charWidth)
-				_maxCharacterDimensions.y = math.max(_maxCharacterDimensions.y, charHeight)
+					val tc = textureBlock.getOrElseUpdate(img)
+					asciiTexCoords(ch) = tc
+					asciiCharacterWidths(ch) = charWidth
+					asciiCharacterHeights(ch) = charHeight
+					asciiCharacterPixelWidths(ch) = img.width
+					asciiCharacterPixelHeights(ch) = img.height
+					_maxCharacterDimensions.x = math.max(_maxCharacterDimensions.x, charWidth)
+					_maxCharacterDimensions.y = math.max(_maxCharacterDimensions.y, charHeight)
+					_maxCharacterDimensionsPixels.x = math.max(_maxCharacterDimensionsPixels.x, img.width)
+					_maxCharacterDimensionsPixels.y = math.max(_maxCharacterDimensionsPixels.y, img.height)
+				}
 			} else {
 				asciiTexCoords(ch) = Array.fill(4)(Vec2f.Zero)
 				asciiCharacterWidths(ch) = 0.001f
@@ -162,6 +168,7 @@ class AdaptiveBitmappedFont(var glyphSources: List[GlyphSource], backingTextureB
 	}
 
 	def maxCharacterDimensions = _maxCharacterDimensions
+	override def maxCharacterDimensionsPixels: ReadVec2i = _maxCharacterDimensionsPixels
 
 	def ensureUnicodeCharAdded(c: Char) {
 		if (!unicodeTexCoords.contains(c)) {
@@ -179,8 +186,11 @@ class AdaptiveBitmappedFont(var glyphSources: List[GlyphSource], backingTextureB
 			//
 			_maxCharacterDimensions.x = math.max(_maxCharacterDimensions.x, charWidth)
 			_maxCharacterDimensions.y = math.max(_maxCharacterDimensions.y, charHeight)
+			_maxCharacterDimensionsPixels.x = math.max(_maxCharacterDimensionsPixels.x, img.width)
+			_maxCharacterDimensionsPixels.y = math.max(_maxCharacterDimensionsPixels.y, img.height)
 
 			unicodeCharacterDimensions(c) = Vec2f(charWidth, charHeight)
+			unicodeCharacterPixelDimensions(c) = Vec2i(img.width, img.height)
 			unicodeTexCoords(c) = tc
 		}
 	}

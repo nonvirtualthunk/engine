@@ -9,6 +9,6 @@ import arx.engine.data.TAuxData
 
 import scalaxy.loops._
 
-class TGraphicsData extends TAuxData {
+trait TGraphicsData extends TAuxData {
 
 }

@@ -35,6 +35,13 @@ class GameArchetype(nomen: String, val kind: TArchetypeKind) extends GameEntity(
 		kind + "(" + nomen+ ")"
 	}
 
+
+	def create() : TGameEntity = {
+		val e = new GameEntity()
+		e.archetype = this
+		e
+	}
+
 	if (!isSentinel) {
 		GameArchetype.addArchetype(this)
 	}
@@ -50,8 +57,14 @@ object GameArchetype extends TArchetypeKind{
 	def archetypes(kind: TArchetypeKind) = _archetypes.getOrElse(kind.kindStr, Map())
 
 	def addArchetype(arch: GameArchetype): Unit = {
-		val existing = _archetypes.getOrElse(arch.kind.kindStr, Map())
-		_archetypes.put(arch.kind.kindStr, existing + (arch.identifier.toLowerCase.dropWhile(_ != '-').drop(1) -> arch))
+		addArchetype(arch, arch.kind)
+	}
+	protected def addArchetype(arch: GameArchetype, kind : TArchetypeKind): Unit = {
+		val existing = _archetypes.getOrElse(kind.kindStr, Map())
+		_archetypes.put(kind.kindStr, existing + (arch.identifier.toLowerCase.dropWhile(_ != '-').drop(1) -> arch))
+		for (p <- kind.parentKind) {
+			addArchetype(arch, p)
+		}
 	}
 
 	def loadAllArchetypes(baseConfLocation: String, leafField: String, constr: (String, ConfigValue) => GameArchetype): Unit = {

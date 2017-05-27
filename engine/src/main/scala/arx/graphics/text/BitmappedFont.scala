@@ -14,6 +14,7 @@ import java.nio.IntBuffer
 
 import arx.application.Application
 import arx.core.vec.ReadVec2f
+import arx.core.vec.ReadVec2i
 import arx.core.vec.Vec2f
 import arx.graphics.GL
 import org.lwjgl.BufferUtils
@@ -53,6 +54,7 @@ class BitmappedFont extends TBitmappedFont {
 
 	var maxCharacterDimensions_i = Vec2f(0.0f,0.0f)
 	def maxCharacterDimensions : ReadVec2f = maxCharacterDimensions_i
+	override def maxCharacterDimensionsPixels: ReadVec2i = ???
 
 	def bind (i: Int) {
 		if ( needsSolidification ) { solidify() }

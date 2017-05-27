@@ -54,6 +54,7 @@ object SimpleAttributeProfile extends AttributeProfile(List("vertex" -> (3,GL_FL
 			bytes.put((b*255).toByte)
 			bytes.put((a*255).toByte)
 		}
+
 		def setC(rgba : ReadVec4f): Unit = {
 			setC(rgba.r,rgba.g,rgba.b,rgba.a)
 		}

@@ -142,4 +142,5 @@ object VoxelRegion {
 		}
 	}
 	def ofTalea (taleaCoord : TaleaCoord) = new SingleTaleaVoxelRegion(taleaCoord)
+	def empty = EmptyVoxelRegion
 }

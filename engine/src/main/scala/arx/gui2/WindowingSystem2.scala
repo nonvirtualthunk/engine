@@ -15,14 +15,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.LockSupport
 
 import arx.Prelude._
-import arx.application.Application
 import arx.application.Noto
 import arx.core.datastructures.Killable
 import arx.core.datastructures.KillableThread
 import arx.core.mat.Mat4x4
 import arx.core.math.Rectf
 import arx.core.metrics.Metrics
-import arx.core.traits.TSentinel
 import arx.core.traits.TSentinelable
 import arx.core.vec.ReadVec2f
 import arx.core.vec.ReadVec3f
@@ -38,7 +36,6 @@ import arx.gui2.events.DropEvent
 import arx.gui2.events.FocusGainedEvent
 import arx.gui2.events.FocusLostEvent
 import arx.gui2.rendering.WindowingSystemAttributeProfile2
-import arx.gui2.widgets.Dialog
 import arx.gui2.widgets.OpenGLWidget
 import arx.resource.ResourceManager
 import com.codahale.metrics.ConsoleReporter
@@ -63,8 +60,6 @@ class WindowingSystem2(engine : EngineCore) extends TEventUser with TSentinelabl
 
 	val mainTextureBlock = new TextureBlock(4096,4096)
 	mainTextureBlock.borderWidth = 0
-//	mainTextureBlock.minFilter = WindowingSystem.getProperty("minFilter","nearest") match { case "nearest" => GL_NEAREST ; case "linear" => GL_LINEAR ; case "mipmap" => GL_LINEAR_MIPMAP_LINEAR }
-//	mainTextureBlock.magFilter = WindowingSystem.getProperty("magFilter","nearest") match { case "nearest" => GL_NEAREST ; case "linear" => GL_LINEAR ; case "mipmap" => GL_LINEAR_MIPMAP_LINEAR }
 	mainTextureBlock.minFilter = GL_LINEAR
 	mainTextureBlock.magFilter = GL_NEAREST
 
@@ -72,7 +67,7 @@ class WindowingSystem2(engine : EngineCore) extends TEventUser with TSentinelabl
 	var loadedFonts = new mutable.HashMap[String,TBitmappedFont]()
 
 	def loadFont (fontName : String) = {
-		loadedFonts.getOrElseUpdate(fontName,ResourceManager.getFont(fontName,mainTextureBlock))
+		loadedFonts.getOrElseUpdate(fontName,ResourceManager.font(fontName,mainTextureBlock))
 	}
 
 	// TODO: make font creation ordering not break everything, stupid AWT

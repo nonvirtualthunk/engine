@@ -20,11 +20,11 @@ class GameEntityWithData[T <: TGameEntityAuxData](protected val intern : TGameEn
 		this(ent, ev.runtimeClass.asInstanceOf[Class[T]])
 	}
 
-	@transient protected var cached = intern.auxData(clazz)
+	@transient protected var cached = intern.auxDataByClass(clazz)
 
 	def getAuxData = {
 		if (cached == null) {
-			cached = intern.auxData(clazz)
+			cached = intern.auxDataByClass(clazz)
 		}
 		cached
 	}
@@ -45,19 +45,19 @@ object GameEntityWithData {
 
 
 class GameEntityWithData2[T <: TGameEntityAuxData,U <: TGameEntityAuxData](protected val intern : TGameEntity, clazz : Class[T], clazz2 : Class[U]) {
-	@transient protected var cachedT = intern.auxData(clazz)
-	@transient protected var cachedU = intern.auxData(clazz2)
+	@transient protected var cachedT = intern.auxDataByClass(clazz)
+	@transient protected var cachedU = intern.auxDataByClass(clazz2)
 
 	def getAuxDataT = {
 		if (cachedT == null) {
-			cachedT = intern.auxData(clazz)
+			cachedT = intern.auxDataByClass(clazz)
 		}
 		cachedT
 	}
 
 	def getAuxDataU = {
 		if (cachedU == null) {
-			cachedU = intern.auxData(clazz2)
+			cachedU = intern.auxDataByClass(clazz2)
 		}
 		cachedU
 	}

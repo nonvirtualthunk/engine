@@ -25,8 +25,12 @@ class KeyEvent(var _key: Int,var _modifiers: KeyModifiers,var press: Boolean) ex
 	GLFW.GLFW_KEY_0
 	def withAscii ( c : Char) : KeyEvent = { asciiChar = c;this }
 }
-case class KeyPressEvent(key: Int,modifiers: KeyModifiers, isRepeat : Boolean = false) extends KeyEvent(key,modifiers,true)
-case class KeyReleaseEvent(key: Int,modifiers: KeyModifiers) extends KeyEvent(key,modifiers,false)
+case class KeyPressEvent(key: Int,modifiers: KeyModifiers, isRepeat : Boolean = false) extends KeyEvent(key,modifiers,true) {
+	def copy() = KeyPressEvent(key,modifiers,isRepeat).withAscii(asciiChar)
+}
+case class KeyReleaseEvent(key: Int,modifiers: KeyModifiers) extends KeyEvent(key,modifiers,false) {
+	def copy() = KeyReleaseEvent(key,modifiers).withAscii(asciiChar)
+}
 case class CharEnteredEvent(str : String) extends UIEvent
 class MouseButtonEvent(_mouseButton: MouseButton,_mousePos: ReadVec2f,_modifiers: KeyModifiers,press : Boolean ) extends UIEvent
 case class MousePressEvent(mouseButton: MouseButton,mousePos: ReadVec2f,modifiers: KeyModifiers) extends MouseButtonEvent(mouseButton,mousePos,modifiers,true)

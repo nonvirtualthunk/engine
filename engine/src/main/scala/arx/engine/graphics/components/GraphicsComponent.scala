@@ -15,30 +15,36 @@ import arx.engine.graphics.GraphicsEngine
 import arx.engine.world.World
 import arx.graphics.pov.TCamera
 import arx.Prelude._
+import arx.engine.event.EventBusListener
+import arx.engine.graphics.data.PovData
+import arx.engine.graphics.data.TGraphicsData
+import arx.engine.traits.EngineComponent
 
-abstract class GraphicsComponent(val graphicsEngine : GraphicsEngine) extends TDependable with TUpdateable {
+abstract class GraphicsComponent(val graphicsEngine : GraphicsEngine) extends EngineComponent(graphicsEngine.world, graphicsEngine) {
 	var name = this.getClass.getSimpleName
-	val world = graphicsEngine.world
 
-	var drawPriority = 0
-	var minimumUpdateInterval = 0.0166667.seconds
-	var lastUpdated = System.nanoTime()
-	var pov : Moddable[TCamera] = Moddable(() => graphicsEngine.pov)
+	val gameEvents = graphicsEngine.gameEventBus.createListener()
+	val graphicsEvents = graphicsEngine.eventBus.createListener()
 
-	protected var initialized = false
+
+	override def listeners: List[EventBusListener] = List(gameEvents, graphicsEvents)
+
+	var drawOrder = DrawPriority.Standard
+	var pov : Moddable[TCamera] = Moddable(() => graphicsEngine.graphicsWorld[PovData].pov)
 
 	def draw ()
 
+	def graphics[T <: TGraphicsData : Manifest] = graphicsEngine.graphicsWorld.aux[T]
+}
 
-	override def updateSelf(dt: UnitOfTime): Unit = {
-		if (!initialized) {
-			initialize()
-			initialized = true
-		}
-		super.updateSelf(dt)
-	}
 
-	protected def initialize(): Unit = {
+object GraphicsComponent {
 
-	}
+}
+
+object DrawPriority {
+	val Early = -100
+	val Standard = 0
+	val Late = 100
+	val Final = 200
 }

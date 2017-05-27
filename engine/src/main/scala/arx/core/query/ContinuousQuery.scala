@@ -1,5 +1,7 @@
 package arx.core.query
 
+import arx.core.introspection.CopyAssistant
+
 /**
  *
  */
@@ -53,14 +55,24 @@ class ContinuousQuery[T <: AnyRef : Manifest] ( val matchFunction : (AnyRef) => 
 		this
 	}
 
-	def onAddition(f : (T) => Unit, fireOnExistingResults : Boolean): Unit = {
+	def onAddition(f : (T) => Unit, fireOnExistingResults : Boolean): this.type = {
 		this.withListener(new ContinuousQueryListener[T] {
 
 			override def queryResultAdded(t: T): Unit = { f(t) }
 			override def queryResultRemoved(t: T): Unit = {}
 		}, fireOnExistingResults)
-
+		this
 	}
+
+	def onRemoval(f : (T) => Unit): this.type = {
+		this.withListener(new ContinuousQueryListener[T] {
+
+			override def queryResultAdded(t: T): Unit = { }
+			override def queryResultRemoved(t: T): Unit = { f(t) }
+		}, false)
+		this
+	}
+
 
 	def foreach[U](f: (T) => U) {results.foreach(f)}
 	override def size = results.size
@@ -71,6 +83,12 @@ class ContinuousQuery[T <: AnyRef : Manifest] ( val matchFunction : (AnyRef) => 
 		new FilteredContinuousQuery[T]({
 			(a:AnyRef) => if (filter(a.asInstanceOf[T])) { Some(a.asInstanceOf[T]) } else { None }
 		},this)
+	}
+
+	def copyWithoutListeners() : this.type = {
+		val raw = CopyAssistant.copyShallow(this)
+		raw.listeners = Nil
+		raw.asInstanceOf[this.type]
 	}
 }
 trait ContinuousQueryListener[T] {

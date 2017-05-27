@@ -50,6 +50,7 @@ class ReadVec2f extends InternVec2f with SelfModdable[ReadVec2f]{
 		if ( l != 0 ) { this / l } else { new Vec2f(0,0) }
 	}
 	def dot ( v : ReadVec2f ) = (x * v.x+y * v.y)
+	def cross ( v : ReadVec2f ) = y * v.x - x * v.y
 	def round = new ReadVec2i(x.round,y.round)
 	override def equals ( other : Any ) = other match {
 		case v : ReadVec2f => x == v.x && y == v.y

@@ -12,8 +12,10 @@ import arx.core.units.UnitOfTime
 import scalaxy.loops._
 
 trait TUpdateable {
+	var lastUpdated = 0.0f.seconds
 	def updateSelf(dt : UnitOfTime): Unit = {
 		update(dt)
+		lastUpdated = curTime()
 	}
 
 	protected def update (dt : UnitOfTime)

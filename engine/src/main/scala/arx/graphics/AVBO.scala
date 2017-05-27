@@ -103,11 +103,9 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 
 	def wouldSolidifyIfNecessary : Boolean = state.get() == VBO.Updated
 	def solidifyIfNecessary(usage: Int = GL15.GL_DYNAMIC_DRAW) = {
-		if ( wouldSolidifyIfNecessary ) {
-			if ( state.compareAndSet(VBO.Updated,VBO.Solidifying) ) {
-				solidify(usage)
-				true
-			} else { false }
+		if ( state.compareAndSet(VBO.Updated,VBO.Solidifying) ) {
+			solidify(usage)
+			true
 		} else { false }
 	}
 
@@ -142,6 +140,7 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 		}
 	}
 
+	@deprecated
 	def draw (primitive: Int,start: Int = 0,length: Int = -1){
 		if ( ! GL.disabled ) {
 			val effectiveLength = if ( length == -1 ) { points.numSolidifiedElements - start } else { length }

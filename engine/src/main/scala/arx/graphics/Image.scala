@@ -200,6 +200,10 @@ class Image extends TSentinelable with Externalizable {
 			y += 1}
 		x += 1}
 	}
+
+	override def toString: String = {
+		"Image(" + resourcePath.getOrElse("synthetic") + ")"
+	}
 }
 
 class SubImageView(subImage:Image,region:Recti) extends Image {

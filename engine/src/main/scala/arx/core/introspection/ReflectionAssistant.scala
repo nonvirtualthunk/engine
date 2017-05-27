@@ -163,6 +163,19 @@ object ReflectionAssistant {
 			}
 		}
 	}
+	def instantiate[T, U](clazz: Class[T], arg : U): T = {
+		val constructorOpt = try {
+			Some(clazz.getConstructor(arg.getClass))
+		} catch {
+			case e : Exception => None
+		}
+
+		constructorOpt match {
+			case Some(constructor) => constructor.newInstance(arg.asInstanceOf[AnyRef])
+			case None => throw new IllegalArgumentException("No default args constructor for class " + clazz.getName + ", cannot instantiate through reflection assistant")
+		}
+	}
+
 	def instantiateBounded[_, L](clazz: Class[_], lowerBound: Class[L]): L = {
 		val constructorOpt = clazz.getConstructors find {_.getParameterTypes.length == 0}
 		constructorOpt match {

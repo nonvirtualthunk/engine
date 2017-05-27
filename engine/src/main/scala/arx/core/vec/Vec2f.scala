@@ -34,6 +34,7 @@ class Vec2f extends ReadVec2f{
 object Vec2f{
 	def apply (xa : Float,ya : Float) = new Vec2f(xa : Float,ya : Float)
 	def apply (v : ReadVec2f) = new Vec2f(v.x,v.y)
+	def apply (v : ReadVec2i) = new Vec2f(v.x,v.y)
 	implicit def toWriteable (v : ReadVec2f) = new Vec2f(v.x,v.y)
 	def apply (s : Float) = new Vec2f(s,s)
 	val UnitX = new ReadVec2f(1,0)

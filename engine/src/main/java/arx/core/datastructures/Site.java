@@ -7,11 +7,10 @@ package arx.core.datastructures;
  * Time: 7:23 AM
  */ // used both for sites and for vertices
 public class Site {
-    public Point coord;
+    public float x;
+    public float y;
 
     public int sitenbr;
 
-    public Site() {
-        coord = new Point();
-    }
+    public Site() {}
 }

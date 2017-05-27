@@ -16,7 +16,7 @@ trait THasExternalAuxData[U <: TAuxData] extends THasAuxData[U] {
 
 	def externalStore : TExternalAuxDataStore[U]
 
-	override def auxData[T <: U](clazz: Class[T]): T = {
+	override def auxDataByClass[T <: U](clazz: Class[T]): T = {
 		val existing = externalStore.getAuxDataOrElse(id, clazz, null.asInstanceOf[T])
 		existing match {
 			case null =>
@@ -29,8 +29,8 @@ trait THasExternalAuxData[U <: TAuxData] extends THasAuxData[U] {
 
 	override protected[engine] def storeAuxData(d: U): Unit = externalStore.storeAuxData(id, d)
 
-	override def hasAuxData[T <: U : Manifest]: Boolean = {
-		externalStore.getAuxDataOrElse[T](id, manifest[T].runtimeClass.asInstanceOf[Class[T]], null.asInstanceOf[T]) != null.asInstanceOf[T]
+	override def hasAuxDataByClass[T <: U](clazz : Class[T]) = {
+		externalStore.getAuxDataOrElse[T](id, clazz, null.asInstanceOf[T]) != null.asInstanceOf[T]
 	}
 
 	override def removeAuxData[T <: U](clazz: Class[T]): Unit = externalStore.removeAuxData[T](id, clazz.asInstanceOf[Class[T]])

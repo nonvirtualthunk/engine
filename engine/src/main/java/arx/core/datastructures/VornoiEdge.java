@@ -9,8 +9,10 @@ package arx.core.datastructures;
 class VornoiEdge {
     public float a = 0, b = 0, c = 0;
 
-    public Site[] ep = new Site[2];
-    public Site[] reg = new Site[2];
+    public Site ep0 = null;
+    public Site ep1 = null;
+    public Site reg0 = null;
+    public Site reg1 = null;
 
     public int edgenbr;
 }

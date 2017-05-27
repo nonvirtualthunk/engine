@@ -35,7 +35,8 @@ object Cardinals {
 	val dirvec = Array[Vec3i](Vec3i(-1,0,0),Vec3i(0,-1,0),Vec3i(0,0,-1),Vec3i(1,0,0),Vec3i(0,1,0),Vec3i(0,0,1))
 	val halfDirvec = Array[Vec3f](Vec3f(-0.5f,0,0),Vec3f(0,-0.5f,0),Vec3f(0,0,-0.5f),Vec3f(0.5f,0,0),Vec3f(0,0.5f,0),Vec3f(0,0,0.5f))
 
-	val dirvec2d = Array[Vec3i](Vec3i(-1,0,0),Vec3i(0,-1,0),Vec3i(1,0,0),Vec3i(0,1,0))
+	val dirvec2d = Array[Vec3i](Vec3i(-1,0,0),Vec3i(0,-1,0),Vec3i(1,0,0),Vec3i(0,1,0),Vec3i(0,0,0))
+	val expandedDirVec2d = Array[Vec3i](Vec3i(-1,0,0),Vec3i(0,-1,0),Vec3i(1,0,0),Vec3i(0,1,0),Vec3i(-1,-1,0),Vec3i(1,-1,0),Vec3i(1,1,0),Vec3i(-1,1,0))
 
 	val distanceBetweenDirections = for (i <- 0 until 7) yield { for(j <- 0 until 7) yield {
 		if ( i == Center || j == Center ) { 0 }

@@ -52,6 +52,7 @@ class Vec3i extends ReadVec3i{
 object Vec3i{
 	def apply (xa : Int,ya : Int,za : Int) = new Vec3i(xa : Int,ya : Int,za : Int)
 	def apply (v : ReadVec3i) = new Vec3i(v.x,v.y,v.z)
+	def apply (v : ReadVec2i, z : Int) = new Vec3i(v.x,v.y,z)
 	implicit def toWriteable (v : ReadVec3i) = new Vec3i(v.x,v.y,v.z)
 	def apply (v : ReadVec3f) = new Vec3i(v.x.toInt,v.y.toInt,v.z.toInt)
 	implicit def toFloatingPoint (v : Vec3i) = new Vec3f(v.x.toFloat,v.y.toFloat,v.z.toFloat)

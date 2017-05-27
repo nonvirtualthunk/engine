@@ -10,5 +10,8 @@ trait TArchetypeKind extends TEagerSingleton {
 
 	def Sentinel : GameArchetype
 
+	def parentKind : Option[TArchetypeKind] = None
+	def isA (kind : TArchetypeKind) : Boolean = kindStr == kind.kindStr || parentKind.exists(k => k.isA(kind))
+
 	override def toString: String = kindStr
 }

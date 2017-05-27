@@ -59,13 +59,13 @@ abstract class EngineCore {
 		try {
 			init()
 			loop()
-
-			// Release window and window callbacks
-			glfwDestroyWindow(window)
-			keyCallback.free()
 		} finally {
 			KillableThread.kill()
 			Executor.onQuit()
+			// Release window and window callbacks
+			glfwDestroyWindow(window)
+			keyCallback.free()
+
 			glfwTerminate()
 			if (errorCallback != null) {
 				errorCallback.free()
@@ -114,6 +114,8 @@ abstract class EngineCore {
 		if (window == NULL) {
 			throw new RuntimeException("Failed to create the GLFW window")
 		}
+
+		Mouse.windowRef = window
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
 		keyCallback = new GLFWKeyCallback() {
@@ -262,6 +264,7 @@ abstract class EngineCore {
 		// Set the clear color
 		glClearColor(clearColor.r,clearColor.g,clearColor.b,clearColor.a)
 
+		arx.graphics.GL.maximumViewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
 		arx.graphics.GL.setViewport(Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y))
 
 		arx.graphics.GL.glSetState(GL_BLEND,enable = true)
@@ -276,8 +279,8 @@ abstract class EngineCore {
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
 				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
-					glViewport(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-					arx.graphics.GL.viewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+					arx.graphics.GL.maximumViewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+					arx.graphics.GL.setViewport(Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y))
 				}
 			}
 
@@ -285,7 +288,7 @@ abstract class EngineCore {
 			val deltaSeconds = curTime - lastUpdated
 			lastUpdated = curTime
 			if (deltaSeconds > (0.016666667 * 1.25)) {
-				Noto.info("Long update time: " + deltaSeconds)
+//				Noto.info("Long update time: " + deltaSeconds)
 			}
 
 			if (!fullPause) {

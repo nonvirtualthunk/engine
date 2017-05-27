@@ -11,23 +11,15 @@ import arx.Prelude._
 import arx.core.TDependable
 import arx.core.traits.TUpdateable
 import arx.core.units.UnitOfTime
+import arx.engine.event.EventBusListener
 import arx.engine.game.GameEngine
+import arx.engine.traits.EngineComponent
 import arx.engine.world.World
+
 import scalaxy.loops._
 
-abstract class GameComponent(gameEngine: GameEngine) extends TDependable with TUpdateable {
-	val world = gameEngine.world
-	protected var initialized = false
+abstract class GameComponent(gameEngine: GameEngine) extends EngineComponent(gameEngine.world, gameEngine) {
+	val gameEvents: EventBusListener = gameEngine.eventBus.createListener()
 
-	override def updateSelf(dt: UnitOfTime): Unit = {
-		if (!initialized) {
-			initialize()
-			initialized = true
-		}
-		super.updateSelf(dt)
-	}
-
-	protected def initialize(): Unit = {
-
-	}
+	override def listeners: List[EventBusListener] = List(gameEvents)
 }

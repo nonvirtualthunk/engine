@@ -45,34 +45,13 @@ package arx.core.datastructures;
  * Tweaking for personal usage
  */
 
-import java.lang.Math;
+import arx.core.vec.ReadVec2f;
 
-class Freenode {
-    Freenode nextfree;
-
-    Freenode getnext() {
-        return nextfree;
-    }
-
-    public void setnext(Freenode newf) {
-        nextfree = new Freenode();
-        nextfree = newf;
-    }
-}
-
-class Freelist {
-    public Freenode head;
-
-    Freelist() {
-        head = null;
-    }
-
-    public void free() {
-        while (head != null) {
-            head = head.nextfree;
-        }
-    }
-}
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 class Halfedge {
     Halfedge ELleft, ELright;
@@ -94,30 +73,6 @@ class Halfedge {
     }
 }
 
-class Hfreelist extends Freelist {
-    Halfedge hfl;
-
-    Hfreelist() {
-        hfl = new Halfedge();
-    }
-}
-
-class Sfreelist extends Freelist {
-    Site sfl;
-
-    Sfreelist() {
-        sfl = new Site();
-    }
-}
-
-class Efreelist extends Freelist {
-    VornoiEdge efl;
-
-    Efreelist() {
-        efl = new VornoiEdge();
-    }
-}
-
 public class VoronoiGraph {
 
     float borderMinX, borderMaxX, borderMinY, borderMaxY;
@@ -131,12 +86,6 @@ public class VoronoiGraph {
     int nedges;
 
     int nsites;
-
-    Hfreelist hfl;
-
-    Efreelist efl;
-
-    Sfreelist sfl;
 
     Site[] sites;
 
@@ -164,53 +113,33 @@ public class VoronoiGraph {
 
     Halfedge ELleftend, ELrightend;
 
-    GraphEdge allEdges;
+    List<GraphEdge> allEdges = new ArrayList<>();
 
-    GraphEdge iteratorEdges;
+    List<ReadVec2f> allPoints = new ArrayList<>();
 
-    Boolean VorSim;
-
-    double lasty;
+    Map<ReadVec2f,Integer> pointIndices = new HashMap<>();
 
     public VoronoiGraph() {
         siteidx = 0;
         sites = null;
 
-        allEdges = null;
-        iteratorEdges = null;
         minDistanceBetweenSites = 0;
-
-        VorSim = false;
-        lasty = 0;
     }
 
     void cleanupSites() {
-        if (sites != null)
-            for (int i = 0; i < sites.length; i++)
-                sites[i] = null;
         sites = null;
     }
 
     void cleanupEdges() {
-        GraphEdge geCurrent = allEdges;
-
-        while (geCurrent != null && geCurrent.next != null) {
-            GraphEdge freeCurrent = geCurrent;
-            geCurrent = geCurrent.next;
-            freeCurrent = null;
-        }
-        allEdges = null;
+        allEdges.clear();
     }
 
     void dVoronoiDiagramGenerator() {
         cleanupSites();
         cleanupEdges();
-        sfl = null;
-        efl = null;
     }
 
-    int scomp(Site p1, Site p2) {
-        Point s1 = p1.coord, s2 = p2.coord;
+    int scomp(Site s1, Site s2) {
         if (s1.y < s2.y)
             return (-1);
         if (s1.y > s2.y)
@@ -220,21 +149,6 @@ public class VoronoiGraph {
         if (s1.x > s2.x)
             return (1);
         return (0);
-    }
-
-    void qsort(Site[] sites, int n) {
-        Site tmp;
-        if (n == 1)
-            return;
-        for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
-                if (scomp(sites[i], sites[j]) > 0) {
-                    tmp = sites[i];
-                    sites[i] = sites[j];
-                    sites[j] = tmp;
-                }
-            }
-        }
     }
 
     public void sortNode(float xValues[], float yValues[], int numPoints) {
@@ -247,7 +161,8 @@ public class VoronoiGraph {
         ymax = yValues[0];
         for (i = 0; i < nsites; i++) {
             sites[i] = new Site();
-            sites[i].coord.setPoint(xValues[i], yValues[i]);
+            sites[i].x = xValues[i];
+            sites[i].y = yValues[i];
             sites[i].sitenbr = i;
 
             if (xValues[i] < xmin)
@@ -260,7 +175,9 @@ public class VoronoiGraph {
             else if (yValues[i] > ymax)
                 ymax = yValues[i];
         }
-        qsort(sites, nsites);
+
+        Arrays.sort(sites, this::scomp);
+
         deltay = ymax - ymin;
         deltax = xmax - xmin;
     }
@@ -283,20 +200,20 @@ public class VoronoiGraph {
         newedge = new VornoiEdge();
 
         // store the sites that this edge is bisecting
-        newedge.reg[0] = s1;
-        newedge.reg[1] = s2;
+        newedge.reg0 = s1;
+        newedge.reg1 = s2;
         // to begin with, there are no endpoints on the bisector - it goes to
         // infinity
-        newedge.ep[0] = null;
-        newedge.ep[1] = null;
+        newedge.ep0 = null;
+        newedge.ep1 = null;
 
         // get the difference in x dist between the sites
-        dx = s2.coord.x - s1.coord.x;
-        dy = s2.coord.y - s1.coord.y;
+        dx = s2.x - s1.x;
+        dy = s2.y - s1.y;
         // make sure that the difference in positive
         adx = dx > 0 ? dx : -dx;
         ady = dy > 0 ? dy : -dy;
-        newedge.c = (float) (s1.coord.x * dx + s1.coord.y * dy + (dx * dx + dy
+        newedge.c = (float) (s1.x * dx + s1.y * dy + (dx * dx + dy
                 * dy) * 0.5);// get the slope of the line
 
         if (adx > ady) {
@@ -315,45 +232,19 @@ public class VoronoiGraph {
         return (newedge);
     }
 
-    public void resetIterator() {
-        iteratorEdges = allEdges;
-    }
-
-    public GraphEdge getNext() {
-        if (iteratorEdges != null) {
-            GraphEdge temp = iteratorEdges;
-            iteratorEdges = iteratorEdges.next;
-            return temp;
-        }
-        return null;
-    }
-
-    public void Sort(cVertexList list) {
-        float xValues[];
-        float yValues[];
-        int count;
-
+    public void initializePoints(float[] xValues, float[] yValues) {
+        assert(xValues.length == yValues.length);
+        final int count = xValues.length;
         dVoronoiDiagramGenerator();
 
-        nsites = list.n;
+        nsites = xValues.length;
         minDistanceBetweenSites = 0;
-
         nvertices = 0;
-        sfl = new Sfreelist();
-
         nedges = 0;
-        efl = new Efreelist();
 
         float sn = (float) nsites + 4;
         sqrt_nsites = (int) Math.sqrt(sn);
 
-        count = list.n;
-        xValues = new float[count];
-        yValues = new float[count];
-        for (int i = 0; i < count; i++) {
-            xValues[i] = list.GetElement(i).v.x;
-            yValues[i] = list.GetElement(i).v.y;
-        }
         sortNode(xValues, yValues, count);
     }
 
@@ -391,10 +282,10 @@ public class VoronoiGraph {
         Halfedge last, next;
 
         he.vertex = v;
-        he.ystar = (float) (v.coord.y + offset);
+        he.ystar = (float) (v.y + offset);
         last = PQhash[PQbucket(he)];
         while ((next = last.PQnext) != null
-                && (he.ystar > next.ystar || (he.ystar == next.ystar && v.coord.x > next.vertex.coord.x))) {
+                && (he.ystar > next.ystar || (he.ystar == next.ystar && v.x > next.vertex.x))) {
             last = next;
         }
         he.PQnext = last.PQnext;
@@ -421,15 +312,13 @@ public class VoronoiGraph {
         return (PQcount == 0);
     }
 
-    Point PQ_min() {
-        Point answer = new Point();
-
+    Point PQ_min(Point answer) {
         while (PQhash[PQmin].PQnext == null) {
             PQmin += 1;
         }
-        answer.x = PQhash[PQmin].PQnext.vertex.coord.x;
+        answer.x = PQhash[PQmin].PQnext.vertex.x;
         answer.y = PQhash[PQmin].PQnext.ystar;
-        return (answer);
+        return answer;
     }
 
     Halfedge PQextractmin() {
@@ -481,7 +370,7 @@ public class VoronoiGraph {
     Site leftreg(Halfedge he) {
         if (he.ELedge == null)
             return (bottomsite);
-        return (he.ELpm == le ? he.ELedge.reg[le] : he.ELedge.reg[re]);
+        return (he.ELpm == le ? he.ELedge.reg0 : he.ELedge.reg1);
     }
 
     void ELinsert(Halfedge lb, Halfedge newHe) {
@@ -516,14 +405,14 @@ public class VoronoiGraph {
         return (null);
     }
 
-    Halfedge ELleftbnd(Point p) {
+    Halfedge ELleftbnd(float x, float y) {
         int i, bucket;
         Halfedge he;
 
 		/* Use hash table to get close to desired halfedge */
         // use the hash function to find the place in the hash map that this
         // HalfEdge should be
-        bucket = (int) ((p.x - xmin) / deltax * ELhashsize);
+        bucket = (int) ((x - xmin) / deltax * ELhashsize);
 
         // make sure that the bucket position in within the range of the hash
         // array
@@ -545,19 +434,19 @@ public class VoronoiGraph {
             }
         }
 		/* Now search linear list of halfedges for the correct one */
-        if (he == ELleftend || (he != ELrightend && right_of(he, p))) {
+        if (he == ELleftend || (he != ELrightend && right_of(he, x, y))) {
             // keep going right on the list until either the end is reached, or
             // you find the 1st edge which the point isn't to the right of
             do {
                 he = he.ELright;
-            } while (he != ELrightend && right_of(he, p));
+            } while (he != ELrightend && right_of(he, x,y));
             he = he.ELleft;
         } else
             // if the point is to the left of the HalfEdge, then search left for
             // the HE just to the left of the point
             do {
                 he = he.ELleft;
-            } while (he != ELleftend && !right_of(he, p));
+            } while (he != ELleftend && !right_of(he, x,y));
 
 		/* Update hash table and reference counts */
         if (bucket > 0 && bucket < ELhashsize - 1) {
@@ -568,8 +457,25 @@ public class VoronoiGraph {
 
     void pushGraphEdge(float x1, float y1, float x2, float y2, VornoiEdge e) {
         GraphEdge newEdge = new GraphEdge(e);
-        newEdge.next = allEdges;
-        allEdges = newEdge;
+        allEdges.add(newEdge);
+
+//        ReadVec2f p0 = new ReadVec2f(x1,y1);
+//        ReadVec2f p1 = new ReadVec2f(x2,y2);
+//        int p0index = pointIndices.get(p0);
+//        if (p0index == -1) {
+//            p0index = allPoints.size();
+//            pointIndices.put(p0, p0index);
+//            allPoints.add(p0);
+//        }
+//        int p1index = pointIndices.get(p1);
+//        if (p1index == -1) {
+//            p1index = allPoints.size();
+//            pointIndices.put(p1, p1index);
+//            allPoints.add(p1);
+//        }
+
+//        newEdge.p0index = p0index;
+//        newEdge.p1index = p1index;
         newEdge.x1 = x1;
         newEdge.y1 = y1;
         newEdge.x2 = x2;
@@ -585,10 +491,10 @@ public class VoronoiGraph {
         Site s1, s2;
         float x1 = 0, x2 = 0, y1 = 0, y2 = 0;
 
-        x1 = e.reg[0].coord.x;
-        x2 = e.reg[1].coord.x;
-        y1 = e.reg[0].coord.y;
-        y2 = e.reg[1].coord.y;
+        x1 = e.reg0.x;
+        x2 = e.reg1.x;
+        y1 = e.reg0.y;
+        y2 = e.reg1.y;
 
         // if the distance between the two points this line was created from is
         // less than the square root of 2, then ignore it
@@ -601,25 +507,25 @@ public class VoronoiGraph {
         pymax = borderMaxY;
 
         if (e.a == 1.0 && e.b >= 0.0) {
-            s1 = e.ep[1];
-            s2 = e.ep[0];
+            s1 = e.ep1;
+            s2 = e.ep0;
         } else {
-            s1 = e.ep[0];
-            s2 = e.ep[1];
+            s1 = e.ep0;
+            s2 = e.ep1;
         }
 
         if (e.a == 1.0) {
             y1 = pymin;
-            if (s1 != null && s1.coord.y > pymin) {
-                y1 = s1.coord.y;
+            if (s1 != null && s1.y > pymin) {
+                y1 = s1.y;
             }
             if (y1 > pymax) {
                 y1 = pymax;
             }
             x1 = e.c - e.b * y1;
             y2 = pymax;
-            if (s2 != null && s2.coord.y < pymax)
-                y2 = s2.coord.y;
+            if (s2 != null && s2.y < pymax)
+                y2 = s2.y;
 
             if (y2 < pymin) {
                 y2 = pymin;
@@ -646,15 +552,15 @@ public class VoronoiGraph {
             }
         } else {
             x1 = pxmin;
-            if (s1 != null && s1.coord.x > pxmin)
-                x1 = s1.coord.x;
+            if (s1 != null && s1.x > pxmin)
+                x1 = s1.x;
             if (x1 > pxmax) {
                 x1 = pxmax;
             }
             y1 = e.c - e.a * x1;
             x2 = pxmax;
-            if (s2 != null && s2.coord.x < pxmax)
-                x2 = s2.coord.x;
+            if (s2 != null && s2.x < pxmax)
+                x2 = s2.x;
             if (x2 < pxmin) {
                 x2 = pxmin;
             }
@@ -684,14 +590,23 @@ public class VoronoiGraph {
     }
 
     void endpoint(VornoiEdge e, int lr, Site s) {
-        e.ep[lr] = s;
-        if (e.ep[re - lr] == null)
-            return;
+        if (lr == 0) {
+            e.ep0 = s;
+            if (e.ep1 == null) {
+                return;
+            }
+        } else {
+            e.ep1 = s;
+            if (e.ep0 == null) {
+                return;
+            }
+        }
+        
         clip_line(e);
     }
 
     /* returns 1 if p is to right of halfedge e */
-    boolean right_of(Halfedge el, Point p) {
+    boolean right_of(Halfedge el, float x,float y) {
         VornoiEdge e;
         Site topsite;
         boolean right_of_site;
@@ -699,8 +614,8 @@ public class VoronoiGraph {
         float dxp, dyp, dxs, t1, t2, t3, yl;
 
         e = el.ELedge;
-        topsite = e.reg[1];
-        if (p.x > topsite.coord.x)
+        topsite = e.reg1;
+        if (x > topsite.x)
             right_of_site = true;
         else
             right_of_site = false;
@@ -710,21 +625,21 @@ public class VoronoiGraph {
             return (false);
 
         if (e.a == 1.0) {
-            dyp = p.y - topsite.coord.y;
-            dxp = p.x - topsite.coord.x;
+            dyp = y - topsite.y;
+            dxp = x - topsite.x;
             fast = false;
             if ((!right_of_site & (e.b < 0.0)) | (right_of_site & (e.b >= 0.0))) {
                 above = dyp >= e.b * dxp;
                 fast = above;
             } else {
-                above = p.x + p.y * e.b > e.c;
+                above = x + y * e.b > e.c;
                 if (e.b < 0.0)
                     above = !above;
                 if (!above)
                     fast = true;
             }
             if (!fast) {
-                dxs = topsite.coord.x - (e.reg[0]).coord.x;
+                dxs = topsite.x - (e.reg0).x;
                 above = e.b * (dxp * dxp - dyp * dyp) < dxs * dyp
                         * (1.0 + 2.0 * dxp / dxs + e.b * e.b);
                 if (e.b < 0.0)
@@ -732,10 +647,10 @@ public class VoronoiGraph {
             }
         } else /* e.b==1.0 */
         {
-            yl = e.c - e.a * p.x;
-            t1 = p.y - yl;
-            t2 = p.x - topsite.coord.x;
-            t3 = yl - topsite.coord.y;
+            yl = e.c - e.a * x;
+            t1 = y - yl;
+            t2 = x - topsite.x;
+            t3 = yl - topsite.y;
             above = t1 * t1 > t2 * t2 + t3 * t3;
         }
         return (el.ELpm == le ? above : !above);
@@ -749,13 +664,13 @@ public class VoronoiGraph {
 
         // if the ELpm field is zero, return the site 0 that this edge bisects,
         // otherwise return site number 1
-        return (he.ELpm == le ? he.ELedge.reg[re] : he.ELedge.reg[le]);
+        return (he.ELpm == le ? he.ELedge.reg1 : he.ELedge.reg0);
     }
 
     float dist(Site s, Site t) {
         float dx, dy;
-        dx = s.coord.x - t.coord.x;
-        dy = s.coord.y - t.coord.y;
+        dx = s.x - t.x;
+        dy = s.y - t.y;
         return (float) (Math.sqrt(dx * dx + dy * dy));
     }
 
@@ -774,7 +689,7 @@ public class VoronoiGraph {
             return null;
 
         // if the two edges bisect the same parent, return null
-        if (e1.reg[1] == e2.reg[1])
+        if (e1.reg1 == e2.reg1)
             return null;
 
         d = e1.a * e2.b - e1.b * e2.a;
@@ -784,8 +699,8 @@ public class VoronoiGraph {
         xint = (e1.c * e2.b - e2.c * e1.b) / d;
         yint = (e2.c * e1.a - e1.c * e2.a) / d;
 
-        if ((e1.reg[1].coord.y < e2.reg[1].coord.y)
-                || (e1.reg[1].coord.y == e2.reg[1].coord.y && e1.reg[1].coord.x < e2.reg[1].coord.x)) {
+        if ((e1.reg1.y < e2.reg1.y)
+                || (e1.reg1.y == e2.reg1.y && e1.reg1.x < e2.reg1.x)) {
             el = el1;
             e = e1;
         } else {
@@ -793,7 +708,7 @@ public class VoronoiGraph {
             e = e2;
         }
 
-        right_of_site = xint >= e.reg[1].coord.x;
+        right_of_site = xint >= e.reg1.x;
         if ((right_of_site && el.ELpm == le)
                 || (!right_of_site && el.ELpm == re))
             return null;
@@ -801,8 +716,8 @@ public class VoronoiGraph {
         // create a new site at the point of intersection - this is a new vector
         // event waiting to happen
         v = new Site();
-        v.coord.x = xint;
-        v.coord.y = yint;
+        v.x = xint;
+        v.y = yint;
         return (v);
     }
 
@@ -824,11 +739,11 @@ public class VoronoiGraph {
 	 * deltay (can all be estimates). Performance suffers if they are wrong;
 	 * better to make nsites, deltax, and deltay too big than too small. (?)
 	 */
-
     boolean voronoi_bd() {
         Site newsite, bot, top, temp, p;
         Site v;
         Point newintstar = null;
+        Point tmpPoint = new Point();
         int pm;
         Halfedge lbnd, rbnd, llbnd, rrbnd, bisector;
         VornoiEdge e;
@@ -841,17 +756,17 @@ public class VoronoiGraph {
         newsite = nextone();
         while (true) {
             if (!PQempty())
-                newintstar = PQ_min();
+                newintstar = PQ_min(tmpPoint);
             // if the lowest site has a smaller y value than the lowest vector
             // intersection,
             // process the site otherwise process the vector intersection
 
             if (newsite != null
-                    && (PQempty() || newsite.coord.y < newintstar.y || (newsite.coord.y == newintstar.y && newsite.coord.x < newintstar.x))) {
+                    && (PQempty() || newsite.y < newintstar.y || (newsite.y == newintstar.y && newsite.x < newintstar.x))) {
                 out_site(newsite);
 				/* new site is smallest -this is a site event */
                 // get the first HalfEdge to the LEFT of the new site
-                lbnd = ELleftbnd((newsite.coord));
+                lbnd = ELleftbnd(newsite.x,newsite.y);
                 // get the first HalfEdge to the RIGHT of the new site
                 rbnd = ELright(lbnd);
                 // if this halfedge has no edge,bot =bottom site (whatever that
@@ -927,7 +842,7 @@ public class VoronoiGraph {
                 // to it in Hash Map
                 pm = le; // set the pm variable to zero
 
-                if (bot.coord.y > top.coord.y)
+                if (bot.y > top.y)
                 // if the site to the left of the event is higher than the
                 // Site
                 { // to the right of it, then swap them and set the 'pm'

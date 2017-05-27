@@ -18,8 +18,16 @@ import arx.core.Moddable
 trait TToImage {
 	def image : Image
 }
-class WrappedImage(val img:Image) extends TToImage { def image = img }
-class FetchImage(val str:String) extends TToImage { def image = ResourceManager.getImage(str) }
+class WrappedImage(val img:Image) extends TToImage {
+	def image = img
+
+	override def toString: String = "WrappedImage(" + img + ")"
+}
+class FetchImage(val str:String) extends TToImage {
+	def image = ResourceManager.getImage(str)
+
+	override def toString: String = s"FetchImage($str)"
+}
 class ImageFunc(func: => Image) extends TToImage {
 	lazy val img = func
 	def image = img

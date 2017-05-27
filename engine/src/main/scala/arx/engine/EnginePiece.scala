@@ -1,60 +1,80 @@
 package arx.engine
 
 /**
- * Created with IntelliJ IDEA.
- * User: nvt
- * Date: 12/19/15
- * Time: 5:13 PM
- */
+  * Created with IntelliJ IDEA.
+  * User: nvt
+  * Date: 12/19/15
+  * Time: 5:13 PM
+  */
 
+import java.util.concurrent.locks.LockSupport
+
+import arx.Prelude
 import arx.Prelude._
 import arx.application.Noto
 import arx.core.Dependency
-import arx.core.TDependable
+import arx.core.datastructures.Killable
 import arx.core.datastructures.KillableThread
-import arx.core.datastructures.UpdateThread
-import arx.core.traits.TUpdateable
+import arx.engine.traits.EngineComponent
 
 import scalaxy.loops.rangeExtensions
 
-abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest] {
-	var parallelism = 4
+abstract class EnginePiece[Component <: EngineComponent : Manifest] {
+	var parallelism = 3
 	var components = List[Component]()
+	protected var componentClasses = List[Class[_ <: Component]]()
+	var updateThreads = List[KillableThread]()
 
 	protected var initialized = false
 
-//	def createUpdateThread(i: Int): KillableThread = {
-//		new UpdateThread(0.01.seconds) {
-//			// divide up the components such that each graphics thread has its own share
-//			val localComponents = components.zipWithIndex.filter {
-//				case(comp, index) => index % parallelism == i
-//			}.unzip.left
-//
-//			override def update(): Unit = {
-//				localComponents.foreach(c => c.updateSelf(rawInterval.seconds))
-//			}
-//		}
-//	}
+	def currentTime() = Prelude.curTime()
 
-//	protected lazy val updateThreads = fillList(parallelism)(i => createUpdateThread(i))
+	def createUpdateThread(i: Int): KillableThread = {
+		new KillableThread(Killable.GameLevel) {
+			override def whileRunningDo(): Unit = {
+				var anyUpdates = false
 
-	def addComponent[T <: Component: Manifest] = {
-		components ::= instantiateComponent(List(manifest[T].runtimeClass)).asInstanceOf[Component]
-	}
+				for (component <- components) {
+					val t = currentTime()
+					val delta = t - component.lastUpdated
+					if (delta > component.updateInterval) {
+						if (component.updateInProgress.compareAndSet(false, true)) {
+							component.updateSelf(delta)
+							component.lastUpdated = t
+							component.updateInProgress.set(false)
+							anyUpdates = true
+						}
+					}
+				}
 
-	protected def instantiateComponent(l : List[Class[_]]) : AnyRef
-
-	def update (deltaSeconds : Float): Unit = {
-		if (!initialized) {
-			initialize()
+				if (!anyUpdates) {
+					// wait for 3 ms before having another look
+					LockSupport.parkNanos(3000000)
+				}
+			}
 		}
-
-//		updateThreads.foreach(t => t.timePassed(deltaSeconds.seconds))
 	}
 
-	def updateSerial (deltaSeconds : Float, nSteps : Int = 1): Unit = {
+	def addComponent[T <: Component : Manifest] = {
 		if (!initialized) {
-			initialize()
+//			components ::= instantiateComponent(List(manifest[T].runtimeClass)).asInstanceOf[Component]
+			componentClasses ::= manifest[T].runtimeClass.asInstanceOf[Class[T]]
+		} else {
+			Noto.severeError("Cannot add component after initialization")
+		}
+	}
+
+	protected def instantiateComponent(l: List[Class[_]]): AnyRef
+
+	def update(deltaSeconds: Float): Unit = {
+		if (!initialized) {
+			Noto.severeError("Attempted to update engine piece without initializing first")
+		}
+	}
+
+	def updateSerial(deltaSeconds: Float, nSteps: Int = 1): Unit = {
+		if (!initialized) {
+			Noto.severeError("Attempted to update engine piece without initializing first")
 		}
 
 		for (n <- 0 until nSteps optimized) {
@@ -62,16 +82,59 @@ abstract class EnginePiece[Component <: TDependable with TUpdateable : Manifest]
 		}
 	}
 
-	def initialize(): Unit = {
-		val resolved = Dependency.resolve(components, components, instantiateComponent)
-		val allComponents = resolved.ofType[Component]
-		val nonComponents = resolved.notOfType[Component]
+	def shutdown(): Unit = {
+		updateThreads.foreach(t => t.kill())
+	}
 
-		components = allComponents
-		nonComponents.foreach(nc => Noto.info(s"Instantiated non-component for engine: $nc"))
+	def serialMode(): this.type = {
+		updateThreads.foreach(t => t.kill())
+		this
+	}
+
+
+
+	def registerComponent(comp : EngineComponent): Unit = {
+		if (! comp.isInstanceOf[Component]) {
+			Noto.severeError(s"Attempting to add innappropriate object as component, ${comp.getClass.getSimpleName} to ${this.getClass.getSimpleName}")
+		} else {
+			components ::= comp.asInstanceOf[Component]
+		}
+	}
+
+//	/**
+//	  * initialize a component that has come in after initialization
+//	  */
+//	protected def initializeComponent[T <: Component : Manifest]() = {
+//		val comp = instantiateComponent(List(manifest[T].runtimeClass)).asInstanceOf[Component]
+//		components ::= comp
+//		val resolved = Dependency.resolve(components, components, instantiateComponent)
+//		components = resolved.ofType[Component]
+//		comp.updateSelf(0.01.seconds)
+//	}
+
+	def resolveComponents(context : List[Any]) = {
+		// components automatically register themselves to their engine piece, so we can just inject
+		val (comps, newContext) = Dependency.resolveByInjection(componentClasses, this :: context)
+		newContext
+//		//		val resolved = Dependency.resolve(components, components ::: context, instantiateComponent)
+//		val allComponents = resolved.ofType[Component]
+//		val nonComponents = resolved.notOfType[Component]
+//
+//		components = allComponents
+//		nonComponents.foreach(nc => Noto.info(s"Instantiated non-component for engine: $nc"))
+	}
+
+	def initialize(serial: Boolean): Unit = {
+
 		// Do one synchronous update of every game component, we want to ensure they have a chance to do any necessary
 		// initialization
+		// todo: should this not be parallel then?
 		components.par.foreach(_.updateSelf(0.01.seconds))
 		initialized = true
+
+		if (!serial) {
+			updateThreads = fillList(parallelism)(i => createUpdateThread(i))
+			updateThreads.foreach(t => t.start())
+		}
 	}
 }

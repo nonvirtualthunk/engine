@@ -17,6 +17,8 @@ import arx.core.ImplicitModdable._
 import arx.core.Moddable
 import arx.core.vec.Cardinals._
 import ResourceManager.image
+import arx.graphics.helpers.HSB
+import arx.graphics.helpers.HSBA
 
 class ColorPickerWidget(parentis : Widget, orientation : Orientation.Orientation = Orientation.Horizontal) extends Widget(parentis) { self =>
 	if ( orientation == Orientation.Horizontal ) {
@@ -140,42 +142,4 @@ class ColorPickerWidget(parentis : Widget, orientation : Orientation.Orientation
 	}
 
 	override protected def SMLTypeIdentifier: String = "color picker"
-}
-
-class HSB(ha:Float,sa:Float,ba:Float) extends Vec3f(ha,sa,ba) {
-	def h = x
-	def s = y
-	override def b = z
-
-	def h_= ( f : Float ) { x = f }
-	def s_= ( f : Float ) { y = f }
-	override def b_= ( f : Float ) { z = f }
-
-	def toRGBA = Color.HSBtoRGB(this)
-
-}
-
-class HSBA(ha:Float,sa:Float,ba:Float,aa:Float) extends Vec4f(ha,sa,ba,aa) {
-	def this() { this(0.0f,0.0f,0.0f,0.0f) }
-	def h = r
-	def s = g
-//	override def b = b
-
-	def h_= ( f : Float ) { r = f }
-	def s_= ( f : Float ) { g = f }
-//	override def b_= ( f : Float ) { z = f }
-
-	def toRGBA = Color.HSBAtoRGBA(this)
-	def toRGBAi = Vec4i(Color.HSBAtoRGBA(this) * 255)
-	def hsb = HSB(h,s,b)
-}
-
-object HSB {
-	def apply ( h : Float , s : Float , b : Float ) : HSB = new HSB(h,s,b)
-	def apply ( v : ReadVec3f ) : HSB = apply(v.x,v.y,v.z)
-}
-object HSBA {
-	def apply ( h : Float , s : Float , b : Float , a : Float) : HSBA = new HSBA(h,s,b,a)
-	def apply ( v : ReadVec3f, a : Float) : HSBA = apply(v.x,v.y,v.z,a)
-	def apply ( v : ReadVec4f ) : HSBA = apply(v.r,v.g,v.b,v.a)
 }

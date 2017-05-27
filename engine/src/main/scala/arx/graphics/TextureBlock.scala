@@ -107,7 +107,7 @@ class TextureBlock(w_base: Int,h_base: Int) extends TSentinelable {
 				val v4 = Rectf(innerRect.x.toFloat/imageDimensions.x.toFloat,innerRect.y.toFloat/imageDimensions.y.toFloat,
 																innerRect.w.toFloat/imageDimensions.x.toFloat,innerRect.h.toFloat/imageDimensions.y.toFloat)
 				val tcArr = Array(ReadVec2f(v4.x,v4.y),ReadVec2f(v4.x + v4.w,v4.y),ReadVec2f(v4.x + v4.w,v4.y + v4.h),ReadVec2f(v4.x,v4.y + v4.h))
-				val imgData = ImageData(tcArr,Vec2i(closedRect.x,closedRect.y),image.revision)
+				val imgData = ImageData(tcArr,Vec2i(closedRect.x,closedRect.y),v4,image.revision)
 				subTextures.put(image,imgData)
 				openRects ++= splitRect(sourceRect,image)
 				updateRect(closedRect,image)
@@ -217,7 +217,7 @@ class TextureBlock(w_base: Int,h_base: Int) extends TSentinelable {
 	def texCoords (image: Image): Array[ReadVec2f] = {
 		subTextures.get(image).texCoords
 	}
-	def getOrElseUpdate (image: Image ) : Array[ReadVec2f] = {
+	def getOrElseUpdateRaw (image: Image ) = {
 		var v4 = subTextures.get(image)
 		if ( v4 == null ) {
 			synchronized {
@@ -228,18 +228,24 @@ class TextureBlock(w_base: Int,h_base: Int) extends TSentinelable {
 					addTexture(image)
 					v4 = subTextures.get(image)
 				}
-				v4.texCoords
+				v4
 			}
 		} else {
 			if (v4.revision < image.revision) {
 				updateImage(image)
 				v4 = subTextures.get(image)
 			}
-			v4.texCoords
+			v4
 		}
+	}
+	def getOrElseUpdate (image: Image ) : Array[ReadVec2f] = {
+		getOrElseUpdateRaw(image).texCoords
 	}
 	def getOrElseUpdate ( imagePath : String ) : Array[ReadVec2f] = {
 		getOrElseUpdate(ResourceManager.getImage(imagePath))
+	}
+	def getOrElseUpdateRectFor(image : Image) = {
+		getOrElseUpdateRaw(image).texRect
 	}
 	def apply ( image : Image ) : Array[ReadVec2f] = getOrElseUpdate(image)
 	def apply ( image : TToImage ) : Array[ReadVec2f] = getOrElseUpdate(image.image)
@@ -256,7 +262,7 @@ class TextureBlock(w_base: Int,h_base: Int) extends TSentinelable {
 }
 
 object TextureBlock{
-	protected case class ImageData(texCoords : Array[ReadVec2f],location : Vec2i, revision : Int)
+	protected case class ImageData(texCoords : Array[ReadVec2f],location : Vec2i, texRect : Rectf, revision : Int)
 
 	object SentinelTextureBlock extends TextureBlock(1,1) with TSentinel{
 

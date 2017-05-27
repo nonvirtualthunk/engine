@@ -89,6 +89,9 @@ object ResourceManager {
 	/**  Removes from the current state all images that have been modified
 		* since they were loaded */
 	def refreshImages () {
+		if (!useLocalResources) {
+			Noto.warn("Attempting to reload images, but useLocalResources is not enabled")
+		}
 		var toRemove = List[String]()
 		for ( (key,image) <- state.images ) {
 			image.resourcePath match {
@@ -275,6 +278,8 @@ object ResourceManager {
 	})
 	defaultImage.sentinel = true
 
+	def blankImage = image("default/blank.png")
+
 	def exists (baseResourcePath : String) : Boolean = {
 		getResourceFilePath(baseResourcePath) match {
 			case null => false
@@ -298,6 +303,7 @@ object ResourceManager {
 			val stream = getResourceStream(resourcePath)
 			if (stream != null) {
 				val img = Image.loadFromStream(stream,closeOnFinish = true)
+				img.lastModified = Some(System.currentTimeMillis())
 //				timeAndPrint("png colorize") {PNGTransparentColorizer.colorizeTransparency(img)}
 				img.resourcePath = Some(resourcePath)
 				img
@@ -392,7 +398,7 @@ object ResourceManager {
 		}
 	}
 
-	def getFont(fontName: String, backingTextureBlock: TextureBlock = null): TBitmappedFont = {
+	def font(fontName: String, backingTextureBlock: TextureBlock = null): TBitmappedFont = {
 		synchronized {
 			val fontStyle = Font.PLAIN
 			val key = fontName + fontStyle
@@ -426,6 +432,7 @@ object ResourceManager {
 					case e : Exception => {
 						Noto.warn("Exception encountered while attempting to create font, falling back on bitmapped SansSerif")
 						Noto.warn("\texception was : " + e)
+						e.printStackTrace()
 
 						new BitmappedFont("SansSerif",Font.PLAIN)
 					}
@@ -456,11 +463,11 @@ object ResourceManager {
 		if ( ! useLocalResources ) {
 			this.getClass.getClassLoader.getResourceAsStream(resourcePath) != null
 		} else {
-			hasResourceStreamLocal(resourcePath)
+			hasResourceStreamLocal(resourcePath) || this.getClass.getClassLoader.getResourceAsStream(resourcePath) != null
 		}
 	}
-	def getResourceStream(resourcePath: String) : InputStream = {
-		if ( ! useLocalResources ) {
+	def getResourceStream(resourcePath: String, localFirst : Boolean = useLocalResources) : InputStream = {
+		if ( ! localFirst ) {
 			val stream = this.getClass.getClassLoader.getResourceAsStream(resourcePath)
 			if (stream != null) {
 				stream
@@ -471,9 +478,16 @@ object ResourceManager {
 				getResourceStreamLocal(resourcePath)
 			}
 		} else {
-			getResourceStreamLocal(resourcePath)
+			if (hasResourceStreamLocal(resourcePath)) {
+				getResourceStreamLocal(resourcePath)
+			} else {
+				getResourceStream(resourcePath, false)
+			}
 		}
 	}
+
+
+
 	protected def hasResourceStreamLocal( resourcePath : String ) : Boolean = {
 		localResourceDirs exists { dir =>
 			new File( dir , resourcePath ).exists
@@ -567,7 +581,16 @@ object ResourceManager {
 				ret :::= getResourceFileStreamsLocal(resourcePath)
 			}
 		} else {
-			ret :::= getResourceFileStreamsLocal(resourcePath)
+			val streams = getResourceFileStreamsLocal(resourcePath)
+			if (streams.isEmpty) {
+				ret :::= (getClass.getClassLoader.getResourceAsStream(resourcePath) match {
+					case null => Nil
+					case o => List(o)
+				})
+			} else {
+				ret :::= streams
+			}
+
 		}
 		ret
 	}

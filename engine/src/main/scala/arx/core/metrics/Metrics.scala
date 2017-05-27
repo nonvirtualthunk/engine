@@ -48,12 +48,15 @@ object Metrics extends MetricRegistry {
 		reporter.report(registry.getGauges,registry.getCounters,registry.getHistograms,registry.getMeters,registry.getTimers)
 	}
 	def prettyPrintTimer (name : String): Unit = {
+		val timer = registry.getTimers.get(name)
+		prettyPrintTimer(timer, name)
+	}
+	def prettyPrintTimer(timer : Timer, name : String = "Timer") : Unit = {
 		val reporter = ConsoleReporter.forRegistry(registry)
 			.convertRatesTo(TimeUnit.SECONDS)
 			.convertDurationsTo(TimeUnit.MILLISECONDS)
 			.build()
 
-		val timer = registry.getTimers.get(name)
 		val tmap = new util.TreeMap[String,Timer]
 		tmap.put(name,timer)
 

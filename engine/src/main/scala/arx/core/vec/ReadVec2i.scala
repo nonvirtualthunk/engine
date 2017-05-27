@@ -10,10 +10,12 @@ class ReadVec2i extends InternVec2i with SelfModdable[ReadVec2i]{
 	}
 	def +(m : Moddable[ReadVec2i]) = { val v = m.resolve(); new ReadVec2i(xi + v.xi,yi + v.yi) }
 	def +(v : ReadVec2i) = new ReadVec2i(xi + v.xi,yi + v.yi)
+	def +(t : (Int,Int)) = new ReadVec2i(xi + t._1, yi + t._2)
 	def +(s : Int) = new ReadVec2i(xi + s,yi + s)
 	def -(m : Moddable[ReadVec2i]) = { val v = m.resolve(); new ReadVec2i(xi - v.xi,yi - v.yi) }
 	def -(v : ReadVec2i) = new ReadVec2i(xi - v.xi,yi - v.yi)
 	def -(s : Int) = new ReadVec2i(xi - s,yi - s)
+	def -(t : (Int,Int)) = new ReadVec2i(xi - t._1, yi - t._2)
 	def *(m : Moddable[ReadVec2i]) = { val v = m.resolve(); new ReadVec2i(xi * v.xi,yi * v.yi) }
 	def *(v : ReadVec2i) = new ReadVec2i(xi * v.xi,yi * v.yi)
 	def *(s : Int) = new ReadVec2i(xi * s,yi * s)

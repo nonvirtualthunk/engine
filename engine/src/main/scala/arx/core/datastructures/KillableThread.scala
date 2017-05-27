@@ -8,6 +8,8 @@ package arx.core.datastructures
  * Created by nonvirtualthunk
  */
 
+import java.util.concurrent.locks.LockSupport
+
 import arx.Prelude._
 import arx.application.Noto
 
@@ -15,11 +17,13 @@ abstract class KillableThread(var level:Int) extends Thread {
 	KillableThread.threads ::= this
 
 	var ended = false
+	var finishComplete = false
 
 	final override def run() {
 		while ( ! ended ) {
 			whileRunningDo()
 		}
+		finishComplete = true
 	}
 
 	def whileRunningDo ()
@@ -31,6 +35,10 @@ abstract class KillableThread(var level:Int) extends Thread {
 		if ( ! ended ) {
 			ended = true
 			interrupt()
+
+			while (!finishComplete) {
+				LockSupport.parkNanos(1000000)
+			}
 		}
 	}
 

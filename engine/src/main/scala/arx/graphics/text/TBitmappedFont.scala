@@ -9,6 +9,7 @@ package arx.graphics.text
  */
 
 import arx.core.vec.ReadVec2f
+import arx.core.vec.ReadVec2i
 
 trait TBitmappedFont {
 	def characterTexCoords(c: Char): Array[ReadVec2f]
@@ -21,4 +22,5 @@ trait TBitmappedFont {
 	def bind ( i : Int)
 
 	def maxCharacterDimensions : ReadVec2f
+	def maxCharacterDimensionsPixels : ReadVec2i
 }
