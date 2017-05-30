@@ -53,6 +53,7 @@ class Watcher3[T] (x : => T, y : => T, z : => T) {
 		}
 	}
 	def peekChanged : Boolean = peekChanged(0) || peekChanged(1) || peekChanged(2)
+	def hasChanged : Boolean = hasChanged(0) || hasChanged(1) || hasChanged(2)
 	def peekChanged(axis : Int) : Boolean = axis match {
 		case 0 => x != last.x
 		case 1 => y != last.y
@@ -75,6 +76,7 @@ class Watcher2[T] (x : => T, y : => T) {
 			false
 		}
 	}
+	def hasChanged : Boolean = hasChanged(0) || hasChanged(1)
 	def peekChanged : Boolean = peekChanged(0) || peekChanged(1)
 	def peekChanged(axis : Int) : Boolean = axis match {
 		case 0 => x != last.x

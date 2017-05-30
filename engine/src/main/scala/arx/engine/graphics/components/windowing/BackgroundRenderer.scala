@@ -51,16 +51,20 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 
 			val metrics = imageMetrics(img,true)
 
-			if (beforeChildren && !drawAsForegroundBorder) {
-				if ( seg ) {
-					val coff = metrics.borderPixelWidth*pixelScale-1 //center offset
-					if ( drawCenterBackground ) {
-						List(WQuad(Rectf(coff, coff, ww - coff*2, wh - coff*2), BlankImage, metrics.centerColor * backgroundColor))
+			if (beforeChildren) {
+				if (!drawAsForegroundBorder) {
+					if ( seg ) {
+						val coff = metrics.borderPixelWidth*pixelScale-1 //center offset
+						if ( drawCenterBackground ) {
+							List(WQuad(Rectf(coff, coff, ww - coff*2, wh - coff*2), BlankImage, metrics.centerColor * backgroundColor))
+						} else {
+							Nil
+						}
 					} else {
-						Nil
+						List(WQuad(Rectf(0.0f,0.0f,ww,wh),img,backgroundColor))
 					}
 				} else {
-					List(WQuad(Rectf(0.0f,0.0f,ww,wh),img,backgroundColor))
+					Nil
 				}
 			} else {
 				var cornerWidth = (img.width / 2) * pixelScale
@@ -120,6 +124,22 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 			}
 		} else {
 			Nil
+		}
+	}
+
+	override def decorationBorderSize(widget: Widget) = {
+		val DD = widget.drawing
+		if (DD.drawBackground) {
+			val img = DD.backgroundImage.map(_.image).getOrElse(WD.defaultBackgroundImage)
+
+			val pixelScale = DD.backgroundPixelScale * EngineCore.pixelScaleFactor.toInt
+
+			val metrics = imageMetrics(img,true)
+
+			Some(Vec2i(metrics.borderPixelWidth * pixelScale,
+				metrics.borderPixelWidth * pixelScale))
+		} else {
+			None
 		}
 	}
 }

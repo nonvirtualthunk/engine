@@ -52,6 +52,7 @@ class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[T
 	def dragAndDropRO = this.auxDataOrElse[DragAndDropData](DragAndDropData.Default)
 	def eventHandlingRO = this.auxDataOrElse[EventHandlingData](EventHandlingData.Default)
 	def drawing = this.auxData[DrawingData]
+	def isModified = false
 
 
 	def x = position.x

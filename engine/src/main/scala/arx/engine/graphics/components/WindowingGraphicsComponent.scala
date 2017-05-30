@@ -100,12 +100,13 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 
 	val viewportWatcher = new Watcher(renderedViewport)
 	override protected def update(dt: UnitOfTime): Unit = {
+		var anyChanged = false
 		if (viewportWatcher.hasChanged) {
 			WD.desktop.width = DimensionExpression.Constant(GL.viewport.width)
 			WD.desktop.height = DimensionExpression.Constant(GL.viewport.height)
+			anyChanged = true
 		}
 
-		var anyChanged = false
 		anyChanged ||= updateWidgetConstraints(WD.desktop)
 
 //		solver.resolve()
@@ -116,11 +117,11 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 			if (!vbo.changeState(VBO.Updated, VBO.Dirty) && !vbo.changeState(VBO.Clean, VBO.Dirty)) {
 				Noto.info(s"Could not change to dirty on update, currently is : ${vbo.state.get()}")
 			}
+
+			updateResolvedWidgetVariables(WD.desktop)
 		}
 
-		solver.solve(anyChanged)
-
-		updateResolvedWidgetVariables(WD.desktop)
+//		solver.solve(anyChanged)
 
 		if (vbo.changeState(VBO.Dirty, VBO.Updating)) {
 			vbo.clear()
@@ -134,7 +135,7 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 
 	def updateWindowingDrawData(w: Widget, bounds: Rectf): Unit = {
 		val relPos = w.drawing.relativePosition
-		Noto.info(s"Widget ${w.identifier} of class ${w.getClass.getSimpleName} bounds $bounds and relPos $relPos")
+//		Noto.info(s"Widget ${w.identifier} of class ${w.getClass.getSimpleName} bounds $bounds and relPos $relPos")
 		Noto.indentation += 1
 
 		def renderQuad(quad : WQuad): Unit = {
@@ -164,13 +165,13 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 				vbo.setA(B, vi + q, bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h)
 			}
 
-			Noto.info(s"Drawing quad: $quad")
+//			Noto.info(s"Drawing quad: $quad")
 			vbo.setIQuad(ii, vi)
 		}
 
 		renderers.flatMap(_.render(w, beforeChildren = true)).foreach(renderQuad)
 
-		renderQuad(WQuad(Rectf(-relPos.x,-relPos.y,bounds.width,bounds.height), "default/blank_bordered.png", colors(Noto.indentation)))
+//		renderQuad(WQuad(Rectf(-relPos.x,-relPos.y,bounds.width,bounds.height), "default/blank_bordered.png", colors(Noto.indentation)))
 
 
 		val pos = w.drawing.absolutePosition + Vec3i(w.clientOffset, 0)
@@ -203,42 +204,16 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 		}
 	}
 
+	def calculateDecorationBorderSize(w : Widget) = {
+		renderers.findFirstWith(r => r.decorationBorderSize(w)) match {
+			case Some((renderer,size)) => size
+			case None => Vec2i.Zero
+		}
+	}
+
 	val largeConstExpr = new Expression(100000)
 
 	implicit class EnrichedWidget(w: Widget) {
-		import solver._
-		import Solver._
-
-		def widthVar = vv(w, "width")
-		def heightVar = vv(w, "height")
-		def dimVar(axis: Int) = pickByAxis(widthVar, heightVar, axis)
-		def xVar = vv(w, "x")
-		def yVar = vv(w, "y")
-		def zVar = vv(w, "z")
-		def posVar(axis: Int) = pickByAxis(xVar, yVar, zVar, axis)
-		def paddingXVar = ex(w, "padding-x", () => w.drawing.interiorPadding.x)
-		def paddingYVar = ex(w, "padding-y", () => w.drawing.interiorPadding.y)
-		def decorationXVar = ex(w, "decoration-x", () => w.drawing.decorationBorderSize.x)
-		def decorationYVar = ex(w, "decoration-y", () => w.drawing.decorationBorderSize.y)
-		def clientDimExpr(axis: Int) = axis match {
-			case 0 => clientWidthExpr
-			case 1 => clientHeightExpr
-		}
-		def clientOffsetExpr(axis :Int) = ex(w,"client-offset",() => clientOffset(axis))
-
-		def clientWidthExpr = {
-			val diff = ex(w, "all-borders-x", () => w.drawing.interiorPadding.x * 2 + w.drawing.decorationBorderSize.x * 2)
-			expressions.getOrElseUpdate(s"${w.identifier}-client-width", Expression.minus(w.widthVar, diff))
-		}
-
-		def clientHeightExpr = {
-//			expressions.getOrElseUpdate(s"${w.identifier}-client-height",
-//				Expression.minus(w.heightVar, w.paddingYVar.times(2)).minus(w.decorationYVar.times(2)))
-			val diff = ex(w, "all-borders-y", () => w.drawing.interiorPadding.y * 2 + w.drawing.decorationBorderSize.y * 2)
-			expressions.getOrElseUpdate(s"${w.identifier}-client-height", Expression.minus(w.heightVar, diff))
-//			ex(w, "client-height",
-		}
-
 		def clientDim = {
 			val d = w.drawing
 			d.effectiveDimensions - clientOffset * 2
@@ -248,93 +223,87 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 			val d = w.drawing
 			d.interiorPadding + d.decorationBorderSize
 		}
-
-		def intrinsicDimExpr(axis : Int) = ex(w, s"${w.identifier}-intrinsic-dim-$axis", () => calculateIntrinsicDimFor(w)(axis))
-	}
-
-	import Solver._
-	def updatePos(widget: Widget, axis: Int): Unit = {
-		val curVar = widget.posVar(axis)
-		val constraintName = widget.identifier + "-pos-" + axis
-		widget.position(axis) match {
-			case PositionExpression.Constant(constValue, relativeTo) =>
-				if (relativeTo == TopLeft) {
-					solver.useConstraint(constraintName, Constraints.keepEqual(curVar, constValue))
-				} else {
-					val backFromEdge = widget.parent.clientDimExpr(axis) minus widget.dimVar(axis) minus constValue
-					solver.useConstraint(constraintName, Constraints.keepEqual(curVar, backFromEdge))
-				}
-			case PositionExpression.Proportional(p, relativeTo) =>
-				val offsetExpr = Expression.times(widget.parent.clientDimExpr(axis), p)
-				if (relativeTo == TopLeft) {
-					solver.useConstraint(constraintName, Constraints.keepEqual(curVar, offsetExpr))
-				} else {
-					val backFromEdge = widget.parent.clientDimExpr(axis) minus widget.dimVar(axis) minus offsetExpr
-					solver.useConstraint(constraintName, Constraints.keepEqual(curVar, backFromEdge))
-				}
-			case PositionExpression.Flow =>
-			// do nothing there, this is considered unconstrained, will be filled in
-			// more intelligently by the remaining layout engine...unless we deal with it
-			// here, which we could
-		}
-	}
-
-	def updateDim(widget: Widget, axis: Int): Unit = {
-		val curVar = widget.dimVar(axis)
-		val constraintName = s"${widget.identifier}-dim-$axis"
-		widget.dimensions(axis) match {
-			case DimensionExpression.Constant(constValue) =>
-//				solver.useConstraint(constraintName, Constraints.keepEqual(curVar, constValue))
-				solver.stayVariableAt(curVar, constValue)
-			case DimensionExpression.Proportional(proportion) =>
-				val expr = widget.parent.clientDimExpr(axis).times(proportion)
-				solver.useConstraint(constraintName, Constraints.keepEqual(curVar, expr))
-			case DimensionExpression.Relative(delta) =>
-				val expr = widget.parent.clientDimExpr(axis).plus(delta)
-				solver.useConstraint(constraintName, Constraints.keepEqual(curVar, expr))
-			case DimensionExpression.Intrinsic =>
-				val expr = widget.intrinsicDimExpr(axis)
-				solver.useConstraint(constraintName, Constraints.keepEqual(curVar, expr, Strength.MEDIUM))
-
-			// do nothing here, in this case the desired width is determined by the thing itself,
-			// a button might suggest that it be given a width at least sufficient to display its
-			// text, for example, and other widgets might have intrinsic minimum sizes
-		}
 	}
 
 	def updateWidgetConstraints(widget: Widget): Boolean = {
 		val watch = watchers.getOrElseUpdate(widget, createWatchers(widget))
 
-		val ret = widget match {
-			case _ =>
-				if (watch.first || watch.anyChanged) {
-					for (axis <- 0 until 3 optimized) {
-						if (watch.first || watch.posWatcher.hasChanged(axis)) updatePos(widget, axis)
-					}
-					for (axis <- 0 until 2 optimized) {
-						if (watch.first || watch.dimWatcher.hasChanged(axis)) updateDim(widget, axis)
-					}
+		val ret = widget.isModified ||
+			(if (watch.first || watch.anyChanged) {
+//					for (axis <- 0 until 3 optimized) {
+//						if (watch.first || watch.posWatcher.hasChanged(axis)) updatePos(widget, axis)
+//					}
+//					for (axis <- 0 until 2 optimized) {
+//						if (watch.first || watch.dimWatcher.hasChanged(axis)) updateDim(widget, axis)
+//					}
 
 					watch.first = false
 					true
 				} else {
 					false
-				}
-		}
+				})
 
 		val anyChildModified = widget.children.exists(updateWidgetConstraints)
 		ret || anyChildModified
 	}
 
+	def resolveEffectiveDimensions(widget : Widget) = {
+		val ret = new Vec2i(0,0)
+		for (axis <- 0 until 2 optimized) {
+			ret(axis) = (widget.dimensions(axis) match {
+				case DimensionExpression.Constant(constValue) =>
+					constValue
+				case DimensionExpression.Proportional(proportion) =>
+					widget.parent.clientDim(axis) * proportion
+				case DimensionExpression.Relative(delta) =>
+					widget.parent.clientDim(axis) + delta
+				case DimensionExpression.Intrinsic =>
+					calculateIntrinsicDimFor(widget)(axis)
+				// do nothing here, in this case the desired width is determined by the thing itself,
+				// a button might suggest that it be given a width at least sufficient to display its
+				// text, for example, and other widgets might have intrinsic minimum sizes
+			}).round
+		}
+		ret
+	}
+
+	def resolveRelativePosition(widget : Widget) = {
+		val ret = new Vec3i(0,0,0)
+		for (axis <- 0 until 3 optimized) {
+			ret(axis) = (widget.position(axis) match {
+				case PositionExpression.Constant(constValue, relativeTo) =>
+					if (relativeTo == TopLeft) {
+						constValue
+					} else {
+						widget.parent.clientDim(axis) - widget.drawing.effectiveDimensions(axis) - constValue
+					}
+				case PositionExpression.Proportional(p, relativeTo) =>
+					val offsetExpr = widget.parent.clientDim(axis) * p
+					if (relativeTo == TopLeft) {
+						offsetExpr
+					} else {
+						widget.parent.clientDim(axis) - widget.drawing.effectiveDimensions(axis) - offsetExpr
+					}
+				case PositionExpression.Flow =>
+					0
+				// do nothing there, this is considered unconstrained, will be filled in
+				// more intelligently by the remaining layout engine...unless we deal with it
+				// here, which we could
+			}).round
+		}
+		ret
+	}
+
 	def updateResolvedWidgetVariables(w: Widget): Unit = {
 		val DD = w[DrawingData]
+		DD.effectiveDimensions = resolveEffectiveDimensions(w)
+		DD.decorationBorderSize = calculateDecorationBorderSize(w)
 		w match {
 			case d : Desktop =>
 			case _ =>
-				DD.relativePosition = Vec3i(w.xVar.value().round.toInt, w.yVar.value().round.toInt, w.zVar.value().round.toInt)
+				DD.relativePosition = resolveRelativePosition(w)
 				DD.absolutePosition = w.parent.drawing.absolutePosition + Vec3i(w.parent.clientOffset,0) + DD.relativePosition
 		}
-		DD.effectiveDimensions = Vec2i(w.widthVar.value().round.toInt, w.heightVar.value().round.toInt)
 
 		w.children.foreach(updateResolvedWidgetVariables)
 	}
@@ -345,6 +314,7 @@ object WindowingGraphicsComponent {
 									  dimWatcher: Watcher2[DimensionExpression]) {
 		var first = true
 
-		def anyChanged = posWatcher.peekChanged || dimWatcher.peekChanged
+		def peekAnyChanged = posWatcher.peekChanged || dimWatcher.peekChanged
+		def anyChanged = posWatcher.hasChanged || dimWatcher.hasChanged
 	}
 }

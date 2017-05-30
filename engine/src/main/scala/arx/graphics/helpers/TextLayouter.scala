@@ -68,6 +68,7 @@ class TextLayouter extends TTextLayouter {
 						x += spaceSize(fontSize) * spacingMultiple
 					case '\n' => {
 						x = 0.0f; y += lineSpacing(font,fontSize)
+						maxY = math.max(maxY, y)
 						pointList ::= Vec2f(area.x + x,area.y + y)
 					}
 					case '\t' =>
@@ -141,7 +142,7 @@ class TextLayouter extends TTextLayouter {
 	}
 
 	def lineHeight ( font : TBitmappedFont , fontSize : Float ) = font.maxCharacterDimensions.y * fontSize
-	def lineSpacing ( font : TBitmappedFont , fontSize : Float ) = font.maxCharacterDimensions.y * fontSize * 0.75f
+	def lineSpacing ( font : TBitmappedFont , fontSize : Float ) = lineHeight(font, fontSize) * 0.75f
 	def spaceSize(fastFontSize : Float ): Float = fastFontSize * 0.3f
 
 	def tabSize(fastFontSize : Float): Float = spaceSize(fastFontSize) * 3.0f
