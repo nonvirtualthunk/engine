@@ -217,4 +217,6 @@ object HSBA {
 	def apply ( h : Float , s : Float , b : Float , a : Float) : HSBA = new HSBA(h,s,b,a)
 	def apply ( v : ReadVec3f, a : Float) : HSBA = apply(v.x,v.y,v.z,a)
 	def apply ( v : ReadVec4f ) : HSBA = apply(v.r,v.g,v.b,v.a)
+
+	val White = HSBA(0.0f,0.0f,1.0f,1.0f)
 }

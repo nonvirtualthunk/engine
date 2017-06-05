@@ -1,4 +1,4 @@
-package arx.engine.graphics.components
+package arx.engine.graphics.components.windowing
 
 /**
   * TODO: Add javadoc
@@ -8,43 +8,24 @@ import java.util.concurrent.atomic.AtomicLong
 
 import arx.Prelude._
 import arx.application.Noto
-import arx.core.datastructures.Watcher
-import arx.core.datastructures.Watcher2
-import arx.core.datastructures.Watcher3
+import arx.core.datastructures.{Watcher, Watcher2, Watcher3}
 import arx.core.introspection.ReflectionAssistant
 import arx.core.math.Rectf
 import arx.core.units.UnitOfTime
-import arx.core.vec.Vec2f
-import arx.core.vec.Vec2i
-import arx.core.vec.Vec3i
-import arx.core.vec.Vec4f
+import arx.core.vec._
 import arx.engine.control.components.windowing.Widget
-import arx.engine.control.components.windowing.widgets.Desktop
-import arx.engine.control.components.windowing.widgets.DimensionExpression
-import arx.engine.control.components.windowing.widgets.PositionExpression
-import arx.engine.control.components.windowing.widgets.TopLeft
+import arx.engine.control.components.windowing.widgets._
 import arx.engine.control.components.windowing.widgets.data.DrawingData
 import arx.engine.graphics.GraphicsEngine
-import arx.engine.graphics.components.WindowingGraphicsComponent.WidgetWatchers
-import arx.engine.graphics.components.windowing.Constraints
-import arx.engine.graphics.components.windowing.Solver
-import arx.engine.graphics.components.windowing.WQuad
-import arx.engine.graphics.components.windowing.WindowingRenderer
+import arx.engine.graphics.components.windowing.WindowingGraphicsComponent.WidgetWatchers
+import arx.engine.graphics.components.{DrawPriority, GraphicsComponent}
 import arx.engine.graphics.data.WindowingGraphicsData
-import arx.graphics.AVBO
-import arx.graphics.GL
-import arx.graphics.TextureBlock
-import arx.graphics.VBO
 import arx.graphics.helpers.Color
-import arx.gui2.rendering.WindowingSystemAttributeProfile2
+import arx.graphics.{GL, VBO}
 import arx.gui2.rendering.WindowingSystemAttributeProfile2._
 import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11
-import org.pybee.cassowary.Constraint
 import org.pybee.cassowary.Expression
-import org.pybee.cassowary.SimplexSolver
-import org.pybee.cassowary.Strength
-import org.pybee.cassowary.Variable
 
 import scala.collection.mutable
 import scala.language.postfixOps
@@ -71,7 +52,7 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 
 	drawOrder = DrawPriority.Final
 
-	def createWatchers(widget: Widget) = WidgetWatchers(Watcher(widget.position), Watcher(widget.dimensions))
+	def createWatchers(widget: Widget) = WidgetWatchers(Watcher(widget.position), Watcher(widget.dimensions), Watcher(widget.showing.resolve()))
 
 	override def draw(): Unit = {
 		renderedViewport = GL.viewport
@@ -99,41 +80,47 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 	}
 
 	val viewportWatcher = new Watcher(renderedViewport)
-	override protected def update(dt: UnitOfTime): Unit = {
-		var anyChanged = false
-		if (viewportWatcher.hasChanged) {
-			WD.desktop.width = DimensionExpression.Constant(GL.viewport.width)
-			WD.desktop.height = DimensionExpression.Constant(GL.viewport.height)
-			anyChanged = true
-		}
-
-		anyChanged ||= updateWidgetConstraints(WD.desktop)
-
-//		solver.resolve()
-
-		anyChanged ||= solver.updateDynamicExpressions()
-		if (anyChanged) {
-			updateRevision.incrementAndGet()
-			if (!vbo.changeState(VBO.Updated, VBO.Dirty) && !vbo.changeState(VBO.Clean, VBO.Dirty)) {
-				Noto.info(s"Could not change to dirty on update, currently is : ${vbo.state.get()}")
+	override protected def updateSelf(dt: UnitOfTime): Unit = {
+		WD.desktop.synchronized {
+			var anyChanged = false
+			if (viewportWatcher.hasChanged) {
+				WD.desktop.width = DimensionExpression.Constant(GL.viewport.width)
+				WD.desktop.height = DimensionExpression.Constant(GL.viewport.height)
+				anyChanged = true
 			}
 
-			updateResolvedWidgetVariables(WD.desktop)
-		}
+			anyChanged ||= updateWidgetConstraints(WD.desktop)
 
-//		solver.solve(anyChanged)
+	//		solver.resolve()
 
-		if (vbo.changeState(VBO.Dirty, VBO.Updating)) {
-			vbo.clear()
-			// could if(anyChanged) here
-			updateWindowingDrawData(WD.desktop, Rectf(0, 0, GL.viewport.w, GL.viewport.h))
-			vbo.state.set(VBO.Updated)
+			anyChanged ||= solver.updateDynamicExpressions()
+			if (anyChanged) {
+				updateRevision.incrementAndGet()
+				if (!vbo.changeState(VBO.Updated, VBO.Dirty) && !vbo.changeState(VBO.Clean, VBO.Dirty)) {
+					Noto.info(s"Could not change to dirty on update, currently is : ${vbo.state.get()}")
+				}
+
+				updateResolvedWidgetVariables(WD.desktop)
+			}
+
+	//		solver.solve(anyChanged)
+
+			if (vbo.changeState(VBO.Dirty, VBO.Updating)) {
+				vbo.clear()
+				// could if(anyChanged) here
+				updateWindowingDrawData(WD.desktop, Rectf(0, 0, GL.viewport.w, GL.viewport.h))
+				vbo.state.set(VBO.Updated)
+			}
 		}
 	}
 
 	val colors = Color(255,255,255,255) :: Color(255,0,0,255) :: Color(0,255,0,255) :: Color(255,255,0,255) :: Nil
 
 	def updateWindowingDrawData(w: Widget, bounds: Rectf): Unit = {
+		if (!w.showing) {
+			return
+		}
+
 		val relPos = w.drawing.relativePosition
 //		Noto.info(s"Widget ${w.identifier} of class ${w.getClass.getSimpleName} bounds $bounds and relPos $relPos")
 		Noto.indentation += 1
@@ -174,8 +161,8 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 //		renderQuad(WQuad(Rectf(-relPos.x,-relPos.y,bounds.width,bounds.height), "default/blank_bordered.png", colors(Noto.indentation)))
 
 
-		val pos = w.drawing.absolutePosition + Vec3i(w.clientOffset, 0)
-		val size = w.clientDim
+		val pos = w.drawing.absolutePosition + Vec3i(w.drawing.clientOffset, 0)
+		val size = w.drawing.clientDim
 		val newBounds = bounds.intersect(Rectf(pos.x, pos.y, size.x, size.y))
 		for (child <- w.children) {
 			updateWindowingDrawData(child, newBounds)
@@ -213,18 +200,6 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 
 	val largeConstExpr = new Expression(100000)
 
-	implicit class EnrichedWidget(w: Widget) {
-		def clientDim = {
-			val d = w.drawing
-			d.effectiveDimensions - clientOffset * 2
-		}
-
-		def clientOffset = {
-			val d = w.drawing
-			d.interiorPadding + d.decorationBorderSize
-		}
-	}
-
 	def updateWidgetConstraints(widget: Widget): Boolean = {
 		val watch = watchers.getOrElseUpdate(widget, createWatchers(widget))
 
@@ -254,11 +229,11 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 				case DimensionExpression.Constant(constValue) =>
 					constValue
 				case DimensionExpression.Proportional(proportion) =>
-					widget.parent.clientDim(axis) * proportion
+					widget.parent.drawing.clientDim(axis) * proportion
 				case DimensionExpression.Relative(delta) =>
-					widget.parent.clientDim(axis) + delta
+					widget.parent.drawing.clientDim(axis) + delta
 				case DimensionExpression.Intrinsic =>
-					calculateIntrinsicDimFor(widget)(axis)
+					calculateIntrinsicDimFor(widget)(axis) + widget.drawing.clientOffset(axis) * 2
 				// do nothing here, in this case the desired width is determined by the thing itself,
 				// a button might suggest that it be given a width at least sufficient to display its
 				// text, for example, and other widgets might have intrinsic minimum sizes
@@ -272,17 +247,42 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 		for (axis <- 0 until 3 optimized) {
 			ret(axis) = (widget.position(axis) match {
 				case PositionExpression.Constant(constValue, relativeTo) =>
-					if (relativeTo == TopLeft) {
+					if (relativeTo == TopLeft || (axis == 0 && relativeTo == BottomLeft) || (axis == 1 && relativeTo == TopRight)) {
 						constValue
 					} else {
-						widget.parent.clientDim(axis) - widget.drawing.effectiveDimensions(axis) - constValue
+						widget.parent.drawing.clientDim(axis) - widget.drawing.effectiveDimensions(axis) - constValue
 					}
 				case PositionExpression.Proportional(p, relativeTo) =>
-					val offsetExpr = widget.parent.clientDim(axis) * p
-					if (relativeTo == TopLeft) {
+					val offsetExpr = widget.parent.drawing.clientDim(axis) * p
+					if (relativeTo == TopLeft || (axis == 0 && relativeTo == BottomLeft) || (axis == 1 && relativeTo == TopRight)) {
 						offsetExpr
 					} else {
-						widget.parent.clientDim(axis) - widget.drawing.effectiveDimensions(axis) - offsetExpr
+						widget.parent.drawing.clientDim(axis) - widget.drawing.effectiveDimensions(axis) - offsetExpr
+					}
+				case PositionExpression.Centered =>
+					(widget.parent.drawing.clientDim(axis) - widget.drawing.effectiveDimensions(axis)) / 2
+				case PositionExpression.Relative(relativeTo, offset, direction) =>
+					val baseRelPos = if (relativeTo.parent == widget.parent) {
+						relativeTo.drawing.relativePosition
+					} else {
+						relativeTo.drawing.absolutePosition - widget.parent.drawing.absolutePosition
+					}
+
+					direction match {
+						case Cardinals.Right if axis == 0 =>
+							baseRelPos.x + relativeTo.drawing.effectiveDimensions.x + offset
+						case Cardinals.Left if axis == 0 =>
+							baseRelPos.x - widget.drawing.effectiveDimensions.x - offset
+						case Cardinals.Down if axis == 1 =>
+							baseRelPos.y + relativeTo.drawing.effectiveDimensions.y + offset
+						case Cardinals.Up if axis == 1 =>
+							baseRelPos.y - widget.drawing.effectiveDimensions.y - offset
+						case Cardinals.Center =>
+							val dimDiff = relativeTo.drawing.effectiveDimensions(axis) - widget.drawing.effectiveDimensions(axis)
+							baseRelPos(axis) + dimDiff / 2
+ 						case _ =>
+							Noto.error("Unsupported relative widget position direction/axis: " + direction + "/" + axis)
+							0
 					}
 				case PositionExpression.Flow =>
 					0
@@ -295,26 +295,49 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 	}
 
 	def updateResolvedWidgetVariables(w: Widget): Unit = {
-		val DD = w[DrawingData]
-		DD.effectiveDimensions = resolveEffectiveDimensions(w)
-		DD.decorationBorderSize = calculateDecorationBorderSize(w)
-		w match {
-			case d : Desktop =>
-			case _ =>
-				DD.relativePosition = resolveRelativePosition(w)
-				DD.absolutePosition = w.parent.drawing.absolutePosition + Vec3i(w.parent.clientOffset,0) + DD.relativePosition
-		}
+		if (w.showing) {
+			w.resetModified()
+			val DD = w[DrawingData]
+			DD.effectiveDimensions = resolveEffectiveDimensions(w)
+			DD.decorationBorderSize = calculateDecorationBorderSize(w)
+			w match {
+				case d : Desktop =>
+				case _ =>
+					DD.relativePosition = resolveRelativePosition(w)
+					DD.absolutePosition = w.parent.drawing.absolutePosition + Vec3i(w.parent.drawing.clientOffset,0) + DD.relativePosition
+			}
 
-		w.children.foreach(updateResolvedWidgetVariables)
+
+			var toResolve = w.children
+			var resolved = Set[Widget]()
+			while (toResolve.nonEmpty) {
+				val picked = toResolve.head
+				if (resolved(picked)) {
+					toResolve = toResolve.tail
+				} else {
+					val requires = picked.x.dependsOn ::: picked.y.dependsOn
+					val unfulfilled = requires.filterNot(resolved)
+					unfulfilled match {
+						case Nil =>
+							updateResolvedWidgetVariables(picked)
+							resolved += picked
+							toResolve = toResolve.tail
+						case _ =>
+							toResolve = unfulfilled ::: toResolve
+					}
+				}
+			}
+		}
 	}
 }
 
 object WindowingGraphicsComponent {
 	case class WidgetWatchers(posWatcher: Watcher3[PositionExpression],
-									  dimWatcher: Watcher2[DimensionExpression]) {
+									  dimWatcher: Watcher2[DimensionExpression],
+									 showingWatcher : Watcher[Boolean]) {
 		var first = true
 
-		def peekAnyChanged = posWatcher.peekChanged || dimWatcher.peekChanged
-		def anyChanged = posWatcher.hasChanged || dimWatcher.hasChanged
+		def peekAnyChanged = posWatcher.peekChanged || dimWatcher.peekChanged || showingWatcher.peekChanged
+		def anyChanged = posWatcher.hasChanged || dimWatcher.hasChanged || showingWatcher.hasChanged
 	}
 }

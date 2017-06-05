@@ -39,11 +39,11 @@ trait VoxelCoord extends ReadVec3i with TMajorCoord {
 	def min ( v : VoxelCoord ) : VoxelCoord = VoxelCoord(v.x.min(x),v.y.min(y),v.z.min(z))
 	def max ( v : VoxelCoord ) : VoxelCoord = VoxelCoord(v.x.max(x),v.y.max(y),v.z.max(z))
 
-	def plusZ ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x,y,z + f) }
+	override def plusZ ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x,y,z + f) }
 	def minusZ ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x,y,z - f) }
-	def plusX ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x+f,y,z) }
+	override def plusX ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x+f,y,z) }
 	def minusX ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x-f,y,z) }
-	def plusY ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x,y+f,z) }
+	override def plusY ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x,y+f,z) }
 	def minusY ( f : Int ) : MutableVoxelCoord = { new MutableVoxelCoord(x,y-f,z) }
 	def plusAxis (axis : Int, f : Int) : VoxelCoord  = axis match {
 		case 0 => plusX(f)

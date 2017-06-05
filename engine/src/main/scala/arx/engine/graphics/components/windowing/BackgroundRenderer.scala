@@ -7,18 +7,14 @@ package arx.engine.graphics.components.windowing
 import arx.Prelude._
 import arx.application.Noto
 import arx.core.math.Rectf
-import arx.core.vec.ReadVec4f
-import arx.core.vec.Vec2i
-import arx.core.vec.Vec4f
+import arx.core.vec.{ReadVec4f, Vec2i, Vec4f}
 import arx.engine.EngineCore
 import arx.engine.control.components.windowing.Widget
-import arx.engine.control.data.WindowingData
+import arx.engine.control.components.windowing.widgets.ImageDisplayWidget
+import arx.engine.control.components.windowing.widgets.ImageDisplayWidget.{ActualSize, Center, ScaleToFit, TopLeft}
 import arx.engine.graphics.data.WindowingGraphicsData
-import arx.graphics.Image
-import arx.graphics.TToImage
+import arx.graphics.{Image, TToImage}
 import arx.resource.ResourceManager
-
-import scalaxy.loops._
 
 class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(WD) {
 	case class ImageMetric ( borderPixelWidth : Int , centerColor : ReadVec4f )
@@ -117,9 +113,6 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 					ret ::= WQuad(Rectf(ww - cornerWidth,cornerHeight,cornerWidth,sideHeight),img,edgeColor,180, Rectf(vstx,vsty,vstw,vsth))
 				}
 
-				DD.decorationBorderSize = Vec2i(metrics.borderPixelWidth * pixelScale,
-					metrics.borderPixelWidth * pixelScale)
-
 				ret.reverse
 			}
 		} else {
@@ -141,5 +134,43 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 		} else {
 			None
 		}
+	}
+}
+
+
+class ImageContentRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(WD) {
+	override def render(widget: Widget, beforeChildren: Boolean): List[WQuad] = widget match {
+		case w : ImageDisplayWidget =>
+			val img : Image = w.image.resolve()
+
+
+			val offset = w.drawing.clientOffset
+			val dim = w.drawing.clientDim
+			val rect = w.scalingStyle match {
+				case ActualSize(scale) =>
+					val imgDim = img.dimensions * scale
+					w.positionStyle match {
+						case Center =>
+							val dimDiff = dim - imgDim
+							Rectf(offset.x + dimDiff.x / 2, offset.y + dimDiff.y / 2, imgDim.x, imgDim.y)
+						case TopLeft =>
+							Rectf(offset.x, offset.y, imgDim.x, imgDim.y)
+					}
+				case ScaleToFit =>
+					Rectf(offset.x,offset.y,dim.x,dim.y)
+			}
+			List(WQuad(rect, img, w.color))
+		case _ => Nil
+	}
+
+	override def intrinsicSize(widget: Widget) = widget match {
+		case w : ImageDisplayWidget => w.scalingStyle match {
+			case ActualSize(scale) =>
+				val img : Image = w.image.resolve()
+				Some(Vec2i((img.width * scale).toInt, (img.height * scale).toInt))
+			case _ =>
+				None
+		}
+		case _ => None
 	}
 }

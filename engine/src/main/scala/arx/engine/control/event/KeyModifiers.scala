@@ -11,7 +11,9 @@ import arx.Prelude._
 import org.lwjgl.glfw.GLFW
 import scalaxy.loops._
 
-case class KeyModifiers (ctrl : Boolean, shift : Boolean, alt : Boolean) {}
+case class KeyModifiers (ctrl : Boolean, shift : Boolean, alt : Boolean) {
+	def none = !ctrl && !shift && !alt
+}
 
 object KeyModifiers {
 	def fromGLFW(mods : Int) = {

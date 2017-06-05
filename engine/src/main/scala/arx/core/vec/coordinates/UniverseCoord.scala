@@ -25,11 +25,11 @@ class UniverseCoord(xi:Int,yi:Int,zi:Int) extends ReadVec3i(xi:Int,yi:Int,zi:Int
 	override def / ( f : Int ) : UniverseCoord = { new UniverseCoord(x/f,y/f,z/f) }
 	override def * ( f : Int ) : UniverseCoord = { new UniverseCoord(x*f,y*f,z*f) }
 
-	def plusZ ( f : Int ) : UniverseCoord = { new UniverseCoord(x,y,z + f) }
+	override def plusZ ( f : Int ) : UniverseCoord = { new UniverseCoord(x,y,z + f) }
 	def minusZ ( f : Int ) : UniverseCoord = { new UniverseCoord(x,y,z - f) }
-	def plusX ( f : Int ) : UniverseCoord = { new UniverseCoord(x+f,y,z) }
+	override def plusX ( f : Int ) : UniverseCoord = { new UniverseCoord(x+f,y,z) }
 	def minusX ( f : Int ) : UniverseCoord = { new UniverseCoord(x-f,y,z) }
-	def plusY ( f : Int ) : UniverseCoord = { new UniverseCoord(x,y+f,z) }
+	override def plusY ( f : Int ) : UniverseCoord = { new UniverseCoord(x,y+f,z) }
 	def minusY ( f : Int ) : UniverseCoord = { new UniverseCoord(x,y-f,z) }
 
 	def distanceTo ( u : UniverseCoord ) = {

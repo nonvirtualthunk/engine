@@ -21,15 +21,22 @@ import scalaxy.loops._
 
 class TextDisplayWidget(parentis : Widget) extends Widget(parentis) {
 	var text : Moddable[String] = Moddable("")
-	var fontScale = EngineCore.pixelScaleFactor
+	var fontScale = 1.0f
 	var fontColor : Moddable[ReadVec4f] = Moddable( Color.Black )
 	var font = none[FontWrapper]
 	var textAlignment = Moddable(Left)
 	var orientFromTop = Moddable(true)
+	private var constructed = false
+
+	// default to no background for text widgets
+	this.drawing.drawBackground = false
 
 	protected[windowing] val textWatcher = Watcher(text.resolve())
 	protected[windowing] val fontScaleWatcher = Watcher(fontScale)
-	override def isModified = textWatcher.hasChanged || fontScaleWatcher.hasChanged
+	override def isSelfModified = constructed && (textWatcher.hasChanged || fontScaleWatcher.hasChanged)
+
+	def effectiveFontScale = fontScale * EngineCore.pixelScaleFactor
+	constructed = true
 }
 
 

@@ -5,6 +5,7 @@ package arx.engine.control.components.windowing
   */
 
 import arx.application.Noto
+import arx.core.units.UnitOfTime
 import arx.core.vec.ReadVec2f
 import arx.core.vec.Vec2f
 import arx.engine.control.ControlEngine
@@ -102,6 +103,18 @@ class WindowingControlComponent(controlEngine : ControlEngine) extends ControlCo
 
 	override protected def initialize(): Unit = {
 //		graphics[WindowingGraphicsData].desktop = control[WindowingData].desktop
+	}
+
+
+	override protected def updateSelf(dt: UnitOfTime): Unit = {
+		desktop.synchronized {
+			updateWidget(desktop)
+		}
+	}
+
+	def updateWidget(w : Widget): Unit = {
+		w.updateSelf()
+		w.children.foreach(c => updateWidget(c))
 	}
 
 	def widgetAtMousePosition(pos : ReadVec2f) : Option[Widget] = {

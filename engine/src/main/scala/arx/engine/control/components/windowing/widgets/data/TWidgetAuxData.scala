@@ -78,6 +78,14 @@ class DrawingData extends TWidgetAuxData {
 	var absolutePosition : ReadVec3i = Vec3i.Zero
 	var effectiveDimensions : ReadVec2i = Vec2i.One
 
+	def clientDim = {
+		effectiveDimensions - clientOffset * 2
+	}
+
+	def clientOffset = {
+		interiorPadding + decorationBorderSize
+	}
+
 //	var xWatcher = new Watcher[PositionExpression](PositionExpression.Flow)
 //	var yWatcher = new Watcher[PositionExpression](PositionExpression.Flow)
 //	var zWatcher = new Watcher[PositionExpression](PositionExpression.Flow)

@@ -18,7 +18,7 @@ import arx.engine.control.data.WindowingData
 import arx.engine.event.EventBus
 import arx.engine.game.GameEngine
 import arx.engine.graphics.GraphicsEngine
-import arx.engine.graphics.components.WindowingGraphicsComponent
+import arx.engine.graphics.components.windowing.WindowingGraphicsComponent
 import arx.engine.graphics.data.GraphicsWorld
 import arx.engine.world.World
 import org.scalatest.FlatSpec

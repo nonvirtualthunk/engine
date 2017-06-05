@@ -34,8 +34,8 @@ abstract class CustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Man
 
 	def preDraw() {}
 
-	override def updateSelf(dt: UnitOfTime): Unit = {
-		super.updateSelf(dt)
+	override def update(dt: UnitOfTime): Unit = {
+		super.update(dt)
 
 		if (needsUpdate) {
 			if (canvas.startDraw()) {

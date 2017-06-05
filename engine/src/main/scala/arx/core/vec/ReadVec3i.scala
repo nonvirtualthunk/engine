@@ -3,7 +3,7 @@ import arx.core.Moddable
 import arx.core.SelfModdable
 @SerialVersionUID(9223372036854770000L)
 class ReadVec3i extends InternVec3i with SelfModdable[ReadVec3i]{
-	def this(xa : Int,ya : Int,za : Int){ 
+	def this(xa : Int,ya : Int,za : Int){
 		this()
 		xi = xa
 		yi = ya
@@ -48,6 +48,11 @@ class ReadVec3i extends InternVec3i with SelfModdable[ReadVec3i]{
 	def zx = new Vec2i(zi,xi)
 	def yz = new Vec2i(yi,zi)
 	def zy = new Vec2i(zi,yi)
+
+	def plusX(dx: Int) = ReadVec3i(xi+dx,yi,zi)
+	def plusY(dy: Int) = ReadVec3i(xi,yi+dy,zi)
+	def plusZ(dz: Int) = ReadVec3i(xi,yi,zi+dz)
+
 	def length : Float = {
 		val e = xi*xi + yi*yi + zi*zi
 		math.sqrt(e).toFloat
@@ -62,6 +67,7 @@ class ReadVec3i extends InternVec3i with SelfModdable[ReadVec3i]{
 	def minMax(v:ReadVec3i) = ( min(v) , max(v) )
 	def min = math.min(math.min(x,y),z)
 	def max = math.max(math.max(x,y),z)
+	def allLEQ(i : Int) = x <= i && y <= i && z <= i
 	def ceil = new Vec3i(math.ceil(x).toInt,math.ceil(y).toInt,math.ceil(z).toInt)
 	def floor = new Vec3i(math.floor(x).toInt,math.floor(y).toInt,math.floor(z).toInt)
 	override def toString = "(" + x + "," + y + "," + z+ ")"

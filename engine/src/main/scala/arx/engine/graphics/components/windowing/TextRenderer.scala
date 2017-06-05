@@ -31,7 +31,7 @@ class TextRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(WD) {
 	def layout(tw : TextDisplayWidget) = {
 		import tw._
 		val area = Rectf(0.0f,0.0f,10000.0f,100000.0f)
-		layouter.layOutText(LayoutParameters(text, effectiveFontFor(tw), fontScale, area, 1.0f, fontScale/2, textAlignment))
+		layouter.layOutText(LayoutParameters(text, effectiveFontFor(tw), effectiveFontScale, area, 1.0f, effectiveFontScale/2, textAlignment))
 	}
 
 	override def render(widget: Widget, beforeChildren: Boolean): List[WQuad] = {
@@ -43,8 +43,8 @@ class TextRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(WD) {
 				res.points.zip(text.resolve()).flatMap( t => {
 					val (point,char) = t
 					if ( ! char.isWhitespace ) {
-						val rawW = layouter.charWidth(char,effFont,fontScale)
-						val rawH = layouter.charHeight(char,effFont,fontScale)
+						val rawW = layouter.charWidth(char,effFont,effectiveFontScale)
+						val rawH = layouter.charHeight(char,effFont,effectiveFontScale)
 						val w = floorf( rawW + 0.0001f)
 						val h = floorf( rawH + 0.0001f)
 

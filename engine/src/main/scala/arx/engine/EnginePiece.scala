@@ -39,7 +39,7 @@ abstract class EnginePiece[Component <: EngineComponent : Manifest] {
 					val delta = t - component.lastUpdated
 					if (delta > component.updateInterval) {
 						if (component.updateInProgress.compareAndSet(false, true)) {
-							component.updateSelf(delta)
+							component.update(delta)
 							component.lastUpdated = t
 							component.updateInProgress.set(false)
 							anyUpdates = true
@@ -78,7 +78,7 @@ abstract class EnginePiece[Component <: EngineComponent : Manifest] {
 		}
 
 		for (n <- 0 until nSteps optimized) {
-			components.foreach(c => c.updateSelf(deltaSeconds.seconds))
+			components.foreach(c => c.update(deltaSeconds.seconds))
 		}
 	}
 
@@ -129,7 +129,7 @@ abstract class EnginePiece[Component <: EngineComponent : Manifest] {
 		// Do one synchronous update of every game component, we want to ensure they have a chance to do any necessary
 		// initialization
 		// todo: should this not be parallel then?
-		components.par.foreach(_.updateSelf(0.01.seconds))
+		components.par.foreach(_.update(0.01.seconds))
 		initialized = true
 
 		if (!serial) {

@@ -10,9 +10,7 @@ import arx.core.gen.Generator
 import arx.core.math.Recti
 import arx.core.metrics.Metrics
 import arx.core.traits.TSentinelable
-import arx.core.vec.ReadVec4i
-import arx.core.vec.Vec4f
-import arx.core.vec.Vec4i
+import arx.core.vec.{ReadVec4i, Vec2i, Vec4f, Vec4i}
 import org.newdawn.slick.opengl.PNGImageData2
 
 /**
@@ -40,7 +38,7 @@ class Image extends TSentinelable with Externalizable {
 
 	var revision = 0
 
-
+	def dimensions = Vec2i(width,height)
 
 	override def writeExternal(p1: ObjectOutput): Unit = {
 		if (data != null) {

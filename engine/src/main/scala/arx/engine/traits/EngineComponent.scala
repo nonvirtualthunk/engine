@@ -24,7 +24,7 @@ abstract class EngineComponent(val world : World, enginePiece : EnginePiece[_]) 
 
 	def listeners : List[EventBusListener]
 
-	def updateSelf(dt : UnitOfTime): Unit = {
+	def update(dt : UnitOfTime): Unit = {
 		if (!initialized) {
 			initialize()
 			initialized = true
@@ -32,11 +32,11 @@ abstract class EngineComponent(val world : World, enginePiece : EnginePiece[_]) 
 		// process all the asynchronously queued events
 		listeners.foreach(l => l.process())
 
-		update(dt)
+		updateSelf(dt)
 		lastUpdated = curTime()
 	}
 
-	protected def update(dt : UnitOfTime): Unit = {
+	protected def updateSelf(dt : UnitOfTime): Unit = {
 
 	}
 

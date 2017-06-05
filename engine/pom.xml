@@ -129,10 +129,17 @@
             <version>0.9.10</version>
         </dependency>
         <dependency>
+            <groupId>com.beachape</groupId>
+            <artifactId>enumeratum_2.11</artifactId>
+            <version>1.5.12</version>
+        </dependency>
+        <dependency>
             <groupId>org.pybee</groupId>
             <artifactId>cassowary</artifactId>
             <version>0.0.1</version>
         </dependency>
+
+        <!-- Test -->
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>

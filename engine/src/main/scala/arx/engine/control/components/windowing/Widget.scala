@@ -7,6 +7,7 @@ package arx.engine.control.components.windowing
 import java.util.UUID
 
 import arx.Prelude._
+import arx.core.Moddable
 import arx.core.vec.ReadVec2i
 import arx.core.vec.Vec2T
 import arx.core.vec.Vec2i
@@ -41,18 +42,31 @@ class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[T
 
 	val position = Vec3T[PositionExpression](Flow,Flow,Flow)
 	var dimensions = Vec2T[DimensionExpression](Intrinsic,Intrinsic)
+	var showing = Moddable(true)
+	protected var _isModified = false
 
 	// initialization =====================================
 	if (parent != null) {
-		parent.children ::= this
+		var topmostParent = parent
+		while (topmostParent.parent != null) {
+			topmostParent = topmostParent.parent
+		}
+		topmostParent.synchronized {
+			parent.children ::= this
+		}
 	}
+
 	// ================================= end initialization
 
 	// information related to dragging and dropping
 	def dragAndDropRO = this.auxDataOrElse[DragAndDropData](DragAndDropData.Default)
 	def eventHandlingRO = this.auxDataOrElse[EventHandlingData](EventHandlingData.Default)
 	def drawing = this.auxData[DrawingData]
-	def isModified = false
+	def isModified = _isModified || isSelfModified
+	protected[windowing] def isSelfModified = false
+	def resetModified() = _isModified = false
+
+	def updateSelf(){}
 
 
 	def x = position.x
@@ -76,6 +90,7 @@ class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[T
 
 	def close (): Unit = {
 		parent.children = parent.children.without(this)
+		parent._isModified = true
 	}
 }
 
