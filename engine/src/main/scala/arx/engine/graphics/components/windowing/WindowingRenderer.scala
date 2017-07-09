@@ -13,7 +13,7 @@ import arx.engine.graphics.data.WindowingGraphicsData
 import scalaxy.loops._
 
 abstract class WindowingRenderer(val windowingData : WindowingGraphicsData) {
-	def render (widget : Widget, beforeChildren : Boolean) : List[WQuad]
+	def render (widget : Widget, beforeChildren : Boolean) : Seq[WQuad]
 
 	def intrinsicSize(widget : Widget) : Option[ReadVec2i] = None
 	def decorationBorderSize(widget : Widget) : Option[ReadVec2i] = None

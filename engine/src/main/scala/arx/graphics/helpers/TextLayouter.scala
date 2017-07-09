@@ -21,24 +21,36 @@ sealed abstract class RichTextSection {
 	def symbolAtIndex(i : Int) : Any
 	def symbolCount : Int
 	def colorAtIndex(i : Int) : ReadVec4f
+	def scaleAtIndex(i : Int) : Float
+	def merge (s : RichTextSection) : Option[RichTextSection] = None
 }
 case class TextSection(text : String, color : ReadVec4f = Color.Black) extends RichTextSection {
 	override def symbolAtIndex(i: Int): Any = text(i)
 	override def symbolCount: Int = text.length
 	override def colorAtIndex(i: Int): ReadVec4f = color
+	override def scaleAtIndex(i : Int) : Float = 1.0f
+	override def merge (s : RichTextSection) : Option[RichTextSection] = s match {
+		case ts : TextSection if ts.color == color => Some(TextSection(text + ts.text, color))
+		case _ => None
+	}
 }
-case class ImageSection(image : TToImage, scale : Float, color : ReadVec4f = Color.Black) extends RichTextSection {
+case class ImageSectionLayer(image : TToImage, color : ReadVec4f = Color.White)
+case class ImageSection(layers : List[ImageSectionLayer], scale : Float) extends RichTextSection {
 	override def symbolAtIndex(i: Int): Any = i match {
-		case 0 => image.image
+		case 0 => layers
 		case _ => Noto.severeError("Out of bounds access to image rich-text section"); '~'
 	}
 	override def symbolCount: Int = 1
-	override def colorAtIndex(i: Int): ReadVec4f = color
+	override def colorAtIndex(i: Int): ReadVec4f = layers.head.color
+	override def scaleAtIndex(i : Int) : Float = scale
+}
+object ImageSection {
+	def apply(image : TToImage, scale : Float, color : ReadVec4f) : ImageSection = ImageSection(ImageSectionLayer(image, color) :: Nil, scale)
 }
 
-case class RichText (sections : List[RichTextSection]) {
+case class RichText (sections : Seq[RichTextSection]) {
 	def symbolCount = sections.isum(s => s.symbolCount)
-	protected def getFromIndex[T](target : Int, func : (TextSection, Int) => T) = {
+	protected def getFromIndex[T](target : Int, func : (RichTextSection, Int) => T) = {
 		var tmpS = sections
 		var i = target
 		while (tmpS.nonEmpty && i >= tmpS.head.symbolCount) {
@@ -46,7 +58,7 @@ case class RichText (sections : List[RichTextSection]) {
 			tmpS = tmpS.tail
 		}
 		if (tmpS.nonEmpty) {
-			func(tmpS(i))
+			func(tmpS(i), i)
 		} else {
 			throw new IndexOutOfBoundsException("Attempted to access past the end of a rich text")
 		}
@@ -58,13 +70,13 @@ case class RichText (sections : List[RichTextSection]) {
 		getFromIndex(target, (s,i) => s.colorAtIndex(i))
 	}
 }
+object RichText {
+	implicit def apply (str : String) : RichText = RichText(List(TextSection(str)))
+	val Empty = RichText(Nil)
+}
 
 
 class TextLayouter extends TTextLayouter {
-	def layOutText (text : String, font : TBitmappedFont, fontSize : Float, area : Rectf, spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f, textAlignment : Int = Cardinals.Left ) : TextLayoutResult = {
-		layOutText(RichText(TextSection(text) :: Nil), font, fontSize, area, spacingMultiple, minSpacing, textAlignment)
-	}
-
 	def layOutText (richText : RichText, font : TBitmappedFont, fontSize : Float, area : Rectf, spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f, textAlignment : Int = Cardinals.Left ) : TextLayoutResult = {
 		var x = 0.0f
 		var y = 0.0f
@@ -109,15 +121,13 @@ class TextLayouter extends TTextLayouter {
 		}
 
 		for (section <- richText.sections) {
+			val pre = points.size
 			section match {
 				case TextSection(text,_) =>
 					val words = text.split(TextLayouter.whitespaceArray)
 					var i = 0
-					for (word <- words) {
-						if (!word.isEmpty) {
-							renderWord(word)
-							i += word.length
-						}
+
+					def advanceThroughWitespace(): Unit = {
 						while (i < text.length && TextLayouter.whitespaceSet.contains(text(i))) {
 							text(i) match {
 								case ' ' =>
@@ -141,19 +151,33 @@ class TextLayouter extends TTextLayouter {
 							i += 1
 						}
 					}
-				case ImageSection(image, scale, _) =>
-					val width = image.width * scale
+
+
+					advanceThroughWitespace()
+					for (word <- words) {
+						if (!word.isEmpty) {
+							renderWord(word)
+							i += word.length
+						}
+						advanceThroughWitespace()
+					}
+				case ImageSection(layers, scale) =>
+					val width = layers.imax(l => l.image.width) * scale
+					val height = layers.imax(l => l.image.height) * scale
 					//If this is the only thing on the line and it's longer than the line, no point skipping down, otherwise
 					if (x + width > area.w && x > 0.00001f) {
 						jumpToNextLine()
 					}
-					maxSpacingThisLine = image.height * scale // ensure that we don't collide with this image on the next line
+					maxSpacingThisLine = height // ensure that we don't collide with this image on the next line
 
-					points :+= Vec2f(area.x + x,area.y + y)
+					points :+= Vec2f(area.x + x,area.y + y + (lineHeight(font, fontSize) - height) / 2)
 					widths :+= width
 
 					x += width + minSpacing
 					maxX = math.max(maxX,x)
+			}
+			if (pre + section.symbolCount != points.size) {
+				println("wrong")
 			}
 		}
 
@@ -195,9 +219,9 @@ class TextLayouter extends TTextLayouter {
 			adjustLine()
 		}
 
-		TextLayoutResult(points,Vec2f(maxX,maxY + lineHeight(font,fontSize)))
+		TextLayoutResult(points,Vec2f(maxX,maxY + lineHeight(font,fontSize).max(maxSpacingThisLine)))
 	}
-	def textDimensions ( text : String , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f , minSpacing : Float = 0.0f ) : Vec2f = {
+	def textDimensions ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f , minSpacing : Float = 0.0f ) : ReadVec2f = {
 		layOutText(text,font,fontSize,area,spacingMultiple,minSpacing).dimensions
 	}
 
@@ -235,11 +259,14 @@ object TextLayouter {
 }
 
 trait TTextLayouter {
-	def layOutText ( text : String , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f,textAlignment :Int = Cardinals.Left) : TextLayoutResult
+	def layOutText ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f,textAlignment :Int = Cardinals.Left) : TextLayoutResult
 	def layOutText ( params : LayoutParameters ) : TextLayoutResult = {
 		layOutText(params.text,params.font,params.fontSize,params.area,params.spacingMultiple,params.minSpacing,params.textAlignment)
 	}
-	def textDimensions ( text : String , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f) : ReadVec2f
+
+
+
+	def textDimensions ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f) : ReadVec2f
 	def textDimensions ( params : LayoutParameters ) : ReadVec2f = {
 		textDimensions(params.text,params.font,params.fontSize,params.area,params.spacingMultiple,params.minSpacing)
 	}
@@ -248,7 +275,7 @@ trait TTextLayouter {
 }
 
 object TTextLayouter {
-	case class LayoutParameters ( text : String , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float, minSpacing : Float, textAlignment : Int )
+	case class LayoutParameters ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float, minSpacing : Float, textAlignment : Int )
 }
 
 case class TextLayoutResult ( points : Vector[ReadVec2f] , dimensions : ReadVec2f )

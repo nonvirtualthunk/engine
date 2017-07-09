@@ -12,10 +12,8 @@ import arx.engine.control.components.windowing.Widget
 import arx.engine.control.components.windowing.widgets.TextDisplayWidget
 import arx.engine.graphics.data.WindowingGraphicsData
 import arx.graphics.Image
-import arx.graphics.helpers.Color
-import arx.graphics.helpers.TTextLayouter
+import arx.graphics.helpers.{Color, ImageSectionLayer, TTextLayouter, TextLayouter}
 import arx.graphics.helpers.TTextLayouter.LayoutParameters
-import arx.graphics.helpers.TextLayouter
 import arx.graphics.text.TBitmappedFont
 
 import scalaxy.loops._
@@ -34,37 +32,56 @@ class TextRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(WD) {
 		layouter.layOutText(LayoutParameters(text, effectiveFontFor(tw), effectiveFontScale, area, 1.0f, effectiveFontScale/2, textAlignment))
 	}
 
-	override def render(widget: Widget, beforeChildren: Boolean): List[WQuad] = {
+	override def render(widget: Widget, beforeChildren: Boolean): Seq[WQuad] = {
 		widget match {
 			case tw : TextDisplayWidget =>
 				import tw._
 				val effFont = effectiveFontFor(tw)
 				val res = layout(tw)
-				res.points.zip(text.resolve()).flatMap( t => {
-					val (point,char) = t
-					if ( ! char.isWhitespace ) {
-						val rawW = layouter.charWidth(char,effFont,effectiveFontScale)
-						val rawH = layouter.charHeight(char,effFont,effectiveFontScale)
-						val w = floorf( rawW + 0.0001f)
-						val h = floorf( rawH + 0.0001f)
 
+				var si = 0
+				var pi = 0
+				val richText = text.resolve() // note, by resolving twice this could change underneath us since layout
+				var ret = Vector[WQuad]()
+				var sections = richText.sections
+				while (sections.nonEmpty) {
+					if (si >= sections.head.symbolCount) {
+						sections = sections.tail
+						si = 0
+					} else {
+						val point = res.points(pi)
+						val symbol = sections.head.symbolAtIndex(si)
 						val x = point.x
 						val y = point.y
-//	TODO: bounds culling optimization
-//							if ( y < bounds.y + bounds.h && y + h > bounds.y ) {
-							val tc = effFont.characterTexCoords(char)
-//
-//								val tx = tc(0).x// + 100.0f
-//								val ty = tc(0).y// + 100.0f
-//								val tw = tc(2).x - tc(0).x
-//								val th = tc(2).y - tc(0).y
+						symbol match {
+							case char : Char =>
+								if (!char.isWhitespace) {
+									val color = sections.head.colorAtIndex(si)
+									val rawW = layouter.charWidth(char,effFont,effectiveFontScale)
+									val rawH = layouter.charHeight(char,effFont,effectiveFontScale)
+									val w = floorf( rawW + 0.0001f)
+									val h = floorf( rawH + 0.0001f)
+									//	TODO: bounds culling optimization
+									//							if ( y < bounds.y + bounds.h && y + h > bounds.y ) {
+									val tc = effFont.characterTexCoords(char)
+									//							} else { break = true }
+									ret :+= WQuad(Rectf(x,y,w,h),Image.Sentinel,color,0,WQuad.StandardRect, Some(tc))
+								}
+							case layers : List[ImageSectionLayer] =>
+								val scale = sections.head.scaleAtIndex(si)
+								for (layer <- layers) {
+									val img = layer.image
+									val w = img.width * scale
+									val h = img.height * scale
+									ret :+= WQuad(Rectf(x,y,w,h), img, layer.color, 0)
+								}
+						}
 
-//							} else { break = true }
-						List(WQuad(Rectf(x,y,w,h),Image.Sentinel,Color.Black,0,WQuad.StandardRect, Some(tc)))
-					} else {
-						Nil
+						pi += 1
+						si += 1
 					}
-				})
+				}
+				ret
 			case _ => Nil
 		}
 	}

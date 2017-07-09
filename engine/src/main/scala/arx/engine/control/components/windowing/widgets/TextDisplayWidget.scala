@@ -13,14 +13,14 @@ import arx.core.vec.ReadVec4f
 import arx.engine.EngineCore
 import arx.engine.control.components.windowing.Widget
 import arx.graphics.TextureBlock
-import arx.graphics.helpers.Color
+import arx.graphics.helpers.{Color, RichText}
 import arx.graphics.text.TBitmappedFont
 import arx.resource.ResourceManager
 
 import scalaxy.loops._
 
 class TextDisplayWidget(parentis : Widget) extends Widget(parentis) {
-	var text : Moddable[String] = Moddable("")
+	var text : Moddable[RichText] = Moddable("")
 	var fontScale = 1.0f
 	var fontColor : Moddable[ReadVec4f] = Moddable( Color.Black )
 	var font = none[FontWrapper]

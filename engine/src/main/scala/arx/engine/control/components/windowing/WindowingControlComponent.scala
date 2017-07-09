@@ -120,7 +120,7 @@ class WindowingControlComponent(controlEngine : ControlEngine) extends ControlCo
 	def widgetAtMousePosition(pos : ReadVec2f) : Option[Widget] = {
 		WGD.pov.unprojectAtZ(pos,0.0f,GL.maximumViewport) match {
 			case Some(clickedPos) =>
-				WD.desktop.selfAndChildren.find(w => {
+				WD.desktop.selfAndChildren.toStream.reverse.find(w => {
 					val apos = w.drawing.absolutePosition
 					val adim = w.drawing.effectiveDimensions
 					apos.x <= clickedPos.x && apos.y <= clickedPos.y &&

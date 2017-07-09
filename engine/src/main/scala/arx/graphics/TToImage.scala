@@ -17,6 +17,12 @@ import arx.core.Moddable
 
 trait TToImage {
 	def image : Image
+
+	override def equals(other : Any) = other match {
+		case img : Image => img == image
+		case timg : TToImage => timg.image == image
+		case _ => false
+	}
 }
 class WrappedImage(val img:Image) extends TToImage {
 	def image = img

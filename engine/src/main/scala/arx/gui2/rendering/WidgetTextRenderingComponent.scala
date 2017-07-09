@@ -19,7 +19,7 @@ import arx.core.vec.ReadVec4f
 import arx.engine.EngineCore
 import arx.graphics.AVBO
 import arx.graphics.helpers.TTextLayouter.LayoutParameters
-import arx.graphics.helpers.TextLayouter
+import arx.graphics.helpers.{RichText, TextLayouter}
 import arx.graphics.text.TBitmappedFont
 import arx.gui2.Widget
 import arx.gui2.WindowingSystem2.RenderingContext
@@ -37,7 +37,7 @@ class WidgetTextRenderingComponent(
 	val layouter = new TextLayouter
 
 	val layoutFor = memoizeSingle( ( params : LayoutParameters ) => layouter.layOutText(params) )
-	def currentLayout = layoutFor( LayoutParameters(text,font,fontSize,area,1.0f,windowingSystemDimensions.x / EngineCore.windowWidth,textAlignment) )
+	def currentLayout = layoutFor( LayoutParameters(RichText(text.resolve()),font,fontSize,area,1.0f,windowingSystemDimensions.x / EngineCore.windowWidth,textAlignment) )
 
 	def lineHeight = layouter.lineHeight(font,fontSize)
 	def lineSpacing = layouter.lineSpacing(font,fontSize)
@@ -69,7 +69,7 @@ class WidgetTextRenderingComponent(
 
 	def singleLineTextDimensions = {
 		//TODO: Windowing system ratio
-		layoutFor(LayoutParameters(text,font,fontSize,WidgetTextRenderingComponent.VeryLargeRect,1.0f,windowingSystemDimensions.x / EngineCore.windowWidth,Left) ).dimensions
+		layoutFor(LayoutParameters(RichText(text),font,fontSize,WidgetTextRenderingComponent.VeryLargeRect,1.0f,windowingSystemDimensions.x / EngineCore.windowWidth,Left) ).dimensions
 	}
 
 	def draw(widget: Widget, vbo: AVBO, context: RenderingContext, beforeChildren: Boolean) = {

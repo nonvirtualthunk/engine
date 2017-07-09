@@ -148,6 +148,9 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 			val toff = 3 + quad.rotation / 90
 			for (q <- 0 until 4 optimized) {
 				vbo.setA(C, vi + q, quad.color)
+				if (tcs((q + toff) % 4) == null) {
+					println("BAD")
+				}
 				vbo.setA(TC, vi + q, tcs((q + toff) % 4))
 				vbo.setA(B, vi + q, bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h)
 			}
