@@ -1,7 +1,7 @@
 package arx.engine.control.data
 
 import arx.application.Noto
-import arx.engine.control.components.ControlMode
+import arx.engine.control.components.{ControlMode, TControlMode}
 
 import scala.collection.immutable.Stack
 
@@ -10,9 +10,9 @@ import scala.collection.immutable.Stack
   */
 
 class ControlModes extends TControlData{
-	var modeStack = Stack[ControlMode]()
+	var modeStack = Stack[TControlMode]()
 
-	def popMode(mode: ControlMode): Unit = {
+	def popMode(mode: TControlMode): Unit = {
 		if (modeStack.headOption.contains(mode)) {
 			modeStack = modeStack.pop
 			mode.deactivate()
@@ -21,7 +21,7 @@ class ControlModes extends TControlData{
 		}
 	}
 
-	def pushMode(mode : ControlMode): Unit = {
+	def pushMode(mode : TControlMode): Unit = {
 		modeStack = modeStack push mode
 		mode.activate()
 	}

@@ -12,10 +12,10 @@ import arx.engine.control.data.TControlData
 import arx.engine.event.EventBusListener
 import arx.engine.graphics.data.TGraphicsData
 import arx.engine.traits.EngineComponent
-
+import arx.engine.world.World
 import scalaxy.loops._
 
-abstract class ControlComponent(controlEngine : ControlEngine) extends EngineComponent(controlEngine.world, controlEngine) {
+abstract class ControlComponent(controlEngine : ControlEngine) extends EngineComponent[World](controlEngine.world, controlEngine) {
 
 	val gameEvents = controlEngine.gameEventBus.createListener()
 	val graphicsEvents = controlEngine.graphicsEventBus.createListener()
@@ -28,9 +28,14 @@ abstract class ControlComponent(controlEngine : ControlEngine) extends EngineCom
 	def control[T <: TControlData : Manifest] = controlEngine.controlWorld.aux[T]
 }
 
-abstract class ControlMode(controlEngine : ControlEngine) extends ControlComponent(controlEngine) {
+
+trait TControlMode {
 	def activate()
 	def deactivate()
+}
+
+abstract class ControlMode(controlEngine : ControlEngine) extends ControlComponent(controlEngine) with TControlMode {
+
 
 	def pushMode[T <: ControlMode : Manifest] = {
 		controlEngine.components.firstOfType[T] match {

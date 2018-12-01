@@ -17,21 +17,22 @@ import arx.engine.event.EventBus
 import arx.engine.game.GameEngine
 import arx.engine.graphics.GraphicsEngine
 import arx.engine.graphics.data.GraphicsWorld
+import arx.engine.lworld.LWorld
 import arx.engine.world.World
 import arx.gui2.WindowingSystem2
 import arx.resource.ResourceManager
 import org.lwjgl.glfw.GLFW
-
 import scalaxy.loops._
 
 abstract class Engine extends EngineCore with TEventUser {
 	val world = new World
+	val lworld = new LWorld
 	val graphicsWorld = new GraphicsWorld
 	val controlWorld = new ControlWorld
 	val gameEventBus = new EventBus
 	val graphicsEventBus = new EventBus
 	val controlEventBus = new EventBus
-	val gameEngine = new GameEngine(world, gameEventBus)
+	val gameEngine = new GameEngine(world, lworld, gameEventBus)
 	val graphicsEngine : GraphicsEngine = new GraphicsEngine(world, graphicsWorld, graphicsEventBus, gameEventBus)
 	val controlEngine : ControlEngine = new ControlEngine(world, graphicsWorld, controlWorld, controlEventBus, graphicsEventBus, gameEventBus)
 	var serialGameEngine = false

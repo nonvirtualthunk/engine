@@ -4,32 +4,15 @@ package arx.engine.control.components.windowing
   * TODO: Add javadoc
   */
 
-import java.util.UUID
-
 import arx.Prelude._
 import arx.core.Moddable
-import arx.core.vec.ReadVec2i
-import arx.core.vec.Vec2T
-import arx.core.vec.Vec2i
-import arx.core.vec.Vec3T
-import arx.engine.control.components.windowing.widgets.DimensionExpression
+import arx.core.vec.{Vec2T, Vec3T}
 import arx.engine.control.components.windowing.widgets.DimensionExpression.Intrinsic
-import arx.engine.control.components.windowing.widgets.PositionExpression
+import arx.engine.control.components.windowing.widgets.{DimensionExpression, PositionExpression}
 import arx.engine.control.components.windowing.widgets.PositionExpression.Flow
-import arx.engine.control.components.windowing.widgets.data.DragAndDropData
-import arx.engine.control.components.windowing.widgets.data.DrawingData
-import arx.engine.control.components.windowing.widgets.data.EventHandlingData
-import arx.engine.control.components.windowing.widgets.data.TWidgetAuxData
-import arx.engine.control.event.Event.Event
-import arx.engine.control.event.Event.TEventUser
+import arx.engine.control.components.windowing.widgets.data.{DragAndDropData, DrawingData, EventHandlingData, TWidgetAuxData}
+import arx.engine.control.event.Event.{Event, TEventUser}
 import arx.engine.data.THasInternalAuxData
-import org.pybee.cassowary.Constraint
-import org.pybee.cassowary.Expression
-import org.pybee.cassowary.StayConstraint
-import org.pybee.cassowary.Strength
-import org.pybee.cassowary.Variable
-
-import scalaxy.loops._
 
 class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[TWidgetAuxData] {
 	def parent = _parent

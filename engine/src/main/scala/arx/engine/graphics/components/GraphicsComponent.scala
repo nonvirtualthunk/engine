@@ -20,7 +20,7 @@ import arx.engine.graphics.data.PovData
 import arx.engine.graphics.data.TGraphicsData
 import arx.engine.traits.EngineComponent
 
-abstract class GraphicsComponent(val graphicsEngine : GraphicsEngine) extends EngineComponent(graphicsEngine.world, graphicsEngine) {
+abstract class GraphicsComponent(val graphicsEngine : GraphicsEngine) extends EngineComponent[World](graphicsEngine.world, graphicsEngine) {
 	var name = this.getClass.getSimpleName
 
 	val gameEvents = graphicsEngine.gameEventBus.createListener()

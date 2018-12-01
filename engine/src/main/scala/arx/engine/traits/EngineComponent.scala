@@ -16,7 +16,8 @@ import arx.engine.world.World
 
 import scalaxy.loops._
 
-abstract class EngineComponent(val world : World, enginePiece : EnginePiece[_]) extends TDependable {
+abstract class EngineComponent[WorldType] (val world : WorldType, enginePiece : EnginePiece[WorldType, _]) extends TDependable {
+	implicit val implicitWorld  = world
 	val updateInProgress = new AtomicBoolean(false)
 	var lastUpdated = 0.seconds
 	var initialized = false

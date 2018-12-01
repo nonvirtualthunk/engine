@@ -18,7 +18,7 @@ import arx.engine.world.World
 
 import scalaxy.loops._
 
-abstract class GameComponent(val gameEngine: GameEngine) extends EngineComponent(gameEngine.world, gameEngine) {
+abstract class GameComponent(val gameEngine: GameEngine) extends EngineComponent[World](gameEngine.world, gameEngine) {
 	val gameEvents: EventBusListener = gameEngine.eventBus.createListener()
 	val eventBus = gameEngine.eventBus
 

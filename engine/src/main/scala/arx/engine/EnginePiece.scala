@@ -19,7 +19,7 @@ import arx.engine.traits.EngineComponent
 
 import scalaxy.loops.rangeExtensions
 
-abstract class EnginePiece[Component <: EngineComponent : Manifest] {
+abstract class EnginePiece[WorldType, Component <: EngineComponent[WorldType] : Manifest] {
 	var parallelism = 3
 	var components = List[Component]()
 	protected var componentClasses = List[Class[_ <: Component]]()
@@ -93,7 +93,7 @@ abstract class EnginePiece[Component <: EngineComponent : Manifest] {
 
 
 
-	def registerComponent(comp : EngineComponent): Unit = {
+	def registerComponent(comp : EngineComponent[WorldType]): Unit = {
 		if (! comp.isInstanceOf[Component]) {
 			Noto.severeError(s"Attempting to add innappropriate object as component, ${comp.getClass.getSimpleName} to ${this.getClass.getSimpleName}")
 		} else {

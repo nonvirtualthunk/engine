@@ -16,16 +16,14 @@ import arx.engine.world.World
 import arx.Prelude._
 import arx.application.Noto
 import arx.engine.entity.TGameEntity
-import arx.engine.game.events.EntityAddedEvent
-import arx.engine.game.events.EntityRemovedEvent
-
+import arx.engine.game.events.{EntityAddedEvent, EntityRemovedEvent, LEntityAdded, LEntityRemoved}
+import arx.engine.lworld.LWorld
 import scalaxy.loops._
 
-class GameEngine(val world: World, val eventBus : EventBus) extends EnginePiece[GameComponent] {
+class GameEngine(val world: World, implicit val lworld: LWorld, val eventBus : EventBus) extends EnginePiece[World, GameComponent] {
 	val self = this
 
 	parallelism = 4
-	def graphicsComponents = components
 
 //	addComponent[GameEngine.TimeComponent]
 
@@ -37,6 +35,9 @@ class GameEngine(val world: World, val eventBus : EventBus) extends EnginePiece[
 
 	override def initialize(serial: Boolean): Unit = {
 		super.initialize(serial)
+
+		lworld.onEntityAddedCallbacks ::= (e => eventBus.fireEvent(LEntityAdded(e)))
+		lworld.onEntityRemovedCallbacks ::= (e => eventBus.fireEvent(LEntityRemoved(e)))
 
 		world.createEntityQuery {
 			case e : TGameEntity => e

@@ -7,7 +7,7 @@ package arx.engine.game.events
 import arx.Prelude._
 import arx.engine.control.event.Event.Event
 import arx.engine.entity.TGameEntity
-
+import arx.engine.lworld.LEntity
 import scalaxy.loops._
 
 case class EntityAddedEvent(entity : TGameEntity) extends Event {
@@ -16,3 +16,6 @@ case class EntityAddedEvent(entity : TGameEntity) extends Event {
 case class EntityRemovedEvent(entity : TGameEntity) extends Event {
 
 }
+
+case class LEntityAdded(entity : LEntity) extends Event {}
+case class LEntityRemoved(entity : LEntity) extends Event {}

@@ -19,7 +19,7 @@ import arx.engine.graphics.data.GraphicsWorld
 import arx.engine.world.World
 
 class ControlEngine(val world: World, val graphicsWorld: GraphicsWorld, val controlWorld : ControlWorld, val eventBus: EventBus, val graphicsEventBus: EventBus, val gameEventBus: EventBus)
-	extends EnginePiece[ControlComponent]
+	extends EnginePiece[World, ControlComponent]
 		with TEventUser {
 
 	val modes = controlWorld[ControlModes]
