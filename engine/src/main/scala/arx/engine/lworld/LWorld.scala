@@ -102,10 +102,11 @@ class LWorld {
 	protected val currentView : LWorldView = new LWorldView()
 	protected val entityCounter = new AtomicLong(0)
 	protected var dataRegistrations = Vector[EntityDataRegistration]()
-	protected val selfEntity : LEntity = createEntity()
 
 	var onEntityAddedCallbacks = List[LEntity => Unit]()
 	var onEntityRemovedCallbacks = List[LEntity => Unit]()
+
+	protected val selfEntity : LEntity = createEntity()
 
 	def nextTime = coreView.nextTime
 	def currentTime = coreView.currentTime
