@@ -13,4 +13,5 @@ import arx.graphics.Image
 trait GlyphSource extends Serializable {
 	def canProvideGlyphFor (char : Char) : Boolean
 	def glyphFor (char : Char) : Image
+	def lineHeightPixels : Int
 }

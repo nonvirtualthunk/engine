@@ -16,7 +16,7 @@ import arx.engine.world.World
 import arx.Prelude._
 import arx.application.Noto
 import arx.engine.entity.TGameEntity
-import arx.engine.game.events.{EntityAddedEvent, EntityRemovedEvent, LEntityAdded, LEntityRemoved}
+import arx.engine.game.events.{EntityAddedEvent, EntityRemovedEvent}
 import arx.engine.lworld.LWorld
 import scalaxy.loops._
 
@@ -36,8 +36,8 @@ class GameEngine(val world: World, implicit val lworld: LWorld, val eventBus : E
 	override def initialize(serial: Boolean): Unit = {
 		super.initialize(serial)
 
-		lworld.onEntityAddedCallbacks ::= (e => eventBus.fireEvent(LEntityAdded(e)))
-		lworld.onEntityRemovedCallbacks ::= (e => eventBus.fireEvent(LEntityRemoved(e)))
+//		lworld.onEntityAddedCallbacks ::= (e => eventBus.fireEvent(LEntityAdded(e)))
+//		lworld.onEntityRemovedCallbacks ::= (e => eventBus.fireEvent(LEntityRemoved(e)))
 
 		world.createEntityQuery {
 			case e : TGameEntity => e

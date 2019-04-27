@@ -5,6 +5,7 @@ package arx.engine.graphics.data
   */
 
 import arx.Prelude._
+import arx.core.async.Executor
 import arx.core.datastructures.MultiMap
 import arx.core.mat.Mat4x4
 import arx.core.mat.ReadMat4x4
@@ -21,10 +22,10 @@ import arx.graphics.GL
 import arx.graphics.TextureBlock
 import arx.graphics.pov.TCamera
 import arx.graphics.pov.TopDownCamera
+import arx.graphics.text.TBitmappedFont
 import arx.gui2.rendering.WindowingSystemAttributeProfile2
 import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11
-
 import scalaxy.loops._
 
 class WindowingGraphicsData extends TGraphicsData {
@@ -39,7 +40,12 @@ class WindowingGraphicsData extends TGraphicsData {
 	textureBlock.magFilter = GL11.GL_NEAREST
 
 	var defaultBackgroundImage = ResourceManager.image("ui/styledBorder_wood_ne.png")
-	lazy val defaultFont = ResourceManager.font("pf_ronda_seven", textureBlock)
+	private val _defaultDefaultFont = Executor.submitAsync(() => ResourceManager.font("pf_ronda_seven", textureBlock))
+	var _defaultFont : Option[TBitmappedFont] = None
+	def defaultFont_=(fontName : String): Unit = {
+		_defaultFont = Some(ResourceManager.font(fontName, textureBlock))
+	}
+	def defaultFont = _defaultFont.getOrElse(_defaultDefaultFont.get())
 }
 
 class PixelPOV extends TCamera {
@@ -57,4 +63,10 @@ class PixelPOV extends TCamera {
 	override def up: ReadVec3f = Vec3f.UnitY
 
 	override def update(dt: UnitOfTime): Unit = {}
+
+	override def moveEyeTo(eye: ReadVec3f): Unit = {}
+
+	override def setMoveSpeed(multiplier: ReadVec3f): Unit = {}
+
+	override def keymapNamespace: String = "PixelPOV"
 }

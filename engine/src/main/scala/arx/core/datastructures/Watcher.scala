@@ -24,6 +24,20 @@ class Watcher[T] ( value : => T ) {
 	def peekChanged = {
 		last != value
 	}
+	def peek() = last
+
+	def changedValue : Option[T] = if (!hasChanged) { None } else { Some(last) }
+}
+
+class AtLeastOnceWatcher[T](value : => T) extends Watcher[T](value) {
+	var first = true
+	override def hasChanged = {
+		val res = super.hasChanged || first
+		first = false
+		res
+	}
+
+	override def peekChanged: Boolean = super.peekChanged || first
 }
 
 object Watcher {
@@ -34,6 +48,8 @@ object Watcher {
 
 	def apply[T] (x : => T, y : => T) = new Watcher2(x,y)
 	def apply[T] (v : => Vec2T[T]) = new Watcher2(v.x,v.y)
+
+	def atLeastOnce[T] (x : => T) = new AtLeastOnceWatcher[T](x)
 }
 
 class Watcher3[T] (x : => T, y : => T, z : => T) {

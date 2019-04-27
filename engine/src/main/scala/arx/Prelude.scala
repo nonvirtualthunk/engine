@@ -112,10 +112,10 @@ object Prelude {
 	def none[T] : Option[T] = None
 
 	// ========================== Meta functions =================================================
-	def memoize[T,U] ( f : (T) => U ) = new MemoizingFunction(f)
-	def memoize[S,T,U] ( f : (S,T) => U ) = new MemoizingFunction2(f)
-	def memoize[R,S,T,U] ( f : (R,S,T) => U ) = new MemoizingFunction3(f)
-	def memoize[Q,R,S,T,U] ( f : (Q,R,S,T) => U ) = new MemoizingFunction4(f)
+	def memoize[T,U] ( f : (T) => U ) = new MemoizingFunction[T,U](f)
+	def memoize[S,T,U] ( f : (S,T) => U ) = new MemoizingFunction2[S,T,U](f)
+	def memoize[R,S,T,U] ( f : (R,S,T) => U ) = new MemoizingFunction3[R,S,T,U](f)
+	def memoize[Q,R,S,T,U] ( f : (Q,R,S,T) => U ) = new MemoizingFunction4[Q,R,S,T,U](f)
 
 	def cacheMemoize[T <: AnyRef,U <: AnyRef] ( f : (T) => U ) = new MemoizingCachedFunction1(f)
 
@@ -196,6 +196,7 @@ object Prelude {
 	implicit def toUOMFloat (d : Double) : UnitOfMeasureFloat = new UnitOfMeasureFloat(d.toFloat)
 	implicit def toUOMFloat (i : Int) : UnitOfMeasureFloat = new UnitOfMeasureFloat(i)
 	implicit def toUOMFloat (i : Short) : UnitOfMeasureFloat = new UnitOfMeasureFloat(i.toFloat)
+	implicit def toUOMFloat (i : Long) : UnitOfMeasureFloat = new UnitOfMeasureFloat(i.toFloat)
 	implicit def toUnitlessDimensions ( v : Vec3f ) : UnitlessDimensions3 = new UnitlessDimensions3(v.x,v.y,v.z)
 
 	val meter3 = 1.meter3
@@ -247,6 +248,8 @@ object Prelude {
 	implicit def double2RicherFloat ( f : Double ) : RicherDouble = new RicherDouble(f)
 	implicit def tuple2EitherFloat ( t : (Float,Float) ) : EitherFloat = new EitherFloat(t._1,t._2)
 	implicit def int2RicherInt ( i : Int ) : RicherInt = new RicherInt(i)
+
+	implicit def toRicherTraversable[T] (traversable : Traversable[T]) : RicherTraversable[T] = new RicherTraversable[T](traversable)
 
 	def euclidDistance ( x : Int , y : Int , v : ReadVec2i ) : Float = (x - v.x) * (x - v.x) + (y - v.y) * (y - v.y)
 	def euclidDistance ( v1 : ReadVec2i , v2 : ReadVec2i ) : Float = (v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y)
@@ -590,4 +593,6 @@ object Prelude {
 	def curTimeSeconds() = GLFW.glfwGetTime().toFloat
 	def curTimeMillis() = curTimeSeconds * 1000.0f
 	def curTime() = GLFW.glfwGetTime().seconds
+
+	implicit def toRicherNumeric[T : Numeric](v : T) = new RicherNumeric[T](v)
 }

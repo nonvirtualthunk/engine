@@ -7,12 +7,13 @@ package arx.engine.control.event.Event
  * Time: 8:01 AM
  */
 
+import java.util.concurrent.atomic.AtomicReference
+
 import arx.Prelude._
 import arx.core.traits.ArxEnum
 import arx.core.traits.ArxEnumObject
 import arx.core.vec.ReadVec2f
 import org.lwjgl.glfw.GLFW
-
 import scalaxy.loops._
 
 object Mouse {
@@ -27,14 +28,23 @@ object Mouse {
 		}
 	}
 
-	var currentPosition = ReadVec2f(0.0f,0.0f)
-	var previousPosition = ReadVec2f(0.0f,0.0f)
-	var buttonDown = Map(MouseButton.Left -> false, MouseButton.Right -> false, MouseButton.Middle -> false, MouseButton.Other -> false)
+	var _currentPosition = new AtomicReference(ReadVec2f(0.0f,0.0f))
+	var _previousPosition = new AtomicReference(ReadVec2f(0.0f,0.0f))
+	var _buttonDown = Map(MouseButton.Left -> false, MouseButton.Right -> false, MouseButton.Middle -> false, MouseButton.Other -> false)
 	var isVisible = true
 	var windowRef = 0L
 
+	def currentPosition = _currentPosition.get()
+	def currentPosition_=(p : ReadVec2f) { _currentPosition.set(p) }
+
+	def previousPosition = _previousPosition.get()
+	def previousPosition_=(p : ReadVec2f) { _previousPosition.set(p) }
+
+	def buttonDown : Map[MouseButton,Boolean] = synchronized { _buttonDown }
+	def buttonDown_=(m : Map[MouseButton, Boolean]) = synchronized { _buttonDown = m }
+
 	def updatePosition(pos : ReadVec2f): Unit = {
-		previousPosition = currentPosition
+		_previousPosition.set(currentPosition)
 		currentPosition = pos
 	}
 }

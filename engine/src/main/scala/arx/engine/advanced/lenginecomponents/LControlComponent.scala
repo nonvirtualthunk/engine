@@ -31,6 +31,8 @@ class LControlComponent(controlEngine : LControlEngine) extends EngineComponent[
 
 	def graphics[T <: TGraphicsData : Manifest] = controlEngine.graphicsWorld.aux[T]
 	def control[T <: TControlData : Manifest] = controlEngine.controlWorld.aux[T]
+
+	def graphicsWorldView = controlEngine.graphicsWorldView
 }
 
 abstract class LControlMode(controlEngine : ControlEngine) extends ControlComponent(controlEngine) with TControlMode {

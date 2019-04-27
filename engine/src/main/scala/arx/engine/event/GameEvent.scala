@@ -12,6 +12,6 @@ import arx.engine.control.event.Event.Event
 import scalaxy.loops._
 import arx.core.vec._
 
-class GameEvent(val source : AnyRef) extends Event {
+class GameEvent extends Event {
 	val createdAt = curTime()
 }

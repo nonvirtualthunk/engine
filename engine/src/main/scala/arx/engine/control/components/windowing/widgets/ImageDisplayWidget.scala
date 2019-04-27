@@ -24,7 +24,7 @@ class ImageDisplayWidget(parentis: Widget) extends Widget(parentis){
 	var scalingStyle : ScalingStyle = ImageDisplayWidget.ActualSize(1.0f)
 	var positionStyle : PositionStyle = ImageDisplayWidget.TopLeft
 	var color : ReadVec4f = Color.White
-	protected[windowing] var watcher = Watcher(image)
+	protected[windowing] var watcher = Watcher(image.resolve())
 
 	override protected[windowing] def isSelfModified = watcher.hasChanged
 }

@@ -12,7 +12,7 @@ import java.util.concurrent.locks.LockSupport
 import arx.Prelude.int2RicherInt
 import arx.application.Application
 import arx.application.Noto
-import arx.core.async.Executor
+import arx.core.async.{Executor, OnExitRegistry}
 import arx.core.datastructures.KillableThread
 import arx.core.introspection.NativeLibraryHandler
 import arx.core.math.Recti
@@ -60,11 +60,13 @@ abstract class EngineCore {
 			init()
 			loop()
 		} finally {
+			onShutdown()
 			KillableThread.kill()
 			Executor.onQuit()
+			OnExitRegistry.onExit()
 			// Release window and window callbacks
 			glfwDestroyWindow(window)
-			keyCallback.free()
+			if (keyCallback != null) { keyCallback.free() }
 
 			glfwTerminate()
 			if (errorCallback != null) {
@@ -72,6 +74,8 @@ abstract class EngineCore {
 			}
 		}
 	}
+
+	def onShutdown() {}
 
 	def init(): Unit = {
 		NativeLibraryHandler.load()
@@ -121,8 +125,8 @@ abstract class EngineCore {
 		keyCallback = new GLFWKeyCallback() {
 			def invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
 				if (key == GLFW_KEY_Q && (mods.isBitSet(GLFW_MOD_CONTROL) || mods.isBitSet(GLFW_MOD_SUPER))) {
-				} else if (key == GLFW_KEY_F3 && mods.isBitSet(GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
 					glfwSetWindowShouldClose(window, true)
+				} else if (key == GLFW_KEY_F3 && mods.isBitSet(GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
 					Metrics.prettyPrint()
 				} else if (key == GLFW_KEY_F5 && action == GLFW_PRESS) {
 					fullPause = ! fullPause
@@ -173,7 +177,8 @@ abstract class EngineCore {
 
 		charCallbackIntern = new GLFWCharCallback {
 			override def invoke(window: Long, codePoint: Int): Unit = {
-				String.valueOf(Character.toChars(codePoint))
+				val str = String.valueOf(Character.toChars(codePoint))
+				charCallback(str)
 			}
 		}
 		glfwSetCharCallback(window, charCallbackIntern)

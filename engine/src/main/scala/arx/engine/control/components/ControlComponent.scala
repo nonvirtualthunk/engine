@@ -6,9 +6,10 @@ package arx.engine.control.components
 
 import arx.Prelude._
 import arx.application.Noto
+import arx.engine.advanced.lenginecomponents.LControlComponent
+import arx.engine.advanced.lenginepieces.LControlEngine
 import arx.engine.control.ControlEngine
-import arx.engine.control.data.ControlModes
-import arx.engine.control.data.TControlData
+import arx.engine.control.data.{ControlModes, LControlModes, TControlData}
 import arx.engine.event.EventBusListener
 import arx.engine.graphics.data.TGraphicsData
 import arx.engine.traits.EngineComponent
@@ -29,15 +30,23 @@ abstract class ControlComponent(controlEngine : ControlEngine) extends EngineCom
 }
 
 
-trait TControlMode {
-	def activate()
-	def deactivate()
+trait TControlMode extends ControlComponent {
+	final def activate(): Unit = {
+		activateSelf()
+		listeners.foreach(l => l.active = true)
+	}
+	def activateSelf()
+	final def deactivate(): Unit = {
+		deactivateSelf()
+		listeners.foreach(l => l.active = false)
+	}
+	def deactivateSelf()
 }
 
-abstract class ControlMode(controlEngine : ControlEngine) extends ControlComponent(controlEngine) with TControlMode {
+abstract class ControlModeComponent(controlEngine : ControlEngine) extends ControlComponent(controlEngine) with TControlMode {
+	listeners.foreach(l => l.active = false)
 
-
-	def pushMode[T <: ControlMode : Manifest] = {
+	def pushMode[T <: ControlModeComponent : Manifest] = {
 		controlEngine.components.firstOfType[T] match {
 			case Some(comp) =>
 				val CM = control[ControlModes]
@@ -46,6 +55,61 @@ abstract class ControlMode(controlEngine : ControlEngine) extends ControlCompone
 				comp.activate()
 			case None =>
 				Noto.error(s"Attempted to push a mode that is not present in the engine: ${manifest[T]}")
+		}
+	}
+
+	def popMode(): Unit = {
+		val CM = control[ControlModes]
+		CM.modeStack.headOption match {
+			case Some(top) =>
+				top.deactivate()
+				CM.modeStack = CM.modeStack.pop
+				CM.modeStack.headOption.foreach(m => m.activate())
+			case None =>
+				Noto.error("Attempted to pop empty mode stack")
+		}
+	}
+}
+
+trait TLControlMode extends LControlComponent {
+	final def activate(): Unit = {
+		activateSelf()
+		listeners.foreach(l => l.active = true)
+	}
+	def activateSelf()
+	final def deactivate(): Unit = {
+		deactivateSelf()
+		listeners.foreach(l => l.active = false)
+	}
+	def deactivateSelf()
+}
+
+
+abstract class LControlModeComponent(val controlEngine : LControlEngine) extends LControlComponent(controlEngine) with TLControlMode {
+
+	listeners.foreach(l => l.active = false)
+
+	def pushMode[T <: LControlModeComponent : Manifest] = {
+		controlEngine.components.firstOfType[T] match {
+			case Some(comp) =>
+				val CM = control[LControlModes]
+				CM.modeStack.headOption.foreach(m => m.deactivate())
+				CM.modeStack = CM.modeStack.push(comp)
+				comp.activate()
+			case None =>
+				Noto.error(s"Attempted to push a mode that is not present in the engine: ${manifest[T]}")
+		}
+	}
+
+	def popMode(): Unit = {
+		val CM = control[LControlModes]
+		CM.modeStack.headOption match {
+			case Some(top) =>
+				top.deactivate()
+				CM.modeStack = CM.modeStack.pop
+				CM.modeStack.headOption.foreach(m => m.activate())
+			case None =>
+				Noto.error("Attempted to pop empty mode stack")
 		}
 	}
 }

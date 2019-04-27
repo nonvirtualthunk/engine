@@ -68,11 +68,11 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 				var verticalPercent = 1.0f
 				var horizontalPercent = 1.0f
 				if ( cornerWidth > ww / 2 ) {
-					horizontalPercent = (ww / 2) / cornerWidth
+					horizontalPercent = (ww / 2).toFloat / cornerWidth.toFloat
 					cornerWidth = roundf(ww / 2).toInt
 				}
 				if ( cornerHeight > wh / 2 ) {
-					verticalPercent = (wh / 2) / cornerHeight
+					verticalPercent = (wh / 2).toFloat / cornerHeight.toFloat
 					cornerHeight = roundf(wh / 2).toInt
 				}
 				val sideWidth = ww - cornerWidth * 2.0f

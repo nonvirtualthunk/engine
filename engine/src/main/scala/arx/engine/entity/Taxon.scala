@@ -11,7 +11,7 @@ import arx.Prelude._
 import scalaxy.loops._
 import arx.core.vec._
 
-case class Taxon(name : String, parents : List[Taxon]) {
+class Taxon(val name : String, val parents : List[Taxon]) {
 
 	def isA(other : Taxon) : Boolean = {
 		if (other == this) {
@@ -29,8 +29,12 @@ case class Taxon(name : String, parents : List[Taxon]) {
 	}
 }
 object Taxon {
-	def apply(name : String, parent : Taxon) : Taxon = {
-		Taxon(name, parent :: Nil)
+	def apply(name : String, parents : Taxon*) : Taxon = {
+		new Taxon(name, parents.toList)
+	}
+
+	def apply(name : String, parents : List[Taxon]) : Taxon = {
+		new Taxon(name, parents)
 	}
 
 }

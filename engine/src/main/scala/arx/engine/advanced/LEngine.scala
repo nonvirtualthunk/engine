@@ -26,6 +26,7 @@ import org.lwjgl.glfw.GLFW
 
 abstract class LEngine  extends EngineCore with TEventUser {
 	val world = new LWorld
+	registerTypes(world)
 	val graphicsWorld = new GraphicsWorld
 	val controlWorld = new ControlWorld
 	val gameEventBus = new EventBus
@@ -33,7 +34,7 @@ abstract class LEngine  extends EngineCore with TEventUser {
 	val controlEventBus = new EventBus
 	val gameEngine = new LGameEngine(world, gameEventBus)
 	val graphicsEngine : LGraphicsEngine = new LGraphicsEngine(world, graphicsWorld, graphicsEventBus, gameEventBus)
-	val controlEngine : LControlEngine = new LControlEngine(world, graphicsWorld, controlWorld, controlEventBus, graphicsEventBus, gameEventBus)
+	val controlEngine : LControlEngine = new LControlEngine(world, graphicsEngine.view, graphicsWorld, controlWorld, controlEventBus, graphicsEventBus, gameEventBus)
 	var serialGameEngine = false
 	var serialGraphicsEngine = false
 	var serialControlEngine = false
@@ -42,6 +43,8 @@ abstract class LEngine  extends EngineCore with TEventUser {
 	var first = true
 
 	def setUpEngine()
+
+	def registerTypes(world : LWorld)
 
 
 	override def init(): Unit = {

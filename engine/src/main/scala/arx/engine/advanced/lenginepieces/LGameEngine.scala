@@ -10,7 +10,6 @@ package arx.engine.advanced.lenginepieces
 import arx.engine.EnginePiece
 import arx.engine.advanced.lenginecomponents.LGameComponent
 import arx.engine.event.EventBus
-import arx.engine.game.events.{LEntityAdded, LEntityRemoved}
 import arx.engine.lworld.LWorld
 
 class LGameEngine (val world: LWorld, val eventBus : EventBus) extends EnginePiece[LWorld, LGameComponent] {
@@ -20,9 +19,6 @@ class LGameEngine (val world: LWorld, val eventBus : EventBus) extends EnginePie
 
 	override def initialize(serial: Boolean): Unit = {
 		super.initialize(serial)
-
-		world.onEntityAddedCallbacks ::= (e => eventBus.fireEvent(LEntityAdded(e)))
-		world.onEntityRemovedCallbacks ::= (e => eventBus.fireEvent(LEntityRemoved(e)))
 	}
 
 	protected def instantiateComponent(l : List[Class[_]]) : AnyRef = {

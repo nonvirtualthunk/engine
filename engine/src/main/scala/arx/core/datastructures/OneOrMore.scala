@@ -63,3 +63,13 @@ object OneOrMore {
 	}
 	implicit def fromSingle[T] ( t : T ) = new SingleOneOrMore(t)
 }
+
+
+final class AutoTraversable[T](val intern : Traversable[T]) extends Traversable[T] {
+	override def foreach[U](f: T => U): Unit = intern.foreach(f)
+}
+object AutoTraversable {
+//	implicit def toTraversable[T] (autoT : AutoTraversable[T]) : Traversable[T] = autoT.intern
+	implicit def fromTraversable[T] (t : Traversable[T]) : AutoTraversable[T] = new AutoTraversable[T](t)
+	implicit def fromSingle[T] (t : T) : AutoTraversable[T] = new AutoTraversable[T](List(t))
+}

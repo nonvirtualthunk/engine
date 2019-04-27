@@ -1,9 +1,11 @@
 package arx.resource
 
 import java.awt.Font
+import java.awt.font.TextAttribute
 import java.io._
+import java.text.AttributedCharacterIterator
 import java.util
-import java.util.Properties
+import java.util.{Properties, UUID}
 
 import arx.Prelude
 import arx.application.Noto
@@ -70,11 +72,12 @@ object ResourceManager {
 	if ( ! saveDirectory.exists() ) { saveDirectory.mkdirs() }
 	val cacheDirectory = new File(saveDirectory,"caches")
 	if ( ! cacheDirectory.exists() ) { cacheDirectory.mkdirs() }
+	val internalGuid = UUID.randomUUID()
 
 	class State {
 		val images = overlock.atomicmap.AtomicMap.atomicNBHM[String, Image]
 		val cacheImages = overlock.atomicmap.AtomicMap.atomicNBHM[String, Image]
-		val fonts = overlock.atomicmap.AtomicMap.atomicNBHM[String, TBitmappedFont]
+		val fonts = overlock.atomicmap.AtomicMap.atomicNBHM[(String,Int,UUID), TBitmappedFont]
 		val shaders = overlock.atomicmap.AtomicMap.atomicNBHM[String, Shader]
 		val shadersWithProvider = AtomicMap.atomicNBHM[(String,Class[_ <: TUniformProvider]), Shader]
 		val xmlFiles = overlock.atomicmap.AtomicMap.atomicNBHM[String, List[Elem]]
@@ -288,6 +291,15 @@ object ResourceManager {
 		}
 	}
 
+
+	def imageOpt(baseResourcePath : String) : Option[Image] = {
+		val img = getImage(baseResourcePath, warnOnFailure = false)
+		if (img eq defaultImage) {
+			None
+		} else {
+			Some(img)
+		}
+	}
 	def imageExists(baseResourcePath: String): Boolean = {
 //		val resourcePath = sanitize(baseResourcePath)
 //		if ( state.images.contains(resourcePath) ) { ! (state.images(resourcePath) eq defaultImage) }
@@ -389,52 +401,57 @@ object ResourceManager {
 		state.images.find { case (key,value) => value.resourcePath match { case None => false ; case Some(fp) => fp == absolutePath } } match {
 			case Some((key,img)) => img
 			case None =>
-				if ( false && new File(absolutePath).exists ) {
-					Image.loadFromFile(absolutePath)
-				} else {
-					val idx = absolutePath.indexOf("resources/") + "resources/".length
-					getImage(absolutePath.splitAt(idx)._2)
-				}
+				val idx = absolutePath.indexOf("resources/") + "resources/".length
+				getImage(absolutePath.splitAt(idx)._2)
 		}
 	}
 
 	def font(fontName: String, backingTextureBlock: TextureBlock = null): TBitmappedFont = {
-		synchronized {
+		state.fonts.synchronized {
 			val fontStyle = Font.PLAIN
-			val key = fontName + fontStyle
+			val key = (fontName,fontStyle,Option(backingTextureBlock).map(b => b.guid).getOrElse(internalGuid))
 			val ret = state.fonts.getOrElseUpdate(
 				key, {
 				println("Updating : " + fontName + " s " + fontStyle)
 				try {
 					val ttfStream = getResourceStream("fonts/" + fontName + ".ttf")
-					val bf = if ( ttfStream != null ) {
-						var basePointSize = 30.0f
-						var pixelFont = false
-						var drop = 0
-						if ( ResourceManager.hasResourceStream("fonts/" + fontName + ".sml") ) {
-							val sml = Hocon.parseResource("fonts/" + fontName + ".sml")
-							basePointSize = sml.basePointSize.floatOrElse(basePointSize)
-							pixelFont = sml.pixelFont.boolOrElse(pixelFont)
-							drop = sml.drop.intOrElse(drop)
-						}
 
-						val awtSrc = AWTFontGlyphSource(ResourceManager.getResourceStream("fonts/" + fontName + ".ttf"),basePointSize.toInt,pixelFont,drop)
-						var srcList : List[GlyphSource] = List(awtSrc)
-						if (PreRenderedGlyphSource.existsFor(fontName,basePointSize.toInt)) {
-							srcList ::= PreRenderedGlyphSource.fromFontName(fontName,basePointSize.toInt)
-						}
-						new AdaptiveBitmappedFont(srcList, backingTextureBlock , basePointSize , pixelFont , drop )
-					} else {
-						new BitmappedFont(fontName, fontStyle)
+					var basePointSize = 32.0f
+					var pixelFont = false
+					var drop = 0
+					var overdraw = 1
+					if ( ResourceManager.hasResourceStream("fonts/" + fontName + ".sml") ) {
+						val sml = Hocon.parseResource("fonts/" + fontName + ".sml")
+						basePointSize = sml.basePointSize.floatOrElse(basePointSize)
+						pixelFont = sml.pixelFont.boolOrElse(pixelFont)
+						drop = sml.drop.intOrElse(drop)
+						overdraw = sml.overdraw.intOrElse(1)
 					}
-					bf
+
+
+					val attributes = new util.HashMap[AttributedCharacterIterator.Attribute, Any]()
+					attributes.put(TextAttribute.KERNING, TextAttribute.KERNING_ON)
+//					attributes.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON)
+					val font = if (ttfStream != null) {
+						Font.createFont(Font.TRUETYPE_FONT,ttfStream).deriveFont(Font.PLAIN,basePointSize).deriveFont(attributes)
+					} else {
+						new Font( fontName , fontStyle , basePointSize.toInt ).deriveFont(attributes)
+					}
+					val awtSrc = AWTFontGlyphSource(font, pixelFont, drop)
+
+					var srcList : List[GlyphSource] = List(awtSrc)
+					if (PreRenderedGlyphSource.existsFor(fontName,basePointSize.toInt)) {
+						srcList ::= PreRenderedGlyphSource.fromFontName(fontName,basePointSize.toInt)
+					}
+					new AdaptiveBitmappedFont(font, srcList, backingTextureBlock, pixelFont, drop)
 				} catch{
 					case e : Exception => {
 						Noto.warn("Exception encountered while attempting to create font, falling back on bitmapped SansSerif")
 						Noto.warn("\texception was : " + e)
 						e.printStackTrace()
 
-						new BitmappedFont("SansSerif",Font.PLAIN)
+						val font = new Font("SansSerif",Font.PLAIN, 32)
+						new AdaptiveBitmappedFont(font, AWTFontGlyphSource(font, false, 0) :: Nil, backingTextureBlock)
 					}
 				}
 			})

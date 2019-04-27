@@ -11,20 +11,22 @@ import arx.Prelude._
 import com.esotericsoftware.kryo.io.ByteBufferInput
 import com.esotericsoftware.kryo.io.ByteBufferOutput
 import com.esotericsoftware.kryo.io.Output
-import com.twitter.chill.ScalaKryoInstantiator
+import com.twitter.chill.{KryoBase, ScalaKryoInstantiator}
 import scalaxy.loops._
 
 object CopyAssistant {
-	val kryo = new ScalaKryoInstantiator().newKryo()
+	val kryo = new ThreadLocal[KryoBase]() {
+		override def initialValue(): KryoBase = new ScalaKryoInstantiator().newKryo()
+	}
 
 	def copy[T <: AnyRef] (inst : T) : T = {
-		val out = new ByteBufferOutput(100,1000000)
-		kryo.writeClassAndObject(out, inst)
+		val out = new ByteBufferOutput(100,1024 * 1024 * 4)
+		kryo.get().writeClassAndObject(out, inst)
 		val in = new ByteBufferInput(out.toBytes)
-		kryo.readClassAndObject(in).asInstanceOf[T]
+		kryo.get().readClassAndObject(in).asInstanceOf[T]
 //		kryo.copy(inst)
 	}
 	def copyShallow[T <: AnyRef] (inst : T) : T = {
-		kryo.copyShallow(inst)
+		kryo.get().copyShallow(inst)
 	}
 }

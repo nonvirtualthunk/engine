@@ -8,6 +8,10 @@ package arx.graphics.helpers
  * Created by nonvirtualthunk
  */
 
+import java.awt.Font
+import java.awt.font.FontRenderContext
+import java.awt.geom.AffineTransform
+
 import arx.Prelude._
 import arx.application.Noto
 import arx.core.math.Rectf
@@ -21,14 +25,16 @@ sealed abstract class RichTextSection {
 	def symbolAtIndex(i : Int) : Any
 	def symbolCount : Int
 	def colorAtIndex(i : Int) : ReadVec4f
+	def backgroundColorAtIndex(i : Int) : Option[ReadVec4f] = None
 	def scaleAtIndex(i : Int) : Float
 	def merge (s : RichTextSection) : Option[RichTextSection] = None
 }
-case class TextSection(text : String, color : ReadVec4f = Color.Black) extends RichTextSection {
+case class TextSection(text : String, color : ReadVec4f = Color.Black, backgroundColor : Option[ReadVec4f] = None) extends RichTextSection {
 	override def symbolAtIndex(i: Int): Any = text(i)
 	override def symbolCount: Int = text.length
 	override def colorAtIndex(i: Int): ReadVec4f = color
 	override def scaleAtIndex(i : Int) : Float = 1.0f
+	override def backgroundColorAtIndex(i : Int) : Option[ReadVec4f] = backgroundColor
 	override def merge (s : RichTextSection) : Option[RichTextSection] = s match {
 		case ts : TextSection if ts.color == color => Some(TextSection(text + ts.text, color))
 		case _ => None
@@ -77,7 +83,8 @@ object RichText {
 
 
 class TextLayouter extends TTextLayouter {
-	def layOutText (richText : RichText, font : TBitmappedFont, fontSize : Float, area : Rectf, spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f, textAlignment : Int = Cardinals.Left ) : TextLayoutResult = {
+
+	def layOutText(richText : RichText, font : TBitmappedFont, fontSize : Float, area : Rectf, spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f, textAlignment : Int = Cardinals.Left ) : TextLayoutResult = {
 		var x = 0.0f
 		var y = 0.0f
 		var maxX = 0.0f
@@ -96,34 +103,27 @@ class TextLayouter extends TTextLayouter {
 		}
 
 		def renderWord(word: String) {
-			val width = stringWidth(word, font, fontSize)
-			//If this is the only word on the line and it's longer than the line, no point skipping down
-			if (x + width > area.w && x > 0.00001f) {
-				jumpToNextLine()
-			}
-			var wordIndex = 0
-			while ( wordIndex < word.length() ) {
-				val c = word.charAt(wordIndex)
-				val cw = charWidth(c, font, fontSize)
-				//If we're mid-word when we hit then end, skip down
-				if ( x + cw > area.w ) {
-					jumpToNextLine()
+			val frc = new FontRenderContext(AffineTransform.getScaleInstance(fontSize, fontSize), !font.pixelFont, !font.pixelFont)
+
+			val glyphVector = font.font.layoutGlyphVector(frc, word.toCharArray, 0, word.length, Font.LAYOUT_LEFT_TO_RIGHT)
+
+			for (i <- 0 until glyphVector.getNumGlyphs) {
+				val glyphRect = glyphVector.getGlyphPixelBounds(i, frc, 0, 0)
+				if (x == 0.0f && glyphRect.getX < 0.0) {
+					x += -glyphRect.getX.toFloat
 				}
-
-				points :+= Vec2f(area.x + x,area.y + y)
-				widths :+= cw
-
-				x += cw * spacingMultiple + minSpacing
-				maxX = math.max(maxX,x)
-
-				wordIndex += 1
+				points :+= Vec2f(x + glyphRect.getX.toFloat, y)
+				val width = glyphRect.getWidth.toFloat
+				widths :+= width
 			}
+			x += glyphVector.getGlyphPixelBounds(glyphVector.getNumGlyphs - 1, frc, 0, 0).getMaxX.toFloat
+			maxX = maxX.max(x)
 		}
 
 		for (section <- richText.sections) {
 			val pre = points.size
 			section match {
-				case TextSection(text,_) =>
+				case TextSection(text,_, _) =>
 					val words = text.split(TextLayouter.whitespaceArray)
 					var i = 0
 
@@ -131,7 +131,7 @@ class TextLayouter extends TTextLayouter {
 						while (i < text.length && TextLayouter.whitespaceSet.contains(text(i))) {
 							text(i) match {
 								case ' ' =>
-									val sw = spaceSize(fontSize) * spacingMultiple
+									val sw = spaceSize(font, fontSize) * spacingMultiple
 									points :+= Vec2f(area.x + x,area.y + y)
 									widths :+= sw
 									x += sw
@@ -141,7 +141,7 @@ class TextLayouter extends TTextLayouter {
 									widths :+= 0.0f
 								}
 								case '\t' =>
-									val tw = tabSize(fontSize) * spacingMultiple
+									val tw = tabSize(font, fontSize) * spacingMultiple
 									points :+= Vec2f(area.x + x,area.y + y)
 									widths :+= tw
 									x += tw
@@ -219,7 +219,8 @@ class TextLayouter extends TTextLayouter {
 			adjustLine()
 		}
 
-		TextLayoutResult(points,Vec2f(maxX,maxY + lineHeight(font,fontSize).max(maxSpacingThisLine)))
+		val lastLineHeight = lineHeight(font, fontSize) + descent(font, fontSize)
+		TextLayoutResult(points,Vec2f(maxX,maxY + lastLineHeight.max(maxSpacingThisLine)))
 	}
 	def textDimensions ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f , minSpacing : Float = 0.0f ) : ReadVec2f = {
 		layOutText(text,font,fontSize,area,spacingMultiple,minSpacing).dimensions
@@ -233,24 +234,32 @@ class TextLayouter extends TTextLayouter {
 		sum
 	}
 
+	def maxAscentPlusDescent(font: TBitmappedFont, fontSize: Float) : Float = {
+		font.maxAscentPlusDescentProportional * fontSize
+	}
+
+	def descent(font : TBitmappedFont, fontSize : Float) : Float = {
+		???
+	}
+
 	def charWidth(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float = {
 		if ( char == '\n' ) { 0.0f }
-		else if ( char == '\t' ) { tabSize(fastFontSize) }
-		else if ( char == ' ' ) { spaceSize(fastFontSize) }
+		else if ( char == '\t' ) { tabSize(font, fastFontSize) }
+		else if ( char == ' ' ) { spaceSize(font, fastFontSize) }
 		else {
-			font.characterWidth(char) * fastFontSize
+			font.characterWidthProportional(char) * fastFontSize
 		}
 	}
 
 	def charHeight(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float = {
-		font.characterHeight(char) * fastFontSize
+		font.characterHeightProportional(char) * fastFontSize
 	}
 
-	def lineHeight ( font : TBitmappedFont , fontSize : Float ) = font.maxCharacterDimensions.y * fontSize
-	def lineSpacing ( font : TBitmappedFont , fontSize : Float ) = lineHeight(font, fontSize) * 0.75f
-	def spaceSize(fastFontSize : Float ): Float = fastFontSize * 0.3f
+	def lineHeight ( font : TBitmappedFont , fontSize : Float ) = font.lineHeightProportional * fontSize
+	def lineSpacing ( font : TBitmappedFont , fontSize : Float ) = lineHeight(font, fontSize)
+	def spaceSize(font : TBitmappedFont, fontSize : Float ): Float = fontSize * 0.3f
 
-	def tabSize(fastFontSize : Float): Float = spaceSize(fastFontSize) * 3.0f
+	def tabSize(font : TBitmappedFont, fontSize : Float): Float = spaceSize(font, fontSize) * 3.0f
 }
 
 object TextLayouter {
@@ -272,6 +281,8 @@ trait TTextLayouter {
 	}
 	def charWidth(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float
 	def charHeight(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float
+
+	def lineHeight(font : TBitmappedFont, fastFontSize : Float) : Float
 }
 
 object TTextLayouter {

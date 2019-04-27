@@ -222,11 +222,12 @@ class Searcher {
 								val rawH = heuristicFunction(tmpV,closestTo)
 								val newNode = createNode().init( tmpV.x,tmpV.y,tmpV.z, newC, newJ, node.g + cost , rawH , node )
 
-								val existingResult : FibonacciHeap.Node[RawSearchNode] = openSet.get(node)
-								if ( existingResult == null || existingResult.data.g > node.g ) {
+								val existingResult : FibonacciHeap.Node[RawSearchNode] = openSet.get(newNode)
+								if ( existingResult == null || existingResult.data.g > newNode.g ) {
 									if ( existingResult != null ) {
-										existingResult.data.g = node.g
-										existingResult.data.parent = node.parent
+										// Note : redid this, was pointing at node.g before, that seemed wrong, but haven't tested
+										existingResult.data.g = newNode.g
+										existingResult.data.parent = node
 										heap.updateKey(existingResult)
 										returnNode(newNode)
 									} else {

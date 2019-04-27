@@ -18,7 +18,7 @@ import arx.core.vec.ReadVec2f
 import arx.core.vec.ReadVec3f
 import arx.core.vec.Vec3f
 import arx.engine.EngineCore
-import arx.engine.control.event.Event.TEventUser
+import arx.engine.control.event.Event.{Keymap, TEventUser}
 import arx.graphics.GL
 import arx.graphics.shader.Shader
 
@@ -44,6 +44,9 @@ trait TCamera extends TEventUser with TSentinelable {
 	var fovy = 50.0f
 
 	def update(dt: UnitOfTime)
+
+	def moveEyeTo(eye : ReadVec3f)
+	def setMoveSpeed(multiplier : ReadVec3f)
 
 	def look() = {
 		Shader.boundShader match {
@@ -73,6 +76,20 @@ trait TCamera extends TEventUser with TSentinelable {
 			Some(gameNear + (gameFar - gameNear) * intersection.head)
 		} else {
 			None
+		}
+	}
+
+	def keymapNamespace : String
+	def isMappingActive(str : String) = Keymap.mappingActive(keymapNamespace, str)
+	def deltaFromMappings(neg : String, pos : String, magnitude : Float) = {
+		val posActive = isMappingActive(pos)
+		val negActive = isMappingActive(neg)
+		if (!posActive && !negActive) {
+			0.0f
+		} else if (posActive) {
+			magnitude
+		} else {
+			-magnitude
 		}
 	}
 }

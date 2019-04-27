@@ -31,6 +31,8 @@ class WindowingSystem(controlWorld : ControlWorld, graphicsWorld : GraphicsWorld
 			focusedWidget.exists(w => w.handleEvent(kpe.copy().withOrigin(w)))
 		case kre : KeyReleaseEvent =>
 			focusedWidget.exists(w => w.handleEvent(kre.copy().withOrigin(w)))
+		case kee : CharEnteredEvent =>
+			focusedWidget.exists(w => w.handleEvent(kee.copy().withOrigin(w)))
 		case sre : ScrollEvent =>
 			lastWidgetUnderMouse.exists(w => w.handleEvent(sre.copy().withOrigin(w)))
 		case mme : MouseMoveEvent =>

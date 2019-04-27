@@ -7,6 +7,7 @@ package arx.engine.control.components.windowing.widgets
 import arx.Prelude._
 import arx.core.Moddable
 import arx.core.datastructures.Watcher
+import arx.core.function.MemoizingFunction
 import arx.core.vec.Cardinals.Left
 import arx.core.vec.ReadVec2i
 import arx.core.vec.ReadVec4f
@@ -16,11 +17,10 @@ import arx.graphics.TextureBlock
 import arx.graphics.helpers.{Color, RichText}
 import arx.graphics.text.TBitmappedFont
 import arx.resource.ResourceManager
-
 import scalaxy.loops._
 
 class TextDisplayWidget(parentis : Widget) extends Widget(parentis) {
-	var text : Moddable[RichText] = Moddable("")
+	var text : Moddable[RichText] = Moddable(RichText(""))
 	var fontScale = 1.0f
 	var fontColor : Moddable[ReadVec4f] = Moddable( Color.Black )
 	var font = none[FontWrapper]
@@ -41,7 +41,7 @@ class TextDisplayWidget(parentis : Widget) extends Widget(parentis) {
 
 
 trait FontWrapper {
-	val font = memoize((tb : TextureBlock) => createFont(tb))
+	val font : MemoizingFunction[TextureBlock, TBitmappedFont] = memoize((tb : TextureBlock) => createFont(tb))
 	protected def createFont(tb : TextureBlock) : TBitmappedFont
 }
 class FontByName(name : String) extends FontWrapper {

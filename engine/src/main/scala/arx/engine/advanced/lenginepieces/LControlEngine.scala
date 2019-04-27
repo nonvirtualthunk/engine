@@ -18,10 +18,10 @@ import arx.engine.control.data.{ControlModes, ControlWorld}
 import arx.engine.control.event.Event.{Event, TEventUser}
 import arx.engine.event.EventBus
 import arx.engine.graphics.data.GraphicsWorld
-import arx.engine.lworld.LWorld
+import arx.engine.lworld.{LWorld, LWorldView}
 import arx.engine.world.World
 
-class LControlEngine(val world: LWorld, val graphicsWorld: GraphicsWorld, val controlWorld : ControlWorld, val eventBus: EventBus, val graphicsEventBus: EventBus, val gameEventBus: EventBus)
+class LControlEngine(val world: LWorld, val graphicsWorldView: LWorldView, val graphicsWorld: GraphicsWorld, val controlWorld : ControlWorld, val eventBus: EventBus, val graphicsEventBus: EventBus, val gameEventBus: EventBus)
 	extends EnginePiece[LWorld, LControlComponent]
 		with TEventUser {
 

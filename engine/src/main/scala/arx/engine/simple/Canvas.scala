@@ -25,7 +25,7 @@ import org.lwjgl.opengl.GL15
 abstract class CustomCanvas[QuadBuilderType <: TQuadBuilder](attributeProfile: AttributeProfile) {
 	protected val vbo = new AVBO(attributeProfile)
 	vbo.state.set(VBO.Clean)
-	protected val textureBlock = new TextureBlock(2048, 2048)
+	val textureBlock = new TextureBlock(2048, 2048)
 
 	protected val blankTC = textureBlock(ResourceManager.image("default/blank.png"))
 
@@ -257,7 +257,16 @@ class QuadBuilder(vbo: AVBO, textureBlock: TextureBlock, blankTC: Array[ReadVec2
 		val fullRect = textureBlock.getOrElseUpdateRectFor(image)
 		val effRect = Rectf(fullRect.x + fullRect.w * pcntRect.x, fullRect.y + fullRect.h * pcntRect.y,
 			fullRect.w * pcntRect.w, fullRect.h * pcntRect.h)
+		withTexCoords(effRect)
+	}
+
+	def withTexCoords(effRect : Rectf) : this.type = {
 		texCoords = Array(effRect.xy, Vec2f(effRect.maxX, effRect.y), Vec2f(effRect.maxX,effRect.maxY), Vec2f(effRect.x,effRect.maxY))
+		this
+	}
+
+	def withTexCoords(tc : Array[ReadVec2f]) : this.type = {
+		texCoords = tc
 		this
 	}
 

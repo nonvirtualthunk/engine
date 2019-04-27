@@ -14,8 +14,8 @@ trait PositionExpression {
 	def dependsOn : List[Widget] = Nil
 }
 
-trait DimensionExpression {
-
+sealed trait DimensionExpression {
+	def dependsOn(w : Widget) : List[Widget] = Nil
 }
 
 sealed class WindowingOrientation {}
@@ -39,4 +39,8 @@ object DimensionExpression {
 	case class Proportional(proportion : Float) extends DimensionExpression
 	case class Relative(delta : Int) extends DimensionExpression
 	case object Intrinsic extends DimensionExpression
+	case object WrapContent extends DimensionExpression {
+		override def dependsOn(w : Widget) = w.children
+	}
+	def MatchParent = Proportional(1.0f)
 }

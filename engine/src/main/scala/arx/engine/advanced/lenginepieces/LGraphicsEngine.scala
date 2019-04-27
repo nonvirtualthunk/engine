@@ -24,6 +24,8 @@ class LGraphicsEngine(protected[engine] val world : LWorld, val graphicsWorld : 
 	val view = world.viewAtTime(GameEventClock(0))
 	def graphicsComponents = components
 
+	def worldCore = world
+
 	override def update(deltaSeconds: Float): Unit = {
 		super.update(deltaSeconds)
 	}

@@ -7,6 +7,7 @@ package arx.core.introspection
   * Time: 10:42 AM
   */
 
+import java.lang.reflect
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 
@@ -19,6 +20,7 @@ import arx.core.traits.TNonDiscoverable
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.util.{ClasspathHelper, ConfigurationBuilder}
+
 import scala.collection.mutable
 import scala.collection.JavaConversions._
 import scalaxy.loops._
@@ -224,7 +226,7 @@ object ReflectionAssistant {
 		}
 	})
 
-	def collectAllFieldsFrom(clazz: Class[_]): List[Field] = {
+	def collectAllFieldsFrom(clazz: Class[_]): List[java.lang.reflect.Field] = {
 		clazz.getDeclaredFields.toList ::: (clazz.getSuperclass match {
 			case null => Nil
 			case objclass if (objclass == classOf[Object]) => Nil
@@ -244,6 +246,9 @@ object ReflectionAssistant {
 	}
 	def getFieldValue(obj: AnyRef, field: String): Any = {
 		obj.getClass.getMethod(field).invoke(obj)
+	}
+	def getFieldValue(obj: AnyRef, field : reflect.Field) : Any = {
+		getFieldValue(obj, field.getName)
 	}
 	def setFieldValue[T <: AnyRef : Manifest](obj: AnyRef, field: String, value: T) {
 		setFieldValue(obj, field, value, manifest[T].runtimeClass)

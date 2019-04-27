@@ -8,19 +8,33 @@ package arx.graphics.text
  * Created by nonvirtualthunk
  */
 
+import java.awt.Font
+
 import arx.core.vec.ReadVec2f
 import arx.core.vec.ReadVec2i
 
 trait TBitmappedFont {
+	def font : Font
+
 	def characterTexCoords(c: Char): Array[ReadVec2f]
-	def characterWidth(c : Char): Float
-	def characterHeight(c : Char): Float
+	def characterWidthProportional(c : Char): Float
+	def characterHeightProportional(c : Char): Float
 
 	def characterWidthPixels(c : Char): Int = ???
 	def characterHeightPixels(c : Char): Int = ???
 
 	def bind ( i : Int)
 
-	def maxCharacterDimensions : ReadVec2f
+	def maxCharacterDimensionsProportional : ReadVec2f
 	def maxCharacterDimensionsPixels : ReadVec2i
+
+	def lineHeightProportional : Float = 1.0f
+	def lineHeightPixels : Float
+
+	def maxAscentPlusDescentProportional : Float = ???
+	def maxAscentPlusDescentPixels : Float = ???
+
+	def descentPixels : Float = ???
+
+	def pixelFont : Boolean
 }

@@ -39,6 +39,13 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 	def modelviewMatrix(viewport : Recti) = GL.lookAt(eye,eye + forward,up)
 	def projectionMatrix(viewport : Recti) = GL.perspective(fovy,viewport.w/viewport.h.toFloat,near,far)
 
+
+	override def moveEyeTo(eye: ReadVec3f): Unit = { this.eye = eye }
+
+	override def setMoveSpeed(multiplier: ReadVec3f): Unit = {
+		moveSpeed = multiplier
+	}
+
 	var deltaAngles : Vec2f = Vec2f(0.0f,0.0f)
 	var deltaEye : Vec3f = Vec3f(0.0f,0.0f,0.0f)
 
@@ -51,7 +58,7 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 		case kpe: KeyPressEvent => handleKey(kpe)
 	}
 
-	def keymapNamespace = EyeCamera.namespace
+	override def keymapNamespace = EyeCamera.namespace
 
 	def handleKey(kpe: KeyPressEvent): Unit = {
 		Keymap.mappingFor(kpe, keymapNamespace) match {
@@ -76,19 +83,6 @@ class EyeCamera(var eye : ReadVec3f = Vec3f(0,0,-1), var baseForward : ReadVec3f
 
 	def update (dt: UnitOfTime) {
 //		manualUpdate()
-	}
-
-	def isMappingActive(str : String) = Keymap.mappingActive(keymapNamespace, str)
-	def deltaFromMappings(neg : String, pos : String, magnitude : Float) = {
-		val posActive = isMappingActive(pos)
-		val negActive = isMappingActive(neg)
-		if (!posActive && !negActive) {
-			0.0f
-		} else if (posActive) {
-			magnitude
-		} else {
-			-magnitude
-		}
 	}
 
 	// We apparently don't trust the ∂t we're given so we compute it ourselves absolutely

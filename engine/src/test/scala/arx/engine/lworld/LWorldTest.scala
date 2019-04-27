@@ -8,7 +8,7 @@ package arx.engine.lworld
   */
 
 import arx.Prelude._
-import arx.core.introspection.Field
+import arx.core.introspection.{Clazz, Field}
 import scalaxy.loops._
 import arx.core.vec._
 import arx.engine.data.TAuxData
@@ -27,21 +27,27 @@ case class Nested() {
 	var y : Int = 1
 }
 
-object FooData {
+object FooData extends Clazz[FooData]("FooData", classOf[FooData]) {
 	val Sentinel = new FooData
-	val a = Field.fromValue(Sentinel.a).createField[FooData]("i",f => f.a, (f,i) => f.a = i)
-	val b = Field.fromValue(Sentinel.b).createField[FooData]("s",f => f.b, (f,s) => f.b = s)
-	val nested = Field.fromValue(Sentinel.nested).createField[FooData]("nested", f => f.nested, (f,nested) => f.nested = nested)
-	val nestedMap = Field.fromValue(Sentinel.nestedMap).createField[FooData]("nestedMap", f => f.nestedMap, (f,nestedMap) => f.nestedMap = nestedMap)
+	val a = Field.fromValue(Sentinel.a).createField[FooData]("i",f => f.a, (f,i) => f.a = i, FooData)
+	fields += "a" -> a
+	val b = Field.fromValue(Sentinel.b).createField[FooData]("s",f => f.b, (f,s) => f.b = s, FooData)
+	fields += "b" -> b
+	val nested = Field.fromValue(Sentinel.nested).createField[FooData]("nested", f => f.nested, (f,nested) => f.nested = nested, FooData)
+	fields += "nested" -> nested
+	val nestedMap = Field.fromValue(Sentinel.nestedMap).createField[FooData]("nestedMap", f => f.nestedMap, (f,nestedMap) => f.nestedMap = nestedMap, FooData)
+	fields += "nestedMap" -> nestedMap
 }
 
-object Nested {
+object Nested extends Clazz[Nested]("Nested", classOf[Nested]) {
 	val Sentinel = new Nested
-	val x = Field.fromValue(Sentinel.x).createField[Nested]("x", f => f.x, (f,x) => f.x = x)
-	val y = Field.fromValue(Sentinel.y).createField[Nested]("y", f => f.y, (f,y) => f.y = y)
+	val x = Field.fromValue(Sentinel.x).createField[Nested]("x", f => f.x, (f,x) => f.x = x, Nested)
+	fields += "x" -> x
+	val y = Field.fromValue(Sentinel.y).createField[Nested]("y", f => f.y, (f,y) => f.y = y, Nested)
+	fields += "y" -> y
 }
 
-case class TestEvent(i : Int) extends GameEvent(None) {
+case class TestEvent(i : Int) extends GameEvent {
 
 }
 
@@ -64,7 +70,7 @@ class LWorldTest extends FlatSpec {
 		assert(foo.a == 0)
 		assert(foo.b == 0.0f)
 
-		world.modify(entity, FooData.a + 3)
+		world.modify(entity, FooData.a + 3, "test source")
 		world.endEvent(TestEvent(0))
 		assert(world.currentTime == GameEventClock(0))
 
@@ -78,7 +84,7 @@ class LWorldTest extends FlatSpec {
 
 		assert(foo2.a == 0)
 
-		world.modify(entity2, FooData.b + 1.0f)
+		world.modify(entity2, FooData.b + 1.0f, "test source")
 		world.endEvent(TestEvent(1))
 
 		assert(foo2.b == 1.0f)
@@ -108,7 +114,7 @@ class LWorldTest extends FlatSpec {
 		assert(foo.nested == Nested.Sentinel)
 		val oldNestedRef = foo.nested
 
-		world.modify(entity, NestedModifier(FooData.nested, Nested.x + 3))
+		world.modify(entity, NestedModifier(FooData.nested, Nested.x + 3), "test source")
 		world.addEvent(TestEvent(1))
 
 		assert(foo.nested.x == 4)
@@ -116,10 +122,52 @@ class LWorldTest extends FlatSpec {
 
 		assert(foo.nestedMap("test1").x == 1)
 
-		world.modify(entity, NestedKeyedModifier(FooData.nestedMap, "test1", Nested.y + 1))
+		world.modify(entity, NestedKeyedModifier(FooData.nestedMap, "test1", Nested.y + 1), "test source")
 		world.addEvent(TestEvent(2))
 
 		assert(foo.nestedMap("test1").y == 2)
 		assert(foo.nestedMap("test2").y == 1)
+	}
+
+	"Ledger world data modification log" should "contain an accurate reflection of the changes made to a data class" in {
+		val world = new LWorld
+
+		world.register[FooData]()
+
+		val entity = world.createEntity()
+		world.attachDataWith[FooData](entity, f => f.a = 1)
+
+		implicit val view = world.view
+
+		world.modify(entity, FooData.a + 1, "modification 1")
+		world.modify(entity, FooData.b -> 3, "modification 2")
+
+		world.addEvent(TestEvent(1))
+
+		world.modify(entity, FooData.a - 3, "modification 3")
+
+		world.addEvent(TestEvent(2))
+
+		val modificationLog = world.dataModificationLog[FooData](entity)
+		assert(modificationLog.finalValue.a == -1)
+		assert(modificationLog.finalValue.b == 3)
+		val breakdown = modificationLog.breakdownFor(FooData.a, "base a")
+		// this one should have 3 breakdown elements, 1 from the non-zero initial state, two from modifications
+		assert(breakdown.elements.size == 3)
+		assert(breakdown.elements(0).impact == Impact.Neutral)
+		assert(breakdown.elements(0).source.contains("base a"))
+
+		assert(breakdown.elements(1).impact == Impact.Positive)
+		assert(breakdown.elements(1).source.contains("modification 1"))
+
+		assert(breakdown.elements(2).impact == Impact.Negative)
+		assert(breakdown.elements(2).source.contains("modification 3"))
+
+		// this one should only have 1 breakdown element because its base value is 0 and it has one modification
+		val breakdownB = modificationLog.breakdownFor(FooData.b, "base b")
+		assert(breakdownB.elements.size == 1)
+
+		assert(breakdownB.elements(0).impact == Impact.Positive)
+		assert(breakdownB.elements(0).source.contains("modification 2"))
 	}
 }

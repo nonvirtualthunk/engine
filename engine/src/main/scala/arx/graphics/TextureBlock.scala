@@ -1,6 +1,8 @@
 package arx.graphics
 
 import java.nio.ByteBuffer
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 import arx.application.Application
 import arx.application.Noto
@@ -39,8 +41,9 @@ class TextureBlock(w_base: Int,h_base: Int) extends TSentinelable {
 	var magFilter = GL_LINEAR
 	var internalFormat = GL_RGBA
 	var borderWidth = 16
+	val guid = UUID.randomUUID()
 
-	var subTextures = new java.util.HashMap[Image, ImageData]()
+	var subTextures = new ConcurrentHashMap[Image, ImageData]()
 	var openRects = mutable.MutableList[Recti]( Recti(1,1,w-1,h-1) )
 
 	var pendingCommit = false

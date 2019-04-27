@@ -27,3 +27,8 @@ trait TAuxData {
 		f(this)
 	}
 }
+
+
+trait TDynamicAuxData extends TAuxData {
+
+}

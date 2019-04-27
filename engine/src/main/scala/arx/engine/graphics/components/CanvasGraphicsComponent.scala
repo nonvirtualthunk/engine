@@ -77,11 +77,12 @@ abstract class CustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Man
 }
 
 // TODO: figure out how to avoid all this stupid duplication
-abstract class LCustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Manifest](ge : LGraphicsEngine) extends LGraphicsComponent(ge) {
+abstract class LCustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_]](ge : LGraphicsEngine, canvas_ : CanvasType) extends LGraphicsComponent(ge) {
 	var shader = ResourceManager.shader("shaders/Simple")
-	val _canvas : CanvasType = ReflectionAssistant.instantiate[CanvasType](manifest[CanvasType])
+	val _canvas : CanvasType = canvas_
 	var viewport = GL.viewport
 	var depthTest = false
+	var depthFunc = GL_LESS
 
 	def canvas = _canvas
 
@@ -117,6 +118,7 @@ abstract class LCustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Ma
 
 		arx.graphics.GL.glSetState(GL_CULL_FACE, enable = false)
 		arx.graphics.GL.glSetState(GL_DEPTH_TEST, enable = depthTest)
+		arx.graphics.GL.glSetDepthFunc(depthFunc)
 		arx.graphics.GL.glSetState(GL_BLEND, enable = true)
 
 		shader.bind()

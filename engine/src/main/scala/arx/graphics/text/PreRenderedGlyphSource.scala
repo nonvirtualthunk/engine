@@ -24,7 +24,7 @@ class PreRenderedGlyphSource(preRenderConfig : ConfigValue) extends GlyphSource 
 		}.toMap
 	}
 	val charset = charMappings.keys.toSet
-	val lineHeight = preRenderConfig.lineHeight.int
+	val lineHeightPixels = preRenderConfig.lineHeight.int
 	val baseImage = ResourceManager.image(preRenderConfig.imageName.str)
 	val minimumOffset = charMappings.values.imin(_.offsets.y)
 
@@ -34,12 +34,12 @@ class PreRenderedGlyphSource(preRenderConfig : ConfigValue) extends GlyphSource 
 	override def glyphFor(char: Char): Image = {
 		val mapping = charMappings(char)
 		val ry = baseImage.height - 1 - (mapping.pos.y + mapping.dim.y)
-		val img = Image.withDimensions(mapping.dim.x,lineHeight)
+		val img = Image.withDimensions(mapping.dim.x,lineHeightPixels)
 		for (	x <- mapping.pos.x until mapping.pos.x + mapping.dim.x optimized;
 				y <- ry until ry + mapping.dim.y + 1 optimized)
 		{
 			val offY = mapping.offsets.y
-			val targetY = (y - ry) + (lineHeight - (offY - minimumOffset) - mapping.dim.y - 1)
+			val targetY = (y - ry) + (lineHeightPixels - (offY - minimumOffset) - mapping.dim.y - 1)
 			val sourceY = y
 
 			if (sourceY >= 0 && sourceY < baseImage.height) {

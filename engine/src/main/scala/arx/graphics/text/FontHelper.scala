@@ -9,20 +9,20 @@ package arx.graphics.text
  */
 
 import java.awt.image.BufferedImage
-import java.awt.AlphaComposite
-import java.awt.Color
-import java.awt.Font
-import java.awt.RenderingHints
+import java.awt.{AlphaComposite, Color, Font, Point, RenderingHints}
+import java.awt.geom.AffineTransform
 import java.io.InputStream
 
 import arx.core.math.Recti
+import arx.engine.EngineCore
 import arx.graphics.Image
 import arx.graphics.SubImageView
 
 
 class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
-	def pixelSize = imgSize
-	val bufferedImage = new BufferedImage((font.getSize*2).toInt,(font.getSize*2).toInt, BufferedImage.TYPE_INT_ARGB)
+	private val underlyingGraphicsWidth = (font.getSize*2.2*EngineCore.pixelScaleFactor).toInt
+	private val underlyingGraphicsHeight = (font.getSize*2.2*EngineCore.pixelScaleFactor).toInt
+	val bufferedImage = new BufferedImage(underlyingGraphicsWidth,underlyingGraphicsHeight, BufferedImage.TYPE_INT_ARGB)
 	val g = bufferedImage.createGraphics
 
 	val backgroundColor: Color = new Color(1.0f,1.0f,1.0f,1.0f)
@@ -39,20 +39,28 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 //		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
 	}
 	g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+	g.setTransform(AffineTransform.getScaleInstance(EngineCore.pixelScaleFactor, EngineCore.pixelScaleFactor))
 
 
 	val fm = g.getFontMetrics
 	val ascent = fm.getMaxAscent
 	val descent = fm.getMaxDescent
+	val lineHeight = fm.getHeight
+	def lineHeightPixels = pointsToPixels(lineHeight)
 
-	val imgSize : Int = math.max(fm.charWidth('W')+3,fm.getMaxAscent+fm.getMaxDescent+fm.getLeading/2+3) //fm. //font.getSize * 1.5).toInt
-	var retImage : Image = Image.withDimensions(imgSize,imgSize)
+	var retImage : Image = Image.withDimensions(underlyingGraphicsWidth,underlyingGraphicsHeight)
 
 	def clearCanvas () {
 		// Clear image with background color (make transparent if color has alpha value)
 		g.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR,0.0f))
 		g.setColor(backgroundColor)
-		g.fillRect(0,0,imgSize,imgSize)
+		g.fillRect(0,0,underlyingGraphicsWidth,underlyingGraphicsHeight)
+	}
+
+	def pointsToPixels(points : Int) = {
+		val out2d = new Point(0,0)
+		fm.getFontRenderContext.getTransform.transform(new Point(points,0), out2d)
+		out2d.x
 	}
 
 	/**
@@ -67,21 +75,21 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f))
 		g.setColor(foregroundColor)
 
-		g.drawString( String.valueOf(ch) , 0 , ascent )
 
-		val cWidth = if ( ch == 'f' ) { fm.charWidth(ch) + 2 } else if ( ch == 'T' ) { fm.charWidth(ch) - 1 } else { fm.charWidth(ch) }
-		val cHeight = fm.getHeight
+		val originX = underlyingGraphicsWidth / 4
+		g.drawString( String.valueOf(ch) , originX / EngineCore.pixelScaleFactor , fm.getAscent )
 
+		val stringBounds = fm.getStringBounds(s"$ch", 0, 1, g)
+		val cWidth = stringBounds.getWidth.ceil.toInt * EngineCore.pixelScaleFactor.toInt + 1
+		val cHeight = stringBounds.getHeight.ceil.toInt * EngineCore.pixelScaleFactor.toInt + 1
 
 		val rast = bufferedImage.getData
 		var maxX = 0
-		var minX = cWidth-1
-		var x = 0 ; while ( x < cWidth ) {
+		var minX = originX + cWidth-1
+		var x = 0 ; while ( x < originX + cWidth ) {
 			var y = 0 ; while ( y < cHeight ) {
 				var q = 0; while ( q < 4 ) {
-					val rastX = x
-					val rastY = math.max(y,0)
-					val rastByte = rast.getSample(rastX,rastY,q).toByte
+					val rastByte = rast.getSample(x,y,q).toByte
 					if ( q == 3 && rastByte != 0 ) {
 						maxX = math.max(x,maxX)
 						minX = math.min(x,minX)
@@ -90,7 +98,9 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 				q += 1}
 			y += 1}
 		x += 1}
+		Image.save(retImage, s"/tmp/rawchars/$ch.png")
 		val retSubImage = new SubImageView(retImage,Recti(minX,0 + drop,math.max(maxX+1-minX,1),cHeight - drop))
+		Image.save(retSubImage, s"/tmp/chars/$ch.png")
 		retSubImage
 	}
 
@@ -108,6 +118,8 @@ protected class AWTFontGlyphSource extends GlyphSource {
 	def init (): Unit = {
 		fontHelper = new FontHelper(font,pixelFont,drop)
 	}
+
+	def lineHeightPixels = fontHelper.lineHeightPixels
 
 	override def canProvideGlyphFor(char: Char): Boolean = true
 	override def glyphFor(char: Char): Image = {

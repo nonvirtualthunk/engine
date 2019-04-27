@@ -16,6 +16,3 @@ case class EntityAddedEvent(entity : TGameEntity) extends Event {
 case class EntityRemovedEvent(entity : TGameEntity) extends Event {
 
 }
-
-case class LEntityAdded(entity : LEntity) extends Event {}
-case class LEntityRemoved(entity : LEntity) extends Event {}

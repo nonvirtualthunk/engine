@@ -12,8 +12,8 @@ import scalaxy.loops._
 
 class EventBusTests extends FlatSpec {
 
-	case class FooEvent(i : Int) extends GameEvent("foo")
-	case class BarEvent(s : String) extends GameEvent("bar")
+	case class FooEvent(i : Int) extends GameEvent
+	case class BarEvent(s : String) extends GameEvent
 
 
 	"Event Bus in normal situation" should "allow an event to be processed by multiple readers" in {

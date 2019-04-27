@@ -14,14 +14,19 @@ import scalaxy.loops._
 import arx.core.vec._
 import arx.engine.data.TAuxData
 
+
+abstract class Clazz[C](val className : String, val runtimeClass : Class[C]) {
+	var fields : Map[String,Field[C,_]] = Map()
+	def allFields = fields.values
+}
+
 trait UntypedField {
 	def getValue (objectReference : AnyRef) : Any
 	def setValue (objectReference : AnyRef, value : Any)
 	def name : String
 }
 
-case class Field[C,T](name : String, getter : (C) => T, setter : (C,T) => Unit) extends UntypedField {
-
+case class Field[C,T](name : String, getter :(C) => T, setter : (C,T) => Unit, clazz : Clazz[C]) extends UntypedField {
 
 	override def getValue(objectReference: AnyRef): Any = {
 		objectReference match {
@@ -61,8 +66,8 @@ case class Field[C,T](name : String, getter : (C) => T, setter : (C,T) => Unit) 
   * it contains, we can convince scala's type inference to figure out which type things should be
   */
 class FieldExample[T](value : T) {
-	def createField[C](name : String, getter : (C) => T, setter : (C,T) => Unit) : Field[C,T] = {
-		Field[C,T](name,getter,setter)
+	def createField[C](name : String, getter : (C) => T, setter : (C,T) => Unit, clazz : Clazz[C]) : Field[C,T] = {
+		Field[C,T](name,getter,setter, clazz)
 	}
 }
 object Field {
@@ -72,19 +77,32 @@ object Field {
 
 object FieldGenerator {
 	def main(args: Array[String]): Unit = {
+
+		var registerMethod = "\ndef registerTypes(world: LWorld) : Unit = {\n"
+
 		for (clazz <- ReflectionAssistant.allSubTypesOf[TAuxData]) {
 			if (clazz.getAnnotations.exists(a => a.annotationType() == classOf[GenerateCompanion])) {
 				val className = clazz.getSimpleName
-				println(s"object $className {")
+				println(s"""object $className extends Clazz[$className]("$className", classOf[$className]){""")
 				println(s"\tval Sentinel = new $className")
 				for (field <- clazz.getDeclaredFields) {
 					val fieldName = field.getName
 
-					println(s"""\tval $fieldName = Field.fromValue(Sentinel.$fieldName).createField[$className]("$fieldName",f => f.$fieldName, (f,$fieldName) => f.$fieldName = $fieldName) """)
+					println(s"""\tval $fieldName = Field.fromValue(Sentinel.$fieldName).createField[$className]("$fieldName",f => f.$fieldName, (f,$fieldName) => f.$fieldName = $fieldName, $className) """)
+					println(s"""\tfields += "$fieldName" -> $fieldName""")
 				}
+				println(
+					s"""
+						|\tdef apply(f : $className => Unit) : $className = { val v = new $className; f(v); v }
+					 """.stripMargin)
 				println("}")
+
+				registerMethod += s"\tworld.register[$className]\n"
 			}
 		}
+		registerMethod += "}"
+
+		println(registerMethod)
 
 		Executor.onQuit()
 	}

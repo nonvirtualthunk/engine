@@ -21,10 +21,12 @@ class Thimble extends TAuxData {
 	var s : Seq[String] = Seq()
 }
 
-object Thimble {
+object Thimble extends Clazz[Thimble]("Thimble", classOf[Thimble]) {
 	val Sentinel = new Thimble
-	val i = Field.fromValue(Sentinel.i).createField[Thimble]("i",f => f.i, (f,i) => f.i = i)
-	val s = Field.fromValue(Sentinel.s).createField[Thimble]("s",f => f.s, (f,s) => f.s = s)
+	val i = Field.fromValue(Sentinel.i).createField[Thimble]("i",f => f.i, (f,i) => f.i = i, Thimble)
+	fields += "i" -> i
+	val s = Field.fromValue(Sentinel.s).createField[Thimble]("s",f => f.s, (f,s) => f.s = s, Thimble)
+	fields += "s" -> s
 }
 
 class FieldTests extends FlatSpec {

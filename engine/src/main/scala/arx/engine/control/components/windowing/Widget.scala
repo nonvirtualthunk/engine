@@ -6,6 +6,7 @@ package arx.engine.control.components.windowing
 
 import arx.Prelude._
 import arx.core.Moddable
+import arx.core.datastructures.Watcher
 import arx.core.vec.{Vec2T, Vec3T}
 import arx.engine.control.components.windowing.widgets.DimensionExpression.Intrinsic
 import arx.engine.control.components.windowing.widgets.{DimensionExpression, PositionExpression}
@@ -28,6 +29,8 @@ class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[T
 	var showing = Moddable(true)
 	protected var _isModified = false
 
+	protected val stateWatcher = new Watcher(showing.resolve())
+
 	// initialization =====================================
 	if (parent != null) {
 		var topmostParent = parent
@@ -45,7 +48,7 @@ class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[T
 	def dragAndDropRO = this.auxDataOrElse[DragAndDropData](DragAndDropData.Default)
 	def eventHandlingRO = this.auxDataOrElse[EventHandlingData](EventHandlingData.Default)
 	def drawing = this.auxData[DrawingData]
-	def isModified = _isModified || isSelfModified
+	def isModified = _isModified || isSelfModified || stateWatcher.hasChanged
 	protected[windowing] def isSelfModified = false
 	def resetModified() = _isModified = false
 

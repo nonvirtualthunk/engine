@@ -50,6 +50,14 @@ class ArxList[+T](val intern : List[T]) extends AnyVal{
 	}
 	def without[U >: T] ( t : U ) : List[T] = intern.filterNot { e : T => e == t }
 
+	def sliding2: Iterator[(T,T)] = {
+		if (intern.length > 1) {
+			intern.sliding(2).map(i => (i(0), i(1)))
+		} else {
+			Iterator.empty
+		}
+	}
+
 	def findOrElse[U >: T] ( predicate : (T) => Boolean , orElse : U ) = {
 		intern.find(predicate).getOrElse(orElse)
 	}

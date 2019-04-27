@@ -1,8 +1,12 @@
 package arx.application
 
-import java.io.{FileWriter, FileOutputStream, File}
+import java.io.{File, FileOutputStream, FileWriter}
+
 import annotation.elidable
 import java.lang.String
+import java.util.concurrent.Executors
+
+import arx.core.async.OnExitRegistry
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,7 +21,7 @@ object Noto {
 	val Info = 0
 	val Fine = 2
 	val Finest = 4
-	
+
 	var indentation = 0
 
 	var debugOn = "true".equals(System.getProperty("logDebug"))
@@ -36,7 +40,8 @@ object Noto {
 
 	var listeners : List[ (String,Int) => Unit ] = Nil
 
-	
+	val executor = Executors.newSingleThreadExecutor()
+
 	def printIndentation(): Unit = {
 		var i = 0
 		while (i < indentation) {
@@ -46,8 +51,12 @@ object Noto {
 	}
 
 	def printMsg(msg : String): Unit = {
-		printIndentation()
-		println(msg)
+		executor.execute(new Runnable {
+			override def run(): Unit = {
+				printIndentation()
+				println(msg)
+			}
+		})
 	}
 
 	@elidable(elidable.INFO) def info ( msg : => String ) {
@@ -134,9 +143,13 @@ object Noto {
 
 	def writeToFile ( msg : => String ) {
 		if ( logToFile ) {
-			logWriter.write(msg)
+			executor.execute(new Runnable() {
+				override def run(): Unit = logWriter.write(msg)
+			})
 		}
 	}
+
+	OnExitRegistry.register(() => executor.shutdown())
 }
 
 trait TLoggingLevelProvider {

@@ -10,9 +10,11 @@ import arx.Prelude._
 import arx.application.Noto
 import arx.core.datastructures.{Watcher, Watcher2, Watcher3}
 import arx.core.introspection.ReflectionAssistant
-import arx.core.math.Rectf
+import arx.core.math.{Rectf, Recti}
 import arx.core.units.UnitOfTime
 import arx.core.vec._
+import arx.engine.advanced.lenginecomponents.LGraphicsComponent
+import arx.engine.advanced.lenginepieces.LGraphicsEngine
 import arx.engine.control.components.windowing.Widget
 import arx.engine.control.components.windowing.widgets._
 import arx.engine.control.components.windowing.widgets.data.DrawingData
@@ -31,10 +33,39 @@ import scala.collection.mutable
 import scala.language.postfixOps
 import scalaxy.loops._
 
+
 class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends GraphicsComponent(graphicsEngine) {
+	val WD = graphics[WindowingGraphicsData]
+	drawOrder = DrawPriority.Final
+
+	val core = new WindowingGraphicsComponentCore(WD)
+
+	override def draw(): Unit = core.draw()
+
+	override protected def updateSelf(dt: UnitOfTime): Unit = core.updateSelf(dt)
+
+	override protected def initialize(): Unit = core.initialize()
+}
+
+class LWindowingGraphicsComponent(graphicsEngine: LGraphicsEngine) extends LGraphicsComponent(graphicsEngine) {
+	val WD = graphics[WindowingGraphicsData]
+	drawOrder = DrawPriority.Final
+
+	val core = new WindowingGraphicsComponentCore(WD)
+
+	override def draw(): Unit = core.draw()
+
+	override protected def updateSelf(dt: UnitOfTime): Unit = core.updateSelf(dt)
+
+	override protected def initialize(): Unit = core.initialize()
+}
+
+class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 	lazy val shader = ResourceManager.shader("shaders/windowing/main")
 
-	val WD = graphics[WindowingGraphicsData]
+
+//	WD.textureBlock.magFilter = GL11.GL_LINEAR
+//	WD.textureBlock.minFilter = GL11.GL_LINEAR
 
 	def vbo = WD.vbo
 	def textureBlock = WD.textureBlock
@@ -50,11 +81,9 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 
 	var renderedViewport = GL.viewport
 
-	drawOrder = DrawPriority.Final
-
 	def createWatchers(widget: Widget) = WidgetWatchers(Watcher(widget.position), Watcher(widget.dimensions), Watcher(widget.showing.resolve()))
 
-	override def draw(): Unit = {
+	def draw(): Unit = {
 		renderedViewport = GL.viewport
 
 		shader.bind()
@@ -80,7 +109,7 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 	}
 
 	val viewportWatcher = new Watcher(renderedViewport)
-	override protected def updateSelf(dt: UnitOfTime): Unit = {
+	def updateSelf(dt: UnitOfTime): Unit = {
 		WD.desktop.synchronized {
 			var anyChanged = false
 			if (viewportWatcher.hasChanged) {
@@ -100,7 +129,7 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 					Noto.info(s"Could not change to dirty on update, currently is : ${vbo.state.get()}")
 				}
 
-				updateResolvedWidgetVariables(WD.desktop)
+				updateResolvedWidgetVariables(WD.desktop, new mutable.HashSet[Widget]())
 			}
 
 	//		solver.solve(anyChanged)
@@ -177,7 +206,7 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 	}
 
 
-	override protected def initialize(): Unit = {
+	def initialize(): Unit = {
 		WD.desktop.x = PositionExpression.Constant(0)
 		WD.desktop.y = PositionExpression.Constant(0)
 		WD.desktop.z = PositionExpression.Constant(0)
@@ -206,7 +235,8 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 	def updateWidgetConstraints(widget: Widget): Boolean = {
 		val watch = watchers.getOrElseUpdate(widget, createWatchers(widget))
 
-		val ret = widget.isModified ||
+		val widgetModified = widget.isModified
+		val ret = widgetModified ||
 			(if (watch.first || watch.anyChanged) {
 //					for (axis <- 0 until 3 optimized) {
 //						if (watch.first || watch.posWatcher.hasChanged(axis)) updatePos(widget, axis)
@@ -240,6 +270,19 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 				// do nothing here, in this case the desired width is determined by the thing itself,
 				// a button might suggest that it be given a width at least sufficient to display its
 				// text, for example, and other widgets might have intrinsic minimum sizes
+				case DimensionExpression.WrapContent =>
+					val inPad = widget.drawing.interiorPadding
+					val minV = Vec2i(0,0)
+					val maxV = Vec2i(0,0)
+					widget.children.foreach(w => {
+						val rpos = w.drawing.relativePosition
+						val edim = w.drawing.effectiveDimensions
+						minV.x = minV.x.min(rpos.x)
+						minV.y = minV.y.min(rpos.y)
+						maxV.x = maxV.x.max(rpos.x + edim.x)
+						maxV.y = maxV.y.max(rpos.y + edim.y)
+					})
+					maxV(axis) - minV(axis) + inPad(axis) * 2
 			}).round
 		}
 		ret
@@ -297,7 +340,7 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 		ret
 	}
 
-	def updateResolvedWidgetVariables(w: Widget): Unit = {
+	def updateResolvedWidgetVariables(w: Widget, resolved : mutable.Set[Widget]): Unit = {
 		if (w.showing) {
 			w.resetModified()
 			val DD = w[DrawingData]
@@ -310,20 +353,19 @@ class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends Graphic
 					DD.absolutePosition = w.parent.drawing.absolutePosition + Vec3i(w.parent.drawing.clientOffset,0) + DD.relativePosition
 			}
 
+			resolved += w
 
 			var toResolve = w.children
-			var resolved = Set[Widget]()
 			while (toResolve.nonEmpty) {
 				val picked = toResolve.head
 				if (resolved(picked)) {
 					toResolve = toResolve.tail
 				} else {
-					val requires = picked.x.dependsOn ::: picked.y.dependsOn
+					val requires = picked.x.dependsOn ::: picked.y.dependsOn ::: picked.width.dependsOn(picked) ::: picked.height.dependsOn(picked)
 					val unfulfilled = requires.filterNot(resolved)
 					unfulfilled match {
 						case Nil =>
-							updateResolvedWidgetVariables(picked)
-							resolved += picked
+							updateResolvedWidgetVariables(picked, resolved)
 							toResolve = toResolve.tail
 						case _ =>
 							toResolve = unfulfilled ::: toResolve

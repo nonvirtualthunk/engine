@@ -189,6 +189,8 @@ class HSBA(ha:Float,sa:Float,ba:Float,aa:Float) extends Vec4f(ha,sa,ba,aa) {
 
 	def * (other : HSBA) = HSBA(h * other.h, s * other.s, b * other.b, a * other.a)
 
+	def withA(a : Float) = HSBA(h,s,b,a)
+
 	protected def hueShiftedH(target : Float, pcnt : Float) = {
 		val newH = if ((ha - target).abs < (ha - (target + 1.0f)).abs) {
 			ha + (target - ha) * pcnt
@@ -218,5 +220,10 @@ object HSBA {
 	def apply ( v : ReadVec3f, a : Float) : HSBA = apply(v.x,v.y,v.z,a)
 	def apply ( v : ReadVec4f ) : HSBA = apply(v.r,v.g,v.b,v.a)
 
+	def fromRGBA (r : Float, g : Float, b : Float, a : Float) : HSBA = Color.RGBAtoHSBA(Vec4f(r,g,b,a))
+	def fromRGBA (rgba : ReadVec4f) : HSBA = Color.RGBAtoHSBA(rgba)
+
 	val White = HSBA(0.0f,0.0f,1.0f,1.0f)
+	val Black = HSBA(0.0f,0.0f,0.0f,1.0f)
+	val Clear = HSBA(0.0f,0.0f,1.0f,0.0f)
 }

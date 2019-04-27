@@ -58,11 +58,15 @@ class EventBus {
 }
 
 class EventBusListener(val bus : EventBus) {
-	case class Listener(func : PartialFunction[Event,_], processConsumed : Boolean = false)
+	case class Listener(func : PartialFunction[Event,_], processConsumed : Boolean = false, var active : Boolean = true) {
+		def activate() { active = true }
+		def deactivate() { active = false }
+	}
 
 	var lastReadOffset = 0L
 	var cursor = 0
 	var listeners = List[Listener]()
+	var active = true
 
 	bus.lock.readLock {
 		lastReadOffset = bus.minimumOffset
@@ -70,44 +74,48 @@ class EventBusListener(val bus : EventBus) {
 	}
 
 	def process(): Unit = {
-		var toProcess = Vector[Event]()
-		bus.lock.readLock {
-			if (bus.minimumOffset > lastReadOffset) {
-				Noto.warn("Resetting event bus listener to head, not reading fast enough")
-				lastReadOffset = bus.minimumOffset-1
-				cursor = (bus.cursor + 1) & bus.capAND
-				if (bus.offsets(cursor) != bus.minimumOffset) {
-					Noto.error(s"Did not reset to head properly $cursor, ${bus.minimumOffset}, $lastReadOffset")
+		if (active) {
+			var toProcess = Vector[Event]()
+			bus.lock.readLock {
+				if (bus.minimumOffset > lastReadOffset) {
+					Noto.warn("Resetting event bus listener to head, not reading fast enough")
+					lastReadOffset = bus.minimumOffset - 1
+					cursor = (bus.cursor + 1) & bus.capAND
+					if (bus.offsets(cursor) != bus.minimumOffset) {
+						Noto.error(s"Did not reset to head properly $cursor, ${bus.minimumOffset}, $lastReadOffset")
+					}
+				}
+				while (cursor != bus.cursor) {
+					val event = bus.events(cursor)
+					if (event == null) {
+						Noto.error(s"Somehow ended up with a null event in a bus listener: $cursor, $lastReadOffset")
+					}
+					toProcess +:= event
+					lastReadOffset = bus.offsets(cursor)
+					cursor = (cursor + 1) & bus.capAND
 				}
 			}
-			while (cursor != bus.cursor) {
-				val event = bus.events(cursor)
-				if (event == null) {
-					Noto.error(s"Somehow ended up with a null event in a bus listener: $cursor, $lastReadOffset")
-				}
-				toProcess +:= event
-				lastReadOffset = bus.offsets(cursor)
-				cursor = (cursor + 1) & bus.capAND
-			}
-		}
-		toProcess.foreach(e => {
-			val relevantListeners = listeners.filter(l => l.func.isDefinedAt(e))
+			toProcess.foreach(e => {
+				val relevantListeners = listeners.filter(l => l.func.isDefinedAt(e))
 				for (l <- relevantListeners) {
 					if (e.notConsumed || l.processConsumed) {
 						l.func.apply(e) match {
-							case b : Boolean if b => e.consume()
+							case b: Boolean if b => e.consume()
 							case _ => // do nothing
 						}
 					}
 				}
-		})
+			})
+		}
 	}
 
-	def onEvent (listener: PartialFunction[Event,_]): Unit = {
-		listeners ::= Listener(listener, false)
+	def onEvent (listener: PartialFunction[Event,_]) : Listener = {
+		val newListener = Listener(listener, false)
+		listeners ::= newListener
+		newListener
 	}
 
-	def listen (listener: PartialFunction[Event,_]): Unit = {
+	def listen (listener: PartialFunction[Event,_]) = {
 		onEvent(listener)
 	}
 }
