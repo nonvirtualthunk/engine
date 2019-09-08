@@ -158,6 +158,12 @@ class GLData(var dataType: Int){
 		numElements = 0
 	}
 
+	def softClear(): Unit = {
+		rawData.rewind()
+		rawData.limit(rawData.capacity)
+		numElements = 0
+	}
+
 	def getAsVec4 (n: Int,offset: Int): ReadVec4f = {
 		floatData.position(offset + n * floatStride)
 		Vec4f(floatData.get(),floatData.get(),floatData.get(),floatData.get())

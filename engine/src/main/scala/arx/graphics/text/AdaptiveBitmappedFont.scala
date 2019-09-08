@@ -18,15 +18,23 @@ import arx.core.vec.ReadVec2f
 import arx.core.vec.ReadVec2i
 import arx.core.vec.Vec2f
 import arx.core.vec.Vec2i
+import arx.engine.EngineCore
 import arx.graphics.Image
 import arx.graphics.TextureBlock
+import org.cliffc.high_scale_lib.NonBlockingHashMap
 import org.lwjgl.opengl.GL11
+import overlock.atomicmap.AtomicMap
 
 import scala.collection.mutable
 import scala.collection.JavaConversions._
 
-class AdaptiveBitmappedFont(val font : Font, var glyphSources: List[GlyphSource], backingTextureBlock: TextureBlock = TextureBlock.Sentinel, val pixelFont: Boolean = false, drop: Int = 0) extends TBitmappedFont {
+class AdaptiveBitmappedFont(val font: Font, var additionalGlyphSources: List[GlyphSource], backingTextureBlock: TextureBlock = TextureBlock.Sentinel, val pixelFont: Boolean = false) extends TBitmappedFont {
 	def this() { this(new Font("SansSerif",Font.PLAIN, 32), Nil, TextureBlock.Sentinel) }
+
+
+	var derivedBySize = AtomicMap.atomicNBHM[Int, AdaptiveBitmappedFont]
+	val fontHelper = new FontHelper(font, pixelFont)
+	val glyphSources : List[GlyphSource] = additionalGlyphSources ::: new AWTFontGlyphSource(fontHelper) :: Nil
 
 	val textureBlock: TextureBlock = glyphSources match {
 		case Nil => null
@@ -53,16 +61,15 @@ class AdaptiveBitmappedFont(val font : Font, var glyphSources: List[GlyphSource]
 
 	private val initializationTimer = Metrics.timer("AdaptiveBitmappedFont.init")
 
-	var lineHeightPixels = 0.0f
-	protected[text] var _maxAscentPlusDescentProportional = 0.0f
-	protected[text] var _maxAscentPlusDescentPixels = 0.0f
-	protected[text] var _descentPixels = 0.0f
+	protected[text] val psf: Float = EngineCore.pixelScaleFactor
+	protected[text] val _fontMetrics = FontMetrics((fontHelper.fm.getMaxAscent * psf).toInt, (fontHelper.fm.getMaxDescent * psf).toInt, (fontHelper.fm.getHeight * psf).toInt, (font.getSize * psf).toInt, ((fontHelper.fm.charWidth(' ') + 1) * psf).toInt)
+	override def fontMetrics = _fontMetrics
 
-	override def maxAscentPlusDescentPixels: Float = _maxAscentPlusDescentPixels
-	override def maxAscentPlusDescentProportional: Float = _maxAscentPlusDescentProportional
-	override def descentPixels = _descentPixels
+
 
 	if (glyphSources.nonEmpty) {init() }
+
+	override def characterAdvancePixels(c: Char): Int = (fontHelper.fm.charWidth(c) * psf).toInt
 
 	def init() {
 		if (backingTextureBlock.isSentinel) {
@@ -73,19 +80,7 @@ class AdaptiveBitmappedFont(val font : Font, var glyphSources: List[GlyphSource]
 		Noto.fine("Creating adaptive bitmapped font")
 
 		initializationTimer.timeStmt {
-			lineHeightPixels = glyphSources.map(_.lineHeightPixels).max
-			_maxAscentPlusDescentProportional = glyphSources.firstOfType[AWTFontGlyphSource] match {
-				case Some(gs) => gs.fontHelper.fm.getMaxAscent + gs.fontHelper.fm.getMaxDescent
-				case None => ???
-			}
-			_maxAscentPlusDescentPixels = glyphSources.firstOfType[AWTFontGlyphSource] match {
-				case Some(gs) => gs.fontHelper.pointsToPixels(gs.fontHelper.fm.getMaxAscent + gs.fontHelper.fm.getMaxDescent)
-				case None => ???
-			}
-			_descentPixels = glyphSources.firstOfType[AWTFontGlyphSource] match {
-				case Some(gs) => gs.fontHelper.pointsToPixels(gs.fontHelper.fm.getMaxDescent)
-				case None => ???
-			}
+
 			var ch = 0
 			while (ch < asciiRange.upper) {
 				if (ch >= asciiRange.lower) {
@@ -125,6 +120,11 @@ class AdaptiveBitmappedFont(val font : Font, var glyphSources: List[GlyphSource]
 
 			Noto.fine("After font creation, percent available : " + (textureBlock.availableSpace / (textureBlock.width * textureBlock.height).toFloat))
 		}
+	}
+
+	def deriveWithPtSize(fontSize : Int) = {
+		// TODO: make it possible for derived fonts to be pre-cached (assuming we get that working again)
+		derivedBySize.getOrElseUpdate(fontSize, new AdaptiveBitmappedFont(font.deriveFont(fontSize.toFloat), Nil, textureBlock, pixelFont))
 	}
 
 	def cacheFontImages() = {
@@ -207,9 +207,6 @@ class AdaptiveBitmappedFont(val font : Font, var glyphSources: List[GlyphSource]
 	def bind(i: Int) {
 		textureBlock.bind(i)
 	}
-
-	def maxCharacterDimensionsProportional = _maxCharacterDimensions
-	override def maxCharacterDimensionsPixels: ReadVec2i = _maxCharacterDimensionsPixels
 
 	def ensureUnicodeCharAdded(c: Char) {
 		if (!unicodeTexCoords.contains(c)) {

@@ -38,3 +38,22 @@ object Taxon {
 	}
 
 }
+
+class Identity(val taxons : List[Taxon]) {
+	def this(taxons_ : Taxon*) {
+		this(taxons_.toList)
+	}
+	def isA(x : Taxon) = taxons.exists(t => t.isA(x))
+}
+object Identity {
+	def apply(taxons_ : Taxon*) : Identity = new Identity(taxons_.toList)
+	def apply(taxons_ : List[Taxon]) : Identity = new Identity(taxons_)
+
+	implicit def fromTaxon(taxon : Taxon) : Identity = new Identity(taxon)
+}
+
+trait HasIdentity {
+	val identity : Identity
+
+	def isA(x : Taxon) = identity.isA(x)
+}

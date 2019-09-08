@@ -37,6 +37,10 @@ class CartVec3(x_ : Float, y_ : Float, z_ : Float) extends Vec3f(x_, y_, z_) {
 
 	override def xy : CartVec = CartVec(x_, y_)
 
+	def plusX(f : Float) : CartVec3 = new CartVec3(x + f,y,z)
+	def plusY(f : Float) : CartVec3 = new CartVec3(x,y + f,z)
+	def plusZ(f : Float) : CartVec3 = new CartVec3(x,y,z + f)
+
 	def asAxialVec3 = {
 		val qr = AxialVec.fromCartesian(this.xy, 1.0f)
 		AxialVec3(qr.q, qr.r, this.z.toInt)

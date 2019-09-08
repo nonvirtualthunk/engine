@@ -416,16 +416,12 @@ object ResourceManager {
 				try {
 					val ttfStream = getResourceStream("fonts/" + fontName + ".ttf")
 
-					var basePointSize = 32.0f
+					var basePointSize = 16.0f
 					var pixelFont = false
-					var drop = 0
-					var overdraw = 1
 					if ( ResourceManager.hasResourceStream("fonts/" + fontName + ".sml") ) {
 						val sml = Hocon.parseResource("fonts/" + fontName + ".sml")
 						basePointSize = sml.basePointSize.floatOrElse(basePointSize)
 						pixelFont = sml.pixelFont.boolOrElse(pixelFont)
-						drop = sml.drop.intOrElse(drop)
-						overdraw = sml.overdraw.intOrElse(1)
 					}
 
 
@@ -437,13 +433,12 @@ object ResourceManager {
 					} else {
 						new Font( fontName , fontStyle , basePointSize.toInt ).deriveFont(attributes)
 					}
-					val awtSrc = AWTFontGlyphSource(font, pixelFont, drop)
 
-					var srcList : List[GlyphSource] = List(awtSrc)
+					var additionalSrcList : List[GlyphSource] = Nil
 					if (PreRenderedGlyphSource.existsFor(fontName,basePointSize.toInt)) {
-						srcList ::= PreRenderedGlyphSource.fromFontName(fontName,basePointSize.toInt)
+						additionalSrcList ::= PreRenderedGlyphSource.fromFontName(fontName,basePointSize.toInt)
 					}
-					new AdaptiveBitmappedFont(font, srcList, backingTextureBlock, pixelFont, drop)
+					new AdaptiveBitmappedFont(font, additionalSrcList, backingTextureBlock, pixelFont)
 				} catch{
 					case e : Exception => {
 						Noto.warn("Exception encountered while attempting to create font, falling back on bitmapped SansSerif")
@@ -451,7 +446,7 @@ object ResourceManager {
 						e.printStackTrace()
 
 						val font = new Font("SansSerif",Font.PLAIN, 32)
-						new AdaptiveBitmappedFont(font, AWTFontGlyphSource(font, false, 0) :: Nil, backingTextureBlock)
+						new AdaptiveBitmappedFont(font, Nil, backingTextureBlock)
 					}
 				}
 			})

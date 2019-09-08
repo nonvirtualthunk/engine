@@ -5,10 +5,7 @@ import java.io.InputStream
 import arx.application.Application
 import arx.application.Noto
 import arx.core.mat.ReadMat4x4
-import arx.core.vec.ReadVec4f
-import arx.core.vec.Vec2f
-import arx.core.vec.Vec3f
-import arx.core.vec.Vec4f
+import arx.core.vec.{ReadVec3f, ReadVec4f, Vec2f, Vec3f, Vec4f}
 import arx.graphics.GL
 import org.lwjgl.opengl._
 
@@ -267,6 +264,34 @@ class Shader extends TShader {
 				val location = uniformLocations.getOrElseUpdate(uniformName, GL20.glGetUniformLocation(shaderObject, uniformName))
 				if (location != -1) {
 					GL20.glUniform3f(location, v.x, v.y, v.z)
+				} else if (!tolerateAbsence) {
+					throw new IllegalStateException("Attempting to set invalid uniform \"" + uniformName + "\" on shader \"" + name + "\"")
+				}
+			}
+		}
+	}
+
+	def setUniform(uniformName: String, vs: Traversable[ReadVec3f] ) { setUniform(uniformName,vs,false); }
+	def setUniform(uniformName: String, vs: Traversable[ReadVec3f], tolerateAbsence: Boolean ) {
+		doWhileBound {
+			val stack = uniformStacks.getOrElseUpdate(uniformName,new Stack())
+			if ( stack.isEmpty || stack.top != vs ) {
+				if ( stack.nonEmpty ) { stack.pop() }
+				stack.push(vs)
+
+				val location = uniformLocations.getOrElseUpdate(uniformName, GL20.glGetUniformLocation(shaderObject, uniformName))
+				if (location != -1) {
+					val arr = Array.ofDim[Float](vs.size * 3)
+					var i = 0
+					for (v <- vs) {
+						arr(i) = v.x
+						i += 1
+						arr(i) = v.y
+						i += 1
+						arr(i) = v.z
+						i += 1
+					}
+					GL20.glUniform3fv(location, arr)
 				} else if (!tolerateAbsence) {
 					throw new IllegalStateException("Attempting to set invalid uniform \"" + uniformName + "\" on shader \"" + name + "\"")
 				}

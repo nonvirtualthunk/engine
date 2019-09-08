@@ -15,8 +15,8 @@ import arx.application.Noto
 import arx.core.Dependency
 import arx.core.datastructures.Killable
 import arx.core.datastructures.KillableThread
+import arx.core.metrics.Metrics
 import arx.engine.traits.EngineComponent
-
 import scalaxy.loops.rangeExtensions
 
 abstract class EnginePiece[WorldType, Component <: EngineComponent[WorldType] : Manifest] {
@@ -39,7 +39,9 @@ abstract class EnginePiece[WorldType, Component <: EngineComponent[WorldType] : 
 					val delta = t - component.lastUpdated
 					if (delta > component.updateInterval) {
 						if (component.updateInProgress.compareAndSet(false, true)) {
-							component.update(delta)
+							Metrics.timer(component.getClass.getSimpleName + ".updateDuration").timeStmt {
+								component.update(delta)
+							}
 							component.lastUpdated = t
 							component.updateInProgress.set(false)
 							anyUpdates = true
@@ -49,7 +51,12 @@ abstract class EnginePiece[WorldType, Component <: EngineComponent[WorldType] : 
 
 				if (!anyUpdates) {
 					// wait for 3 ms before having another look
-					LockSupport.parkNanos(3000000)
+//					LockSupport.parkNanos(3000000)
+					try {
+						Thread.sleep(3)
+					} catch {
+						case e : InterruptedException => this.kill()
+					}
 				}
 			}
 		}
@@ -78,7 +85,11 @@ abstract class EnginePiece[WorldType, Component <: EngineComponent[WorldType] : 
 		}
 
 		for (n <- 0 until nSteps optimized) {
-			components.foreach(c => c.update(deltaSeconds.seconds))
+			components.foreach(c => {
+				Metrics.timer(c.getClass.getSimpleName + ".updateDuration").timeStmt {
+					c.update(deltaSeconds.seconds)
+				}
+			})
 		}
 	}
 

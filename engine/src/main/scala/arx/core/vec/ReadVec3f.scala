@@ -1,14 +1,16 @@
 package arx.core.vec;
 import arx.core.Moddable
 import arx.core.SelfModdable
+import arx.core.traits.TArxNumeric
 @SerialVersionUID(9223372036854770000L)
-class ReadVec3f extends InternVec3f with SelfModdable[ReadVec3f]{
+class ReadVec3f extends InternVec3f with SelfModdable[ReadVec3f] with TArxNumeric[ReadVec3f] {
 	def this(xa : Float,ya : Float,za : Float){ 
 		this()
 		xi = xa
 		yi = ya
 		zi = za
 	}
+	def zero = Vec3f.Zero
 	def +(m : Moddable[ReadVec3f]) = { val v = m.resolve(); new ReadVec3f(xi + v.xi,yi + v.yi,zi + v.zi) }
 	def +(v : ReadVec3f) = new ReadVec3f(xi + v.xi,yi + v.yi,zi + v.zi)
 	def +(s : Float) = new ReadVec3f(xi + s,yi + s,zi + s)
@@ -46,6 +48,9 @@ class ReadVec3f extends InternVec3f with SelfModdable[ReadVec3f]{
 	def lengthSafe : Float = {
 		val e = xi*xi + yi*yi + zi*zi
 		if ( e != 0 ) { math.sqrt(e).toFloat } else { 0 }
+	}
+	def lengthSquared : Float = {
+		xi*xi + yi*yi + zi*zi
 	}
 	def abs = new Vec3f(math.abs(x),math.abs(y),math.abs(z))
 	def min(v:ReadVec3f) = new Vec3f(math.min(x, v.x),math.min(y, v.y),math.min(z, v.z))

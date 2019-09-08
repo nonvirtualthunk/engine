@@ -286,16 +286,16 @@ class VoxelItereator2(grid: VoxelGrid[Byte], region: VoxelRegion) {
 //		for (sx <- shiftedStart.x to shiftedEnd.x optimized; sy <- shiftedStart.y to shiftedEnd.y optimized;
 //			  sz <- shiftedStart.z to shiftedEnd.z optimized) {
 //			val tx = sx << Talea.dimensionPo2
-//			val ty = sy << Talea.dimensionPo2
+//			val tyche = sy << Talea.dimensionPo2
 //			val tz = sz << Talea.dimensionPo2
 //
 //			for (dz <- 0 until Talea.dimension optimized) {
-//				loadRowLong(tx, ty - 1, tz + dz, grid, prevYRow)
-//				loadRowLong(tx, ty, tz + dz, grid, curYRow)
+//				loadRowLong(tx, tyche - 1, tz + dz, grid, prevYRow)
+//				loadRowLong(tx, tyche, tz + dz, grid, curYRow)
 //				for (dy <- 0 until Talea.dimension optimized) {
-//					loadRow(tx, ty + dy, tz + dz - 1, grid, underRow)
-//					loadRow(tx, ty + dy, tz + dz + 1, grid, overRow)
-//					loadRowLong(tx, ty + dy + 1, tz + dz, grid, nextYRow)
+//					loadRow(tx, tyche + dy, tz + dz - 1, grid, underRow)
+//					loadRow(tx, tyche + dy, tz + dz + 1, grid, overRow)
+//					loadRowLong(tx, tyche + dy + 1, tz + dz, grid, nextYRow)
 //
 //					for (dx <- 0 until Talea.dimension optimized) {
 ////						out(Cardinals.Left) = curYRow(dx)
@@ -307,7 +307,7 @@ class VoxelItereator2(grid: VoxelGrid[Byte], region: VoxelRegion) {
 ////						out(Cardinals.Front) = nextYRow(dx+1)
 //
 //
-//						f(tx,ty,tz,dx,dy,dz)
+//						f(tx,tyche,tz,dx,dy,dz)
 //					}
 //
 //					val tmp = prevYRow

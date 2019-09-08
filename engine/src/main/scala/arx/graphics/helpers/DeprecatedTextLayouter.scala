@@ -77,12 +77,15 @@ case class RichText (sections : Seq[RichTextSection]) {
 	}
 }
 object RichText {
+	def apply(section : RichTextSection) = new RichText(section :: Nil)
+	implicit def fromSingleSection (section : RichTextSection) = RichText(section)
 	implicit def apply (str : String) : RichText = RichText(List(TextSection(str)))
 	val Empty = RichText(Nil)
 }
 
 
-class TextLayouter extends TTextLayouter {
+@Deprecated
+class DeprecatedTextLayouter extends TTextLayouter {
 
 	def layOutText(richText : RichText, font : TBitmappedFont, fontSize : Float, area : Rectf, spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f, textAlignment : Int = Cardinals.Left ) : TextLayoutResult = {
 		var x = 0.0f
@@ -124,11 +127,11 @@ class TextLayouter extends TTextLayouter {
 			val pre = points.size
 			section match {
 				case TextSection(text,_, _) =>
-					val words = text.split(TextLayouter.whitespaceArray)
+					val words = text.split(DeprecatedTextLayouter.whitespaceArray)
 					var i = 0
 
 					def advanceThroughWitespace(): Unit = {
-						while (i < text.length && TextLayouter.whitespaceSet.contains(text(i))) {
+						while (i < text.length && DeprecatedTextLayouter.whitespaceSet.contains(text(i))) {
 							text(i) match {
 								case ' ' =>
 									val sw = spaceSize(font, fontSize) * spacingMultiple
@@ -234,59 +237,60 @@ class TextLayouter extends TTextLayouter {
 		sum
 	}
 
-	def maxAscentPlusDescent(font: TBitmappedFont, fontSize: Float) : Float = {
-		font.maxAscentPlusDescentProportional * fontSize
+	def maxAscentPlusDescent(font: TBitmappedFont, fontScale: Float) : Float = {
+		(font.fontMetrics.maxAscent + font.fontMetrics.maxDescent) * fontScale
 	}
 
 	def descent(font : TBitmappedFont, fontSize : Float) : Float = {
-		???
+		font.fontMetrics.maxDescent
 	}
 
-	def charWidth(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float = {
+	def charWidth(char: Char, font: TBitmappedFont, fontScale : Float ): Float = {
 		if ( char == '\n' ) { 0.0f }
-		else if ( char == '\t' ) { tabSize(font, fastFontSize) }
-		else if ( char == ' ' ) { spaceSize(font, fastFontSize) }
+		else if ( char == '\t' ) { tabSize(font, fontScale) }
+		else if ( char == ' ' ) { spaceSize(font, fontScale) }
 		else {
-			font.characterWidthProportional(char) * fastFontSize
+			font.characterWidthPixels(char) * fontScale
 		}
 	}
 
-	def charHeight(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float = {
-		font.characterHeightProportional(char) * fastFontSize
+	def charHeight(char: Char, font: TBitmappedFont, fontScale : Float ): Float = {
+		font.characterHeightProportional(char) * fontScale
 	}
 
-	def lineHeight ( font : TBitmappedFont , fontSize : Float ) = font.lineHeightProportional * fontSize
-	def lineSpacing ( font : TBitmappedFont , fontSize : Float ) = lineHeight(font, fontSize)
-	def spaceSize(font : TBitmappedFont, fontSize : Float ): Float = fontSize * 0.3f
+	def lineHeight (font : TBitmappedFont, fontScale : Float ) = font.fontMetrics.lineHeight * fontScale
+	def lineSpacing (font : TBitmappedFont, fontScale : Float ) = lineHeight(font, fontScale)
+	def spaceSize(font : TBitmappedFont, fontScale : Float ): Float = fontScale * 0.3f
 
-	def tabSize(font : TBitmappedFont, fontSize : Float): Float = spaceSize(font, fontSize) * 3.0f
+	def tabSize(font : TBitmappedFont, fontScale : Float): Float = spaceSize(font, fontScale) * 3.0f
 }
 
-object TextLayouter {
+object DeprecatedTextLayouter {
 	val whitespaceArray = Array[Char](' ', '\n', '\t')
 	val whitespaceSet = whitespaceArray.toSet
 }
 
 trait TTextLayouter {
-	def layOutText ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f,textAlignment :Int = Cardinals.Left) : TextLayoutResult
+	def layOutText (text : RichText, font : TBitmappedFont, fontScale : Float, area : Rectf, spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f, textAlignment :Int = Cardinals.Left) : TextLayoutResult
 	def layOutText ( params : LayoutParameters ) : TextLayoutResult = {
-		layOutText(params.text,params.font,params.fontSize,params.area,params.spacingMultiple,params.minSpacing,params.textAlignment)
+		layOutText(params.text,params.font,params.fontScale,params.area,params.spacingMultiple,params.minSpacing,params.textAlignment)
 	}
 
 
 
 	def textDimensions ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float = 1.0f, minSpacing : Float = 0.0f) : ReadVec2f
 	def textDimensions ( params : LayoutParameters ) : ReadVec2f = {
-		textDimensions(params.text,params.font,params.fontSize,params.area,params.spacingMultiple,params.minSpacing)
+		textDimensions(params.text,params.font,params.fontScale,params.area,params.spacingMultiple,params.minSpacing)
 	}
-	def charWidth(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float
-	def charHeight(char: Char, font: TBitmappedFont, fastFontSize : Float ): Float
+
+	def charWidth(char: Char, font: TBitmappedFont, fontScale : Float ): Float
+	def charHeight(char: Char, font: TBitmappedFont, fontScale : Float ): Float
 
 	def lineHeight(font : TBitmappedFont, fastFontSize : Float) : Float
 }
 
 object TTextLayouter {
-	case class LayoutParameters ( text : RichText , font : TBitmappedFont , fontSize : Float , area : Rectf , spacingMultiple : Float, minSpacing : Float, textAlignment : Int )
+	case class LayoutParameters (text : RichText, font : TBitmappedFont, fontScale : Float, area : Rectf, spacingMultiple : Float, minSpacing : Float, textAlignment : Int )
 }
 
-case class TextLayoutResult ( points : Vector[ReadVec2f] , dimensions : ReadVec2f )
+case class TextLayoutResult (points : Vector[ReadVec2f] , dimensions : ReadVec2f)

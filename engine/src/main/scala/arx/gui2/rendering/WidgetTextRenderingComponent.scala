@@ -19,7 +19,7 @@ import arx.core.vec.ReadVec4f
 import arx.engine.EngineCore
 import arx.graphics.AVBO
 import arx.graphics.helpers.TTextLayouter.LayoutParameters
-import arx.graphics.helpers.{RichText, TextLayouter}
+import arx.graphics.helpers.{RichText, DeprecatedTextLayouter}
 import arx.graphics.text.TBitmappedFont
 import arx.gui2.Widget
 import arx.gui2.WindowingSystem2.RenderingContext
@@ -34,7 +34,7 @@ class WidgetTextRenderingComponent(
 				val textAlignment : Moddable[Int],
 				val windowingSystemDimensions : Moddable[ReadVec3f]
 ) extends WidgetRenderingComponent {
-	val layouter = new TextLayouter
+	val layouter = new DeprecatedTextLayouter
 
 	val layoutFor = memoizeSingle( ( params : LayoutParameters ) => layouter.layOutText(params) )
 	def currentLayout = layoutFor( LayoutParameters(RichText(text.resolve()),font,fontSize,area,1.0f,windowingSystemDimensions.x / EngineCore.windowWidth,textAlignment) )

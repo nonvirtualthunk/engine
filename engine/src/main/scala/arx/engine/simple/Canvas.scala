@@ -57,10 +57,6 @@ abstract class CustomCanvas[QuadBuilderType <: TQuadBuilder](attributeProfile: A
 
 	def createQuadBuilder(): QuadBuilderType
 
-	def quad(center: ReadVec2f) = createQuadBuilder().withPosition(center)
-
-	def quad(center: ReadVec3f) = createQuadBuilder().withPosition(center)
-
 	def useTexFilters(minFilter: Int, magFilter: Int): Unit = {
 		textureBlock.magFilter = magFilter
 		textureBlock.minFilter = minFilter
@@ -94,6 +90,9 @@ class Canvas extends CustomCanvas[QuadBuilder](SimpleAttributeProfile) {
 			.draw()
 	}
 
+	def quad(center: ReadVec2f) = createQuadBuilder().withPosition(center)
+
+	def quad(center: ReadVec3f) = createQuadBuilder().withPosition(center)
 
 	def drawQuad(centerX: Float, centerY: Float, width: Float, height: Float, image: Image): Unit = {
 		createQuadBuilder()
@@ -158,10 +157,23 @@ class Canvas extends CustomCanvas[QuadBuilder](SimpleAttributeProfile) {
 			.draw()
 	}
 
+
 }
 
 
 trait TQuadBuilder {
+
+}
+
+class QuadBuilder(vbo: AVBO, textureBlock: TextureBlock, blankTC: Array[ReadVec2f]) extends TQuadBuilder {
+	var forward = Vec3f.UnitX
+	var ortho = Vec3f.UnitY
+	var dimensions = Vec2f.One
+	var dimZ = 1.0f
+	var color = Vec4f.One
+	var texCoords = blankTC
+	var cubeFace = -1
+	var textureIndexRotation = 0
 	var position = Vec3f.Zero
 
 	def withPosition(x: Float, y: Float, z: Float = 0.0f): this.type = {
@@ -178,17 +190,6 @@ trait TQuadBuilder {
 		position = pos
 		this
 	}
-}
-
-class QuadBuilder(vbo: AVBO, textureBlock: TextureBlock, blankTC: Array[ReadVec2f]) extends TQuadBuilder {
-	var forward = Vec3f.UnitX
-	var ortho = Vec3f.UnitY
-	var dimensions = Vec2f.One
-	var dimZ = 1.0f
-	var color = Vec4f.One
-	var texCoords = blankTC
-	var cubeFace = -1
-	var textureIndexRotation = 0
 
 	def withForward(vec: ReadVec3f): this.type = {
 		forward = vec

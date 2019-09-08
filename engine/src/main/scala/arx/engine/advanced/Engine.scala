@@ -26,6 +26,7 @@ import scalaxy.loops._
 
 abstract class Engine extends EngineCore with TEventUser {
 	val world = new World
+	registerTypes(world)
 	val lworld = new LWorld
 	val graphicsWorld = new GraphicsWorld
 	val controlWorld = new ControlWorld
@@ -43,6 +44,8 @@ abstract class Engine extends EngineCore with TEventUser {
 	var first = true
 
 	def setUpEngine()
+
+	def registerTypes(world: World) = {}
 
 
 	override def init(): Unit = {

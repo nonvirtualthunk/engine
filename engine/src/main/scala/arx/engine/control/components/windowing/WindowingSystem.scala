@@ -7,12 +7,17 @@ package arx.engine.control.components.windowing
   * Time: 6:59 AM
   */
 
+import java.awt.Toolkit
+import java.awt.datatransfer.{Clipboard, ClipboardOwner, DataFlavor, StringSelection, Transferable}
+import java.io.IOException
+
 import arx.Prelude._
 import arx.application.Noto
 import arx.core.units.UnitOfTime
 import scalaxy.loops._
 import arx.core.vec._
-import arx.engine.control.components.windowing.events.{DropEvent, FocusGainedEvent, FocusLostEvent}
+import arx.engine.control.components.windowing.events.{DropEvent, FocusGainedEvent, FocusLostEvent, RequestFocusEvent}
+import arx.engine.control.components.windowing.widgets.data.EventHandlingData
 import arx.engine.control.data.{ControlWorld, WindowingData}
 import arx.engine.control.event.Event._
 import arx.engine.event.EventBus
@@ -24,6 +29,10 @@ class WindowingSystem(controlWorld : ControlWorld, graphicsWorld : GraphicsWorld
 	import WD._
 	val WGD = graphicsWorld.auxData[WindowingGraphicsData]
 	WGD.desktop = WD.desktop
+
+	WD.desktop.onEvent {
+		case RequestFocusEvent(widget) => giveFocusTo(widget)
+	}
 
 
 	controlBus.onEvent {
@@ -127,9 +136,48 @@ class WindowingSystem(controlWorld : ControlWorld, graphicsWorld : GraphicsWorld
 
 	def giveFocusTo(target : Widget): Unit = {
 		for (newFocus <- target.selfAndAncestors.find(w => w.eventHandlingRO.acceptsFocus)) {
-			focusedWidget.foreach(w => w.handleEvent(FocusLostEvent(w)))
+			focusedWidget.foreach(w => {
+				w.handleEvent(FocusLostEvent(w))
+				w[EventHandlingData].hasFocus = false
+			})
 			focusedWidget = Some(newFocus)
 			newFocus.handleEvent(FocusGainedEvent(newFocus))
+			newFocus[EventHandlingData].hasFocus = true
 		}
 	}
+}
+
+object WindowingSystem extends ClipboardOwner {
+	def clipboardText : Option[String] = {
+		val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+		try {
+			val contents = clipboard.getContents(this)
+			if ( contents.getTransferDataFlavors.contains( DataFlavor.stringFlavor ) ) {
+				contents.getTransferData( DataFlavor.stringFlavor ) match {
+					case string : String => {
+						return Some(string)
+					}
+					case other => {
+						Noto.warn(f"Despite requesting a string flavored clipboard, we got $other instead")
+					}
+				}
+			}
+		} catch {
+			case ise : IllegalStateException => Noto.info("System clipboard is a bit throw-happy")
+			case ioe : IOException => Noto.info("System clipboard got mad because its state changed, or something, string flavor not available")
+		}
+		None
+	}
+
+	def copyTextToClipboard ( str : String ) {
+		val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+		try {
+			clipboard.setContents(new StringSelection(str),this)
+		} catch {
+			case ise : IllegalStateException => Noto.info("System clipboard is a bit throw-happy")
+			case ioe : IOException => Noto.info("System clipboard got mad because its state changed, or something, string flavor not available")
+		}
+	}
+
+	override def lostOwnership(clipboard: Clipboard, contents: Transferable): Unit = {}
 }

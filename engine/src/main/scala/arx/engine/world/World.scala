@@ -119,6 +119,10 @@ class World extends TContinuousQuerySource with THasInternalAuxData[TWorldAuxDat
 		}
 	}
 
+	def entitiesWithData[T <: TGameEntityAuxData : Manifest] : Traversable[TGameEntity] = {
+		auxDataQuery[T]
+	}
+
 	def foreachEntity(filter : (TGameEntity) => Boolean, f : (TGameEntity) => Unit): Unit = {
 		val entIter = fullEntities.iterator()
 		while (entIter.hasNext) {

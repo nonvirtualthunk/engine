@@ -7,7 +7,7 @@ package arx.engine.graphics.components.windowing
 import arx.Prelude._
 import arx.application.Noto
 import arx.core.math.Rectf
-import arx.core.vec.{ReadVec4f, Vec2i, Vec4f}
+import arx.core.vec.{ReadVec2f, ReadVec2i, ReadVec4f, Vec2i, Vec4f}
 import arx.engine.EngineCore
 import arx.engine.control.components.windowing.Widget
 import arx.engine.control.components.windowing.widgets.ImageDisplayWidget
@@ -32,7 +32,7 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 	} )
 	val BlankImage : TToImage = ResourceManager.image("default/blank.png")
 
-	override def render(widget: Widget, beforeChildren : Boolean): List[WQuad] = {
+	override def render(widget: Widget, beforeChildren: Boolean, bounds: ReadVec2f, offset: ReadVec2f): List[WQuad] = {
 		val DD = widget.drawing
 		import DD._
 
@@ -98,19 +98,20 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 
 				val cornerTR = Rectf(ctx,cty,ctw,cth)
 				var ret = List(
-					WQuad(Rectf(0.0f,0.0f,cornerWidth,cornerHeight),img, edgeColor, 0, cornerTR),
-					WQuad(Rectf(ww - cornerWidth,0.0f,cornerWidth,cornerHeight),img, edgeColor, 90, cornerTR),
-					WQuad(Rectf(ww - cornerWidth, wh - cornerHeight,cornerWidth,cornerHeight), img, edgeColor, 180, cornerTR),
-					WQuad(Rectf(0.0f,wh - cornerHeight,cornerWidth,cornerHeight), img, edgeColor, 270, cornerTR)
+					WQuad(Rectf(0.0f,0.0f,cornerWidth,cornerHeight),img, edgeColor, flipX = false, flipY = false, 0, cornerTR),
+					WQuad(Rectf(ww - cornerWidth,0.0f,cornerWidth,cornerHeight),img, edgeColor, flipX = true, flipY = false, 0, cornerTR),
+					WQuad(Rectf(ww - cornerWidth, wh - cornerHeight,cornerWidth,cornerHeight), img, edgeColor, flipX = true, flipY = true, 0, cornerTR),
+					WQuad(Rectf(0.0f,wh - cornerHeight,cornerWidth,cornerHeight), img, edgeColor, flipX = false, flipY = true, 0, cornerTR)
 				)
 
 				if ( ww > cornerWidth * 2 ) {
-					ret ::= WQuad(Rectf(cornerWidth,0.0f,sideWidth,cornerHeight),img,edgeColor,0, Rectf(hstx,hsty,hstw,hsth))
-					ret ::= WQuad(Rectf(cornerWidth,wh - cornerHeight, sideWidth,cornerHeight),img,edgeColor,180, Rectf(hstx,hsty,hstw,hsth))
+					ret ::= WQuad(Rectf(cornerWidth,0.0f,sideWidth,cornerHeight),img,edgeColor, flipX = false, flipY = false, 0, Rectf(hstx,hsty,hstw,hsth))
+					ret ::= WQuad(Rectf(cornerWidth,wh - cornerHeight, sideWidth,cornerHeight),img,edgeColor, flipX = false, flipY = true, 0, Rectf(hstx,hsty,hstw,hsth))
 				}
+
 				if ( wh > cornerHeight * 2 ) {
-					ret ::= WQuad(Rectf(0.0f,cornerHeight,cornerWidth,sideHeight),img,edgeColor,0, Rectf(vstx,vsty,vstw,vsth))
-					ret ::= WQuad(Rectf(ww - cornerWidth,cornerHeight,cornerWidth,sideHeight),img,edgeColor,180, Rectf(vstx,vsty,vstw,vsth))
+					ret ::= WQuad(Rectf(0.0f,cornerHeight,cornerWidth,sideHeight),img,edgeColor, flipX = false, flipY = false, 0, Rectf(vstx,vsty,vstw,vsth))
+					ret ::= WQuad(Rectf(ww - cornerWidth,cornerHeight,cornerWidth,sideHeight),img,edgeColor, flipX = true, flipY = false, 0, Rectf(vstx,vsty,vstw,vsth))
 				}
 
 				ret.reverse
@@ -139,7 +140,7 @@ class BackgroundRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(W
 
 
 class ImageContentRenderer(WD : WindowingGraphicsData) extends WindowingRenderer(WD) {
-	override def render(widget: Widget, beforeChildren: Boolean): List[WQuad] = widget match {
+	override def render(widget: Widget, beforeChildren: Boolean, bounds: ReadVec2f, offset: ReadVec2f): List[WQuad] = widget match {
 		case w : ImageDisplayWidget =>
 			val img : Image = w.image.resolve()
 
@@ -163,7 +164,7 @@ class ImageContentRenderer(WD : WindowingGraphicsData) extends WindowingRenderer
 		case _ => Nil
 	}
 
-	override def intrinsicSize(widget: Widget) = widget match {
+	override def intrinsicSize(widget: Widget, fixedX: Option[Int], fixedY: Option[Int]): Option[ReadVec2i] = widget match {
 		case w : ImageDisplayWidget => w.scalingStyle match {
 			case ActualSize(scale) =>
 				val img : Image = w.image.resolve()

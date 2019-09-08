@@ -10,6 +10,7 @@ package arx.core.richer
 
 import arx.Prelude._
 import arx.application.Noto
+import arx.core.traits.TArxNumeric
 import arx.core.units.UnitOfMeasure
 
 class RicherFloat ( val f : Float ) extends AnyVal {
@@ -17,6 +18,7 @@ class RicherFloat ( val f : Float ) extends AnyVal {
 	def aeq ( a : Float , eps : Float ) : Boolean = { scala.math.abs(a - f) < eps }
 	def +- ( a : Float ) : EitherFloat = { new EitherFloat(f + a,f - a) }
 	def -+ ( a : Float ) : EitherFloat = { new EitherFloat(f - a,f + a) }
+	def + (o : RicherFloat) : RicherFloat = new RicherFloat(f + o.f)
 
 	def clamp ( minimum : Float , maximum : Float ) : Float = { scala.math.min(maximum,scala.math.max(f,minimum)) }
 	def clampFloor ( minimum : Float ) : Float = scala.math.max(f,minimum)
@@ -26,6 +28,8 @@ class RicherFloat ( val f : Float ) extends AnyVal {
 
 
 	def *[T <: UnitOfMeasure[T]] (u : UnitOfMeasure[T]) = u * f
+
+	def wrapped = new WrappedFloat(f)
 }
 
 class RicherDouble ( val d : Double ) extends AnyVal {

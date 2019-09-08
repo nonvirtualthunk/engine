@@ -33,13 +33,19 @@ abstract class EngineComponent[WorldType] (val world : WorldType, enginePiece : 
 		// process all the asynchronously queued events
 		listeners.foreach(l => l.process())
 
-		updateSelf(dt)
-		lastUpdated = curTime()
+		if (needsUpdate) {
+			updateSelf(dt)
+			lastUpdated = enginePiece.currentTime()
+		}
 	}
+
+	def timeSinceLastUpdate = enginePiece.currentTime() - lastUpdated
 
 	protected def updateSelf(dt : UnitOfTime): Unit = {
 
 	}
+
+	protected def needsUpdate = true
 
 	protected def initialize(): Unit = {
 

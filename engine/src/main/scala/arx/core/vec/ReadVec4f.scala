@@ -2,9 +2,10 @@ package arx.core.vec;
 import arx.core.Moddable
 import arx.core.SelfModdable
 import arx.core.mat.ReadMat4x4
+import arx.core.traits.TArxNumeric
 
 @SerialVersionUID(9223372036854770000L)
-class ReadVec4f extends InternVec4f with SelfModdable[ReadVec4f]{
+class ReadVec4f extends InternVec4f with SelfModdable[ReadVec4f] with TArxNumeric[ReadVec4f] {
 	def this(ra : Float,ga : Float,ba : Float,aa : Float){ 
 		this()
 		ri = ra
@@ -12,6 +13,7 @@ class ReadVec4f extends InternVec4f with SelfModdable[ReadVec4f]{
 		bi = ba
 		ai = aa
 	}
+	def zero = Vec4f.Zero
 	def +(m : Moddable[ReadVec4f]) = { val v = m.resolve(); new ReadVec4f(ri + v.ri,gi + v.gi,bi + v.bi,ai + v.ai) }
 	def +(v : ReadVec4f) = new ReadVec4f(ri + v.ri,gi + v.gi,bi + v.bi,ai + v.ai)
 	def +(s : Float) = new ReadVec4f(ri + s,gi + s,bi + s,ai + s)

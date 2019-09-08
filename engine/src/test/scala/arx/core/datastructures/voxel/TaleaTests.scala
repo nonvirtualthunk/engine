@@ -375,7 +375,7 @@ object PerformanceTestingVoxelGrid {
 //					iter.nextYRow(iter.dx+1)
 //
 //				val x = iter.tx + iter.dx
-//				val y = iter.ty + iter.dy
+//				val y = iter.tyche + iter.dy
 //				val z = iter.tz + iter.dz
 //
 //				val expected = (x+y+z-1).toByte +(x+y+z+1).toByte + (x+y+z-1).toByte +(x+y+z+1).toByte +

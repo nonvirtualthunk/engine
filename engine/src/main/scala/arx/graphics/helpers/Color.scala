@@ -9,6 +9,7 @@ package arx.graphics.helpers
  */
 
 import arx.Prelude
+import arx.application.Noto
 import arx.core.vec.ReadVec3f
 import arx.core.vec.ReadVec4f
 import arx.core.vec.ReadVec4i
@@ -17,6 +18,21 @@ import arx.core.vec.Vec4f
 import arx.core.vec.Vec4i
 
 object Color {
+	def fromHex(hexStr : String) : ReadVec4f = {
+		val digits = if (hexStr.startsWith("#")) { hexStr.substring(1, Math.min(hexStr.length, 7)) } else { hexStr }
+
+		val hstr = "0x" + digits
+		try {
+			val intval = Integer.decode(hstr)
+			val i = intval.intValue
+			Color((i >> 16) & 0xFF, (i >> 8) & 0xFF, i & 0xFF, 255)
+		} catch {
+			case nfe: NumberFormatException =>
+				Noto.error(s"Invalid hex str: $hexStr")
+				Color(255,255,255,255)
+		}
+	}
+
 	def apply ( r : Int , g : Int , b : Int , a : Int ) = Vec4f( r.toFloat/255.0f , g.toFloat/255.0f , b.toFloat/255.0f, a.toFloat/255.0f )
 	def apply ( r : Int , g : Int , b : Int ) = Vec3f( r.toFloat/255.0f , g.toFloat/255.0f , b.toFloat/255.0f)
 	def apply ( rgb : Int , a : Int ) = Vec4f( rgb.toFloat/255.0f , rgb.toFloat/255.0f , rgb.toFloat/255.0f, a.toFloat/255.0f )

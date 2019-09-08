@@ -1,13 +1,15 @@
 package arx.core.vec
 import arx.core.Moddable
 import arx.core.SelfModdable
+import arx.core.traits.TArxNumeric
 @SerialVersionUID(9223372036854770000L)
-class ReadVec2f extends InternVec2f with SelfModdable[ReadVec2f]{
+class ReadVec2f extends InternVec2f with SelfModdable[ReadVec2f] with TArxNumeric[ReadVec2f] {
 	def this(xa : Float,ya : Float){ 
 		this()
 		xi = xa
 		yi = ya
 	}
+	def zero = Vec2f.Zero
 	def +(m : Moddable[ReadVec2f]) = { val v = m.resolve(); new ReadVec2f(xi + v.xi,yi + v.yi) }
 	def +(v : ReadVec2f) = new ReadVec2f(xi + v.xi,yi + v.yi)
 	def +(s : Float) = new ReadVec2f(xi + s,yi + s)

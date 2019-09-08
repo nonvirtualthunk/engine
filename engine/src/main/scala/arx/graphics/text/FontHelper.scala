@@ -19,7 +19,7 @@ import arx.graphics.Image
 import arx.graphics.SubImageView
 
 
-class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
+class FontHelper(font: Font, pixelFont: Boolean = false) {
 	private val underlyingGraphicsWidth = (font.getSize*2.2*EngineCore.pixelScaleFactor).toInt
 	private val underlyingGraphicsHeight = (font.getSize*2.2*EngineCore.pixelScaleFactor).toInt
 	val bufferedImage = new BufferedImage(underlyingGraphicsWidth,underlyingGraphicsHeight, BufferedImage.TYPE_INT_ARGB)
@@ -46,7 +46,6 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 	val ascent = fm.getMaxAscent
 	val descent = fm.getMaxDescent
 	val lineHeight = fm.getHeight
-	def lineHeightPixels = pointsToPixels(lineHeight)
 
 	var retImage : Image = Image.withDimensions(underlyingGraphicsWidth,underlyingGraphicsHeight)
 
@@ -55,12 +54,6 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 		g.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR,0.0f))
 		g.setColor(backgroundColor)
 		g.fillRect(0,0,underlyingGraphicsWidth,underlyingGraphicsHeight)
-	}
-
-	def pointsToPixels(points : Int) = {
-		val out2d = new Point(0,0)
-		fm.getFontRenderContext.getTransform.transform(new Point(points,0), out2d)
-		out2d.x
 	}
 
 	/**
@@ -98,9 +91,9 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 				q += 1}
 			y += 1}
 		x += 1}
-		Image.save(retImage, s"/tmp/rawchars/$ch.png")
-		val retSubImage = new SubImageView(retImage,Recti(minX,0 + drop,math.max(maxX+1-minX,1),cHeight - drop))
-		Image.save(retSubImage, s"/tmp/chars/$ch.png")
+//		Image.save(retImage, s"/tmp/rawchars/$ch.png")
+		val retSubImage = new SubImageView(retImage,Recti(minX,0,math.max(maxX+1-minX,1),cHeight))
+//		Image.save(retSubImage, s"/tmp/chars/$ch.png")
 		retSubImage
 	}
 
@@ -109,17 +102,8 @@ class FontHelper(font:Font,pixelFont:Boolean = false,drop : Int = 0) {
 	}
 }
 
-protected class AWTFontGlyphSource extends GlyphSource {
-	var font : Font = null
-	var pixelFont : Boolean = false
-	var drop : Int = 0
-	var fontHelper : FontHelper = null
-
-	def init (): Unit = {
-		fontHelper = new FontHelper(font,pixelFont,drop)
-	}
-
-	def lineHeightPixels = fontHelper.lineHeightPixels
+protected class AWTFontGlyphSource(val fontHelper : FontHelper) extends GlyphSource {
+	def lineHeightPixels = fontHelper.lineHeight
 
 	override def canProvideGlyphFor(char: Char): Boolean = true
 	override def glyphFor(char: Char): Image = {
@@ -128,16 +112,11 @@ protected class AWTFontGlyphSource extends GlyphSource {
 }
 
 object AWTFontGlyphSource {
-	def apply (fontStream : InputStream, basePointSize : Int, pixelFont : Boolean = false, drop : Int = 0) : AWTFontGlyphSource = {
+	def apply (fontStream : InputStream, basePointSize : Int, pixelFont : Boolean = false) : AWTFontGlyphSource = {
 		val f = Font.createFont(Font.TRUETYPE_FONT,fontStream).deriveFont(Font.PLAIN,basePointSize)
-		AWTFontGlyphSource(f,pixelFont,drop)
+		AWTFontGlyphSource(f,pixelFont)
 	}
-	def apply (font : Font, pixelFont : Boolean, drop : Int) : AWTFontGlyphSource = {
-		val src = new AWTFontGlyphSource
-		src.font = font
-		src.pixelFont = pixelFont
-		src.drop = drop
-		src.init()
-		src
+	def apply (font : Font, pixelFont : Boolean) : AWTFontGlyphSource = {
+		new AWTFontGlyphSource(new FontHelper(font, pixelFont))
 	}
 }

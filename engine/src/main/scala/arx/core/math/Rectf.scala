@@ -19,6 +19,8 @@ case class Rectf (var x : Float, var y : Float, var width : Float, var height : 
 	def minX = x
 	def maxY = y + h
 	def minY = y
+	def centerX = x + w * 0.5f
+	def centerY = y + h * 0.5f
 
 	def w = width
 	def h = height
@@ -35,9 +37,14 @@ case class Rectf (var x : Float, var y : Float, var width : Float, var height : 
 		Rectf(lx,ly,hx-lx,hy-ly)
 	}
 
+	def translate(offset : ReadVec2f) : Rectf = {
+		Rectf(x + offset.x, y + offset.y, w, h)
+	}
+
 	def toRecti : Recti = Recti(x.toInt,y.toInt,w.toInt,h.toInt)
 	def xy = Vec2f(x,y)
 	def dimensions = Vec2f(width,height)
+
 }
 
 object Rectf {

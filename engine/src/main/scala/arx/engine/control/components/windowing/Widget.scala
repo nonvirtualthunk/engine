@@ -52,6 +52,8 @@ class Widget(val _parent : Widget) extends TEventUser with THasInternalAuxData[T
 	protected[windowing] def isSelfModified = false
 	def resetModified() = _isModified = false
 
+	def hasFocus = eventHandlingRO.hasFocus
+
 	def updateSelf(){}
 
 

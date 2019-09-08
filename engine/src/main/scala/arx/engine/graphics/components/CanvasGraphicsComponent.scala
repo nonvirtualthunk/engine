@@ -25,12 +25,12 @@ abstract class CustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Man
 	val _canvas : CanvasType = ReflectionAssistant.instantiate[CanvasType](manifest[CanvasType])
 	var viewport = GL.viewport
 	var depthTest = false
+	var depthFunc = GL_LESS
 
 	def canvas = _canvas
 
 	def createCanvas = new Canvas
 
-	def needsUpdate = true
 	def updateStarted() {}
 	def updateComplete() {}
 
@@ -60,6 +60,7 @@ abstract class CustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_] : Man
 
 		arx.graphics.GL.glSetState(GL_CULL_FACE, enable = false)
 		arx.graphics.GL.glSetState(GL_DEPTH_TEST, enable = depthTest)
+		arx.graphics.GL.glSetDepthFunc(depthFunc)
 		arx.graphics.GL.glSetState(GL_BLEND, enable = true)
 
 		shader.bind()
@@ -88,7 +89,6 @@ abstract class LCustomCanvasGraphicsComponent[CanvasType <: CustomCanvas[_]](ge 
 
 	def createCanvas = new Canvas
 
-	def needsUpdate = true
 	def updateStarted() {}
 	def updateComplete() {}
 

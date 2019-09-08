@@ -1,56 +1,74 @@
-package arx.gui2.widgets
-
-/**
- * Created with IntelliJ IDEA.
- * User: nvt
- * Date: 10/4/13
- * Time: 12:39 PM
- * To change this template use File | Settings | File Templates.
- */
+package arx.engine.control.components.windowing.widgets
 
 import arx.Prelude._
 import arx.application.Noto
 import arx.core.Moddable
 import arx.core.representation.ConfigValue
-import arx.core.vec.Vec2f
+import arx.core.vec.{ReadVec2f, ReadVec4f, Vec2T, Vec2f, Vec2i, Vec4f}
 import arx.graphics.Image
-import arx.gui2.events.FocusLostEvent
-import arx.gui2.rendering.TextEditorWidgetRenderingComponent
-import arx.gui2.widgets.TextEditorWidget._
-import arx.gui2.Widget
-import arx.gui2.WindowingSystem2
-import arx.core.ImplicitModdable._
-import arx.gui2.events._
 import arx.core.vec.Cardinals._
-import arx.engine.control.event.Event.{KeyPressEvent, MouseDragEvent, MousePressEvent, TextInputCancel, TextInputChanged, TextInputCursorMoved, TextInputEnter}
+import arx.engine.EngineCore
+import arx.engine.control.components.windowing.events.{FocusLostEvent, RequestFocusEvent}
+import arx.engine.control.components.windowing.{Widget, WindowingSystem}
+import arx.engine.control.components.windowing.widgets.TextEditorWidget.{CursorMoved, EditorOperation, SelectionMarkerChanged, TextDeleted, TextInserted}
+import arx.engine.control.components.windowing.widgets.data.EventHandlingData
+import arx.engine.control.event.Event.{CharEnteredEvent, KeyPressEvent, MouseDragEvent, MousePressEvent, TextInputCancel, TextInputChanged, TextInputCursorMoved, TextInputEnter}
+import arx.graphics.helpers.{RichText, TextSection}
 import org.lwjgl.glfw.GLFW
+import scalaxy.loops._
 
 import scala.collection.immutable.Stack
 
-class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis) {
+class TextEditorWidget ( parentis : Widget ) extends Widget(parentis) {
+	width = DimensionExpression.WrapContent
+	height = DimensionExpression.WrapContent
+
 	protected var internalText = new StringBuilder
 	var singleLine = false
 	var autoIndent = false
 	var onDemandEditor = false
-	acceptsFocus = true
+	this.auxData[EventHandlingData].acceptsFocus = true
+
+	var promptText = ""
+	var promptColor : Moddable[ReadVec4f] = Moddable(Vec4f(0.5f,0.5f,0.6f,1.0f))
 
 	protected var cursor = 0 //Cursor is before the element at this index
+	protected var richTextCursor = 0 // cursor index before adjusting for rich text
 	protected var selectionMarker : Option[Int] = None
 	protected var undoStack = Stack[EditorOperation]()
 	protected var redoStack = Stack[EditorOperation]()
 
-	val editorRenderer = new TextEditorWidgetRenderingComponent(textRenderer,cursor _,selectedRange  _,shouldShowCursor _)
-	renderers = renderers.head :: editorRenderer :: renderers.tail
-	pixelScale = 2
+	drawing.backgroundImage = Some("ui/minimalistBorderWhite_ne.png")
+	drawing.interiorPadding = Vec2i(4,4)
 
-	def setInitialText (str : String): Unit = {
+	val textDisplay = new TextDisplayWidget(this)
+	textDisplay.dimensions = Vec2T(DimensionExpression.Intrinsic, DimensionExpression.Intrinsic)
+	textDisplay.text = Moddable(() => richTextFromRaw(this.text))
+
+	val promptTextDisplay = new TextDisplayWidget(this)
+	promptTextDisplay.dimensions = Vec2T(DimensionExpression.Intrinsic, DimensionExpression.Intrinsic)
+	promptTextDisplay.text = Moddable(() => RichText(TextSection(promptText, promptColor.resolve(), None) :: Nil))
+	promptTextDisplay.x = PositionExpression.Relative(textDisplay, 1)
+
+
+	def text = internalText.toString()
+	protected def richTextFromRaw(str : String) = RichText(str)
+	protected def rawIndexFromRichTextIndex(index : Int) = index
+
+	def setText (str : String, suppressEvent: Boolean = false): Unit = {
 		internalText.clear()
 		internalText.append(str)
+		if (!suppressEvent) {
+			handleEvent(TextInputChanged(text))
+		}
 	}
 
-	protected def shouldShowCursor = if (onDemandEditor) {
-		hasFocus
-	} else { true }
+	def setTextPrompt(str : String) : Unit = {
+		promptText = str
+	}
+
+	def cursorShowing = if (onDemandEditor) { hasFocus } else { true }
+	def cursorIndex = cursor
 
 	def continueEditorOperation[T <: TextEditorWidget.EditorOperation : Manifest](orElse : => T) : T = {
 		undoStack.headOption match {
@@ -67,12 +85,10 @@ class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis)
 	}
 
 	def currentText = internalText.toString()
-	override def text = currentText _
-	override def text_= ( t : Moddable[String] ) {
-		Noto.warn("Do not attempt to set the text of a text editor widget directly, please")
-	}
+	
 	def clear () {
 		internalText.clear()
+		promptText = ""
 		cursor = 0
 		selectionMarker = None
 		undoStack = Stack()
@@ -124,15 +140,17 @@ class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis)
 		else { setSelectionMarker(cursor) }
 	}
 
-	def insertChar ( char : Character, createUndoSteps : Boolean = true ) {
+	def insertStr(str : String, createUndoSteps : Boolean = true ) {
+		if (str.isEmpty) { return }
+
 		if ( selectionMarker.nonEmpty ) { deleteSelection() }
-		internalText = internalText.insert(cursor,char)
-		fireEvent ( TextInputChanged(text) )
+		internalText = internalText.insert(cursor,str)
+		handleEvent ( TextInputChanged(text) )
 
 		if ( createUndoSteps ) {
 			val operation = continueEditorOperation(new TextInserted(cursor))
-			operation.text += char
-			if ( ! Character.isLetterOrDigit(char) ) {
+			operation.text += str
+			if ( ! Character.isLetterOrDigit(str.charAt(0)) ) {
 				pushUndoOperation(new TextInserted(cursor+1))
 			}
 			clearRedoStack()
@@ -176,16 +194,45 @@ class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis)
 		}
 	}
 
+	protected def intersectedIndex(rawAbsolutePos : ReadVec2f) : Int = {
+		val absolutePos = rawAbsolutePos * EngineCore.pixelScaleFactor
+
+		val renderedData = textDisplay.auxData[TextDisplayRenderedGlyphData]
+		val rects = renderedData.glyphRects
+		if (rects.isEmpty || rects.head.y > absolutePos.y) {
+			-1
+		} else {
+			var minDist = 10000000.0f
+			var minDistIndex = rects.size
+			for (i <- 0 until rects.size optimized) {
+				val rect = rects(i).translate(renderedData.absoluteOffset)
+				if (absolutePos.y >= rect.y && absolutePos.y <= rect.maxY) {
+					val dist1 = (absolutePos.x - rect.minX).abs
+					if (dist1 < minDist) {
+						minDist = dist1
+						minDistIndex = i
+					}
+
+					val dist2 = (absolutePos.x - rect.maxX).abs
+					if (dist2 < minDist) {
+						minDist = dist2
+						minDistIndex = i + 1
+					}
+				}
+				// TODO: Short circuit if past line we need
+			}
+			minDistIndex
+		}
+	}
+
 	consumeEvent {
 		case mde : MouseDragEvent => {
-			val relativePos = mde.mousePos.xy - this.absolutePosition.xy
-			val hitIndex = textRenderer.intersectedIndex(relativePos)
+			val hitIndex = intersectedIndex(mde.mousePos.xy)
 			updateSelectionMarker( clear = false )
 			moveCursorTo(hitIndex,createUndoStep = true)
 		}
 		case mpe : MousePressEvent => {
-			val relativePos = mpe.mousePos.xy - this.absolutePosition.xy
-			val hitIndex = textRenderer.intersectedIndex(relativePos)
+			val hitIndex = intersectedIndex(mpe.mousePos.xy)
 			updateSelectionMarker( ! mpe.modifiers.shift )
 			moveCursorTo(hitIndex,createUndoStep = true)
 		}
@@ -205,41 +252,40 @@ class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis)
 					updateSelectionMarker( ! kpe.modifiers.shift )
 					moveCursorTo(moveTo,createUndoStep = true)
 				}
-				case GLFW.GLFW_KEY_DOWN => {
-					updateSelectionMarker( ! kpe.modifiers.shift )
-					val currentPos = editorRenderer.cursorPosition
-					val targetPos = currentPos + Vec2f(0.0f, textRenderer.lineHeight * 1.5f)
-					moveCursorTo( textRenderer.intersectedIndex(targetPos) ,createUndoStep = true)
-				}
-				case GLFW.GLFW_KEY_UP => {
-					updateSelectionMarker( ! kpe.modifiers.shift )
-					val currentPos = editorRenderer.cursorPosition
-					val targetPos = currentPos - Vec2f(0.0f, textRenderer.lineHeight * 0.5f)
-					moveCursorTo( textRenderer.intersectedIndex(targetPos) ,createUndoStep = true)
-				}
+//				case GLFW.GLFW_KEY_DOWN => {
+//					updateSelectionMarker( ! kpe.modifiers.shift )
+//					val currentPos = editorRenderer.cursorPosition
+//					val targetPos = currentPos + Vec2f(0.0f, textRenderer.lineHeight * 1.5f)
+//					moveCursorTo( textRenderer.intersectedIndex(targetPos) ,createUndoStep = true)
+//				}
+//				case GLFW.GLFW_KEY_UP => {
+//					updateSelectionMarker( ! kpe.modifiers.shift )
+//					val currentPos = editorRenderer.cursorPosition
+//					val targetPos = currentPos - Vec2f(0.0f, textRenderer.lineHeight * 0.5f)
+//					moveCursorTo( textRenderer.intersectedIndex(targetPos) ,createUndoStep = true)
+//				}
 				case GLFW.GLFW_KEY_DELETE | GLFW.GLFW_KEY_BACKSPACE => {
 					deleteSelection()
 				}
 				case GLFW.GLFW_KEY_V if kpe.modifiers.ctrl => {
 					if ( selectionMarker.nonEmpty ) { deleteSelection() }
-					WindowingSystem2.clipboardText match {
-						case Some(str) => for ( char <- str ) {
-							insertChar(char)
+					WindowingSystem.clipboardText match {
+						case Some(str) =>
+							insertStr(str)
 							moveCursorTo(cursor + 1)
-						}
 						case None =>
 					}
 				}
 				case GLFW.GLFW_KEY_C if kpe.modifiers.ctrl => {
 					selectedRange match {
-						case Some((start,end)) => WindowingSystem2.copyTextToClipboard( currentText.substring(start,end) )
+						case Some((start,end)) => WindowingSystem.copyTextToClipboard( currentText.substring(start,end) )
 						case _ =>
 					}
 				}
 				case GLFW.GLFW_KEY_X if kpe.modifiers.ctrl => {
 					selectedRange match {
 						case Some((start,end)) => {
-							WindowingSystem2.copyTextToClipboard( currentText.substring(start,end) )
+							WindowingSystem.copyTextToClipboard( currentText.substring(start,end) )
 							deleteSelection()
 						}
 						case _ =>
@@ -250,18 +296,18 @@ class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis)
 				case GLFW.GLFW_KEY_Z if kpe.modifiers.ctrl && kpe.modifiers.shift => redo()
 				case GLFW.GLFW_KEY_Y if kpe.modifiers.ctrl => redo()
 				case GLFW.GLFW_KEY_ENTER if singleLine && onDemandEditor => {
-					fireEvent(TextInputEnter(text))
-					for (p <- parent) { windowingSystem.giveFocusTo(p) }
+					handleEvent(TextInputEnter(text))
+					handleEvent(RequestFocusEvent(parent))
 				}
 				case GLFW.GLFW_KEY_ESCAPE if singleLine && onDemandEditor => {
-					fireEvent(TextInputCancel(text))
-					for (p <- parent) { windowingSystem.giveFocusTo(p) }
+					handleEvent(TextInputCancel(text))
+					handleEvent(RequestFocusEvent(parent))
 				}
 				case GLFW.GLFW_KEY_ENTER if singleLine || kpe.modifiers.ctrl => {
-					fireEvent( TextInputEnter(text) )
+					handleEvent( TextInputEnter(text) )
 				}
 				case GLFW.GLFW_KEY_ENTER if ! singleLine => {
-					insertChar('\n')
+					insertStr("\n")
 					moveCursorTo( cursor + 1 )
 					if ( autoIndent ) {
 						var previousNewlineIndex = cursor - 2
@@ -270,41 +316,45 @@ class TextEditorWidget ( parentis : Widget ) extends TextDisplayWidget(parentis)
 						previousNewlineIndex += 1
 						while ( previousNewlineIndex <= cursor - 2 && internalText(previousNewlineIndex) == '\t' ) { tabCount += 1; previousNewlineIndex += 1 }
 						for ( t <- 0 until tabCount ) {
-							insertChar('\t')
+							insertStr("\t")
 							moveCursorTo(cursor + 1)
 						}
 					}
 				}
 				case GLFW.GLFW_KEY_TAB if ! singleLine => { //tabs don't make sense for single line text editors really
-					insertChar('\t')
+					insertStr("\t")
 					clearSelectionMarker()
 					moveCursorTo( cursor + 1 )
 				}
-				case _ if kpe.asciiChar >= ' ' && kpe.asciiChar <= '~' => {
-					insertChar(kpe.asciiChar)
-					clearSelectionMarker()
-					moveCursorTo( cursor + 1 )
-				}
+//				case _ if kpe.asciiChar >= ' ' && kpe.asciiChar <= '~' => {
+//					insertStr(kpe.asciiChar)
+//					clearSelectionMarker()
+//					moveCursorTo( cursor + 1 )
+//				}
 				case _ => false
 			}
 		}
+		case CharEnteredEvent(str) =>
+			insertStr(str)
+			clearSelectionMarker()
+			moveCursorTo( cursor + 1 )
 	}
 
 	onEvent {
 		case fle : FocusLostEvent => clearSelectionMarker()
 	}
 
-	override protected[gui2] def SMLTypeIdentifier = "text editor"
-
-	//+====================+ SML Interface +====================+
-	override def setFromSML(sml: ConfigValue,overwrite:Boolean) = {
-		if ( overwrite && sml.text.nonEmpty ) { internalText = new StringBuilder( sml.text.str ) }
-		autoIndent = sml.autoIndent.boolOrElse(autoIndent)
-		singleLine = sml.singleLine.boolOrElse(singleLine)
-		onDemandEditor = sml.onDemandEditor.boolOrElse(onDemandEditor)
-		super.setFromSML (sml,overwrite)
-
-	}
+//	override protected[gui2] def SMLTypeIdentifier = "text editor"
+//
+//	//+====================+ SML Interface +====================+
+//	override def setFromSML(sml: ConfigValue,overwrite:Boolean) = {
+//		if ( overwrite && sml.text.nonEmpty ) { internalText = new StringBuilder( sml.text.str ) }
+//		autoIndent = sml.autoIndent.boolOrElse(autoIndent)
+//		singleLine = sml.singleLine.boolOrElse(singleLine)
+//		onDemandEditor = sml.onDemandEditor.boolOrElse(onDemandEditor)
+//		super.setFromSML (sml,overwrite)
+//
+//	}
 }
 
 object TextEditorWidget {
@@ -364,36 +414,9 @@ object TextEditorWidget {
 	}
 }
 
-class TextInput(parentis : Widget) extends TextEditorWidget(parentis) {
+class TextInputWidget(parentis : Widget) extends TextEditorWidget(parentis) {
 	singleLine = true
 	onDemandEditor = true
-	textAlignment = Center
 
-	override protected[gui2] def SMLTypeIdentifier: String = "text input"
-}
-
-class TextControl (parentis : Widget) extends Widget(parentis) {
-	val label = new TextDisplayWidget(this)
-	label.backgroundImage = Image.Sentinel
-	label.matchTextDimensions()
-	label.centerVertically()
-	label.x = 0.5f
-	val input = new TextInput(this)
-	input.pixelScale = 1
-	input.width = () => this.clientWidth - input.x - 0.5f
-	input.centerVertically()
-
-	input.dockRight(label,0.5f)
-
-	def currentValue = input.currentText
-
-	override protected[gui2] def SMLTypeIdentifier: String = "text control"
-
-	//+====================+ SML Interface +====================+
-	override def setFromSML(sml: ConfigValue, overwrite: Boolean): Unit = {
-		if (sml.label.nonEmptyValue) { label.text = sml.label.str }
-		if (sml.initialValue.nonEmptyValue) { input.setInitialText(sml.initialValue.str) }
-
-		super.setFromSML (sml, overwrite)
-	}
+//	override protected[gui2] def SMLTypeIdentifier: String = "text input"
 }

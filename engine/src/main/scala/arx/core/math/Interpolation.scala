@@ -1,6 +1,8 @@
 package arx.core.math
 
 import arx.Prelude
+import arx.core.traits.TArxNumeric
+import arx.core.units.UnitOfTime
 import arx.core.vec.coordinates.{CartVec, CartVec3}
 import arx.core.vec.{ReadVec2f, ReadVec2i, Vec2i}
 import arx.engine.data.Reduceable
@@ -10,6 +12,9 @@ import scala.language.implicitConversions
 
 trait Interpolation[T] {
 	def interpolate(pcnt : Float) : T
+
+	def interpolate(startTime : UnitOfTime, duration : UnitOfTime, curTime : UnitOfTime) : T =
+		interpolate((curTime - startTime).inSeconds / duration.inSeconds)
 
 	def sin010 : Interpolation[T] = {
 		val outer = this
@@ -81,8 +86,12 @@ object Interpolation {
 		override def interpolate(pcnt: Float): HSBA = HSBA(a + (b-a) * pcnt)
 	}
 
+	def between[T <: TArxNumeric[T]](a : T , b : T) : Interpolation[T] = new Interpolation[T] {
+		override def interpolate(pcnt: Float): T = a + (b-a) * pcnt
+	}
+
 	def betweenI(a : Reduceable[Int], b : Reduceable[Int]) : Interpolation[Reduceable[Int]] = new Interpolation[Reduceable[Int]] {
-		override def interpolate(pcnt: Float): Reduceable[Int] = new Reduceable[Int]((a.baseValue + (b.baseValue - a.baseValue) * pcnt).toInt, (a.reducedBy + (b.reducedBy - a.reducedBy) * pcnt).toInt)
+		override def interpolate(pcnt: Float): Reduceable[Int] = new Reduceable[Int]((a.baseValue + (b.baseValue - a.baseValue) * pcnt).round, (a.reducedBy + (b.reducedBy - a.reducedBy) * pcnt).round)
 	}
 
 //	def between[T : Numeric](a : Reduceable[T], b : Reduceable[T]) : Interpolation[Reduceable[T]] = new Interpolation[Reduceable[T]] {

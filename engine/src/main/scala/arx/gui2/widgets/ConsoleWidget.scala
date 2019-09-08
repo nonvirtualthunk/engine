@@ -20,7 +20,7 @@ import arx.core.Moddable
 import arx.core.repl.ArxInterpreter
 import arx.core.vec.Cardinals._
 import arx.engine.control.event.Event.KeyPressEvent
-import arx.gui2.events.TextInputEnter
+import arx.engine.control.event.Event.TextInputEnter
 
 class ConsoleWidget(parentis:Widget) extends Widget(parentis) {
 	val sw = new StringWriter()

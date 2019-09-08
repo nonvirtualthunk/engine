@@ -47,6 +47,7 @@ abstract class EngineCore {
 	var fullscreen = false
 	var hasFocus = true
 	var fullPause = false
+	val multisample = "true" == System.getenv("MULTISAMPLE")
 
 	var mouseGrabbed = false
 
@@ -100,6 +101,7 @@ abstract class EngineCore {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2)
 //		glfwWindowHint(GLFW_STENCIL_BITS, 8)
+		if (multisample) { glfwWindowHint(GLFW_SAMPLES, 4) }
 
 
 		// Create the window
@@ -268,6 +270,7 @@ abstract class EngineCore {
 
 		// Set the clear color
 		glClearColor(clearColor.r,clearColor.g,clearColor.b,clearColor.a)
+		if (multisample) { glEnable(GL13.GL_MULTISAMPLE) }
 
 		arx.graphics.GL.maximumViewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
 		arx.graphics.GL.setViewport(Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y))
@@ -275,50 +278,66 @@ abstract class EngineCore {
 		arx.graphics.GL.glSetState(GL_BLEND,enable = true)
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
 
+		var lastLoop = GLFW.glfwGetTime()
 		var lastUpdated = GLFW.glfwGetTime()
 
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
 		while (!glfwWindowShouldClose(window)) {
-			if (hasFocus && ! fullPause) {
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
-				if (arx.graphics.GL.viewportSize != desiredViewportSize) {
-					arx.graphics.GL.maximumViewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
-					arx.graphics.GL.setViewport(Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y))
-				}
-			}
+			val doesNeedDraw = needsDraw
 
 			val curTime = GLFW.glfwGetTime()
-			val deltaSeconds = curTime - lastUpdated
-			lastUpdated = curTime
-			if (deltaSeconds > (0.016666667 * 1.25)) {
-//				Noto.info("Long update time: " + deltaSeconds)
-			}
+			val deltaSeconds = curTime - lastLoop
+			if (deltaSeconds < 0.01) {
+				LockSupport.parkNanos(100000L)
+			} else {
+				if (hasFocus && !fullPause && doesNeedDraw) {
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
-			if (!fullPause) {
-				update(deltaSeconds.toFloat)
-			}
+					if (arx.graphics.GL.viewportSize != desiredViewportSize) {
+						arx.graphics.GL.maximumViewport = Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y)
+						arx.graphics.GL.setViewport(Recti(0, 0, desiredViewportSize.x, desiredViewportSize.y))
+					}
+				}
 
-			if (hasFocus && ! fullPause) {
-				draw()
+				lastLoop = curTime
 
-				glfwSwapBuffers(window) // swap the color buffers
-			}
+				if (deltaSeconds > (0.016666667 * 1.25)) {
+					//				Noto.info("Long update time: " + deltaSeconds)
+				}
 
-			// Poll for window events. The key callback above will only be
-			// invoked during this call.
-			glfwPollEvents()
-			if (!hasFocus || fullPause) {
-				LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 60th of a second
+
+				if (!fullPause) {
+					val t = GLFW.glfwGetTime()
+					update((t - lastUpdated).toFloat)
+					lastUpdated = t
+				}
+
+				if (hasFocus && !fullPause && doesNeedDraw) {
+					draw()
+
+					glfwSwapBuffers(window) // swap the color buffers
+				}
+
+				// Poll for window events. The key callback above will only be
+				// invoked during this call.
+				glfwPollEvents()
+				if (!hasFocus || fullPause) {
+					LockSupport.parkNanos((0.1 * 1e9f).toLong) // wait a 10th of a second
+				} else if (!doesNeedDraw) {
+					LockSupport.parkNanos((0.016 * 1e9f).toLong) // wait a 60th of a second
+				}
+
 			}
 		}
 	}
 
 
-	def update(deltaSeconds: Float)
+	def update(deltaSeconds : Float)
 
 	def draw()
+
+	def needsDraw : Boolean = true
 
 	def scalaMain(args: Array[String]) {
 		val moduleField = this.getClass.getField("MODULE$")

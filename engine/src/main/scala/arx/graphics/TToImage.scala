@@ -33,6 +33,13 @@ class FetchImage(val str:String) extends TToImage {
 	def image = ResourceManager.getImage(str)
 
 	override def toString: String = s"FetchImage($str)"
+
+	override def equals(other: Any): Boolean = other match {
+		case fimage : FetchImage => fimage.str == this.str
+		case _ => false
+	}
+
+	override def hashCode(): Int = str.hashCode
 }
 class ImageFunc(func: => Image) extends TToImage {
 	lazy val img = func

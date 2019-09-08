@@ -16,6 +16,8 @@ import scalaxy.loops._
 case class WQuad(rect : Rectf,
 					  image : TToImage,
 					  color : ReadVec4f,
+					  flipX : Boolean = false,
+					  flipY : Boolean = false,
 					  rotation : Int = 0,
 					  subRect : Rectf = WQuad.StandardRect,
 					  texCoords : Option[Array[ReadVec2f]] = None) {

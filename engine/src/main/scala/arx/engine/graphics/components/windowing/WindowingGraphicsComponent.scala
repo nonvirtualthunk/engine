@@ -10,7 +10,7 @@ import arx.Prelude._
 import arx.application.Noto
 import arx.core.datastructures.{Watcher, Watcher2, Watcher3}
 import arx.core.introspection.ReflectionAssistant
-import arx.core.math.{Rectf, Recti}
+import arx.core.math.Rectf
 import arx.core.units.UnitOfTime
 import arx.core.vec._
 import arx.engine.advanced.lenginecomponents.LGraphicsComponent
@@ -23,20 +23,21 @@ import arx.engine.graphics.components.windowing.WindowingGraphicsComponent.Widge
 import arx.engine.graphics.components.{DrawPriority, GraphicsComponent}
 import arx.engine.graphics.data.WindowingGraphicsData
 import arx.graphics.helpers.Color
-import arx.graphics.{GL, VBO}
+import arx.graphics.{AVBO, GL, VBO}
 import arx.gui2.rendering.WindowingSystemAttributeProfile2._
 import arx.resource.ResourceManager
 import org.lwjgl.opengl.GL11
-import org.pybee.cassowary.Expression
+import scalaxy.loops._
 
 import scala.collection.mutable
 import scala.language.postfixOps
-import scalaxy.loops._
 
 
 class WindowingGraphicsComponent(graphicsEngine: GraphicsEngine) extends GraphicsComponent(graphicsEngine) {
 	val WD = graphics[WindowingGraphicsData]
 	drawOrder = DrawPriority.Final
+
+	def needsRedraw = core.needsRedraw
 
 	val core = new WindowingGraphicsComponentCore(WD)
 
@@ -74,12 +75,16 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 		.map(c => ReflectionAssistant.instantiate(c, WD))
 
 	val watchers = new mutable.HashMap[Widget, WidgetWatchers]()
-	val solver = new Solver
 
 	val updateRevision = new AtomicLong(1L)
 	val solidifiedRevision = new AtomicLong(0L)
 
 	var renderedViewport = GL.viewport
+
+	val viewportWatcher = new Watcher(renderedViewport)
+
+	var customVBOs = List[AVBO]()
+	var needsRedraw = true
 
 	def createWatchers(widget: Widget) = WidgetWatchers(Watcher(widget.position), Watcher(widget.dimensions), Watcher(widget.showing.resolve()))
 
@@ -105,10 +110,16 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 		}
 		vbo.drawElements(GL11.GL_TRIANGLES)
 
+		customVBOs.foreach(cvbo => {
+			cvbo.solidifyIfNecessary()
+			cvbo.drawElements(GL11.GL_TRIANGLES)
+		})
+
 		GL.glSetState(GL11.GL_DEPTH_TEST, true)
+		needsRedraw = false
 	}
 
-	val viewportWatcher = new Watcher(renderedViewport)
+
 	def updateSelf(dt: UnitOfTime): Unit = {
 		WD.desktop.synchronized {
 			var anyChanged = false
@@ -117,12 +128,8 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 				WD.desktop.height = DimensionExpression.Constant(GL.viewport.height)
 				anyChanged = true
 			}
+			anyChanged ||= checkForWidgetChanges(WD.desktop)
 
-			anyChanged ||= updateWidgetConstraints(WD.desktop)
-
-	//		solver.resolve()
-
-			anyChanged ||= solver.updateDynamicExpressions()
 			if (anyChanged) {
 				updateRevision.incrementAndGet()
 				if (!vbo.changeState(VBO.Updated, VBO.Dirty) && !vbo.changeState(VBO.Clean, VBO.Dirty)) {
@@ -130,15 +137,15 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 				}
 
 				updateResolvedWidgetVariables(WD.desktop, new mutable.HashSet[Widget]())
-			}
 
-	//		solver.solve(anyChanged)
-
-			if (vbo.changeState(VBO.Dirty, VBO.Updating)) {
-				vbo.clear()
-				// could if(anyChanged) here
-				updateWindowingDrawData(WD.desktop, Rectf(0, 0, GL.viewport.w, GL.viewport.h))
-				vbo.state.set(VBO.Updated)
+				if (vbo.changeState(VBO.Dirty, VBO.Updating)) {
+					vbo.softClear()
+					// could if(anyChanged) here
+					customVBOs = Nil
+					updateWindowingDrawData(WD.desktop, Rectf(0, 0, GL.viewport.w, GL.viewport.h))
+					vbo.state.set(VBO.Updated)
+					needsRedraw = true
+				}
 			}
 		}
 	}
@@ -154,53 +161,90 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 //		Noto.info(s"Widget ${w.identifier} of class ${w.getClass.getSimpleName} bounds $bounds and relPos $relPos")
 		Noto.indentation += 1
 
-		def renderQuad(quad : WQuad): Unit = {
-			val ii = vbo.incrementIndexOffset(6)
-			val vi = vbo.incrementVertexOffset(4)
+		def renderQuads(quads : Traversable[WQuad]): Unit = {
+			for (quad <- quads) {
+				val ii = vbo.incrementIndexOffset(6)
+				val vi = vbo.incrementVertexOffset(4)
+				vbo.setA(V, vi + 0, bounds.x + relPos.x + quad.rect.minX, bounds.y + relPos.y + quad.rect.minY)
+				vbo.setA(V, vi + 1, bounds.x + relPos.x + quad.rect.minX, bounds.y + relPos.y + quad.rect.maxY)
+				vbo.setA(V, vi + 2, bounds.x + relPos.x + quad.rect.maxX, bounds.y + relPos.y + quad.rect.maxY)
+				vbo.setA(V, vi + 3, bounds.x + relPos.x + quad.rect.maxX, bounds.y + relPos.y + quad.rect.minY)
 
-			vbo.setA(V, vi + 0, bounds.x + relPos.x + quad.rect.minX, bounds.y + relPos.y + quad.rect.minY)
-			vbo.setA(V, vi + 1, bounds.x + relPos.x + quad.rect.minX, bounds.y + relPos.y + quad.rect.maxY)
-			vbo.setA(V, vi + 2, bounds.x + relPos.x + quad.rect.maxX, bounds.y + relPos.y + quad.rect.maxY)
-			vbo.setA(V, vi + 3, bounds.x + relPos.x + quad.rect.maxX, bounds.y + relPos.y + quad.rect.minY)
-
-			val imgRect = textureBlock.getOrElseUpdateRectFor(quad.image)
-			val tpos = imgRect.xy  + quad.subRect.xy * imgRect.dimensions
-			val tdim = imgRect.dimensions * quad.subRect.dimensions
-			val tcs = quad.texCoords match {
-				case Some(rawTcs) => rawTcs
-				case None => Array(Vec2f(tpos.x,tpos.y),
-					Vec2f(tpos.x + tdim.x,tpos.y),
-					Vec2f(tpos.x + tdim.x,tpos.y + tdim.y),
-					Vec2f(tpos.x,tpos.y + tdim.y))
-			}
-
-			val toff = 3 + quad.rotation / 90
-			for (q <- 0 until 4 optimized) {
-				vbo.setA(C, vi + q, quad.color)
-				if (tcs((q + toff) % 4) == null) {
-					println("BAD")
+				val imgRect = textureBlock.getOrElseUpdateRectFor(quad.image)
+				val tpos = imgRect.xy + quad.subRect.xy * imgRect.dimensions
+				val tdim = imgRect.dimensions * quad.subRect.dimensions
+				val tcs = quad.texCoords match {
+					case Some(rawTcs) => rawTcs
+					case None => Array(Vec2f(tpos.x, tpos.y),
+						Vec2f(tpos.x + tdim.x, tpos.y),
+						Vec2f(tpos.x + tdim.x, tpos.y + tdim.y),
+						Vec2f(tpos.x, tpos.y + tdim.y))
 				}
-				vbo.setA(TC, vi + q, tcs((q + toff) % 4))
-				vbo.setA(B, vi + q, bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h)
+
+				if (quad.rotation != 0) {
+					val toff = 3 + quad.rotation / 90
+					for (q <- 0 until 4 optimized) {
+						vbo.setA(C, vi + q, quad.color)
+						if (tcs((q + toff) % 4) == null) {
+							println("BAD")
+						}
+						vbo.setA(TC, vi + q, tcs((q + toff) % 4))
+						vbo.setA(B, vi + q, bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h)
+					}
+				} else if (quad.flipX || quad.flipY) {
+					val minTC = tcs(0)
+					val maxTC = tcs(2)
+
+					for (q <- 0 until 4 optimized) {
+						val tc = tcs((q + 3) % 4)
+						var tcx = tc.x
+						var tcy = tc.y
+
+						if (quad.flipX) {
+							tcx = minTC.x + (maxTC.x - tcx)
+						}
+						if (quad.flipY) {
+							tcy = minTC.y + (maxTC.y - tcy)
+						}
+
+						vbo.setA(C, vi + q, quad.color)
+						vbo.setA(TC, vi + q, tcx, tcy)
+						vbo.setA(B, vi + q, bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h)
+					}
+				} else {
+					for (q <- 0 until 4 optimized) {
+						vbo.setA(C, vi + q, quad.color)
+						vbo.setA(TC, vi + q, tcs((q + 3) % 4))
+						vbo.setA(B, vi + q, bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h)
+					}
+				}
+
+				//			Noto.info(s"Drawing quad: $quad")
+				vbo.setIQuad(ii, vi)
 			}
-
-//			Noto.info(s"Drawing quad: $quad")
-			vbo.setIQuad(ii, vi)
 		}
-
-		renderers.flatMap(_.render(w, beforeChildren = true)).foreach(renderQuad)
-
-//		renderQuad(WQuad(Rectf(-relPos.x,-relPos.y,bounds.width,bounds.height), "default/blank_bordered.png", colors(Noto.indentation)))
-
 
 		val pos = w.drawing.absolutePosition + Vec3i(w.drawing.clientOffset, 0)
 		val size = w.drawing.clientDim
 		val newBounds = bounds.intersect(Rectf(pos.x, pos.y, size.x, size.y))
+
+		renderers.foreach(r => renderQuads(r.render(w, beforeChildren = true, newBounds.dimensions, bounds.xy + relPos.xy)))
+		renderers.foreach(r => r.renderRaw(vbo, textureBlock, newBounds, bounds.xy + relPos.xy)(w, beforeChildren = true))
+		renderers.foreach(r => r.renderCustomVBO(textureBlock, newBounds, bounds.xy + relPos.xy)(w) match {
+			case Some(vbo) => customVBOs ::= vbo
+			case None =>
+		})
+
+//		renderQuad(WQuad(Rectf(-relPos.x,-relPos.y,bounds.width,bounds.height), "default/blank_bordered.png", colors(Noto.indentation)))
+
+
+
 		for (child <- w.children) {
 			updateWindowingDrawData(child, newBounds)
 		}
 
-		renderers.flatMap(_.render(w, beforeChildren = false)).foreach(renderQuad)
+		renderers.foreach(r => renderQuads(r.render(w, beforeChildren = false, newBounds.dimensions, bounds.xy + relPos.xy)))
+		renderers.foreach(r => r.renderRaw(vbo, textureBlock, newBounds, bounds.xy + relPos.xy)(w, beforeChildren = false))
 
 		Noto.indentation -= 1
 	}
@@ -216,8 +260,8 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 	}
 
 	val standardSize = Vec2i(10,10)
-	def calculateIntrinsicDimFor(w : Widget) = {
-		renderers.findFirstWith(r => r.intrinsicSize(w)) match {
+	def calculateIntrinsicDimFor(w : Widget, fixedX : Option[Int], fixedY : Option[Int]) = {
+		renderers.findFirstWith(r => r.intrinsicSize(w, fixedX, fixedY)) match {
 			case Some((renderer,size)) => size
 			case None => standardSize
 		}
@@ -230,62 +274,69 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
 		}
 	}
 
-	val largeConstExpr = new Expression(100000)
-
-	def updateWidgetConstraints(widget: Widget): Boolean = {
+	def checkForWidgetChanges(widget: Widget): Boolean = {
 		val watch = watchers.getOrElseUpdate(widget, createWatchers(widget))
 
 		val widgetModified = widget.isModified
 		val ret = widgetModified ||
 			(if (watch.first || watch.anyChanged) {
-//					for (axis <- 0 until 3 optimized) {
-//						if (watch.first || watch.posWatcher.hasChanged(axis)) updatePos(widget, axis)
-//					}
-//					for (axis <- 0 until 2 optimized) {
-//						if (watch.first || watch.dimWatcher.hasChanged(axis)) updateDim(widget, axis)
-//					}
-
 					watch.first = false
 					true
 				} else {
 					false
 				})
 
-		val anyChildModified = widget.children.exists(updateWidgetConstraints)
+		val anyChildModified = widget.children.exists(checkForWidgetChanges)
 		ret || anyChildModified
 	}
 
 	def resolveEffectiveDimensions(widget : Widget) = {
+		val setV = Array(false, false)
 		val ret = new Vec2i(0,0)
 		for (axis <- 0 until 2 optimized) {
-			ret(axis) = (widget.dimensions(axis) match {
-				case DimensionExpression.Constant(constValue) =>
-					constValue
-				case DimensionExpression.Proportional(proportion) =>
-					widget.parent.drawing.clientDim(axis) * proportion
-				case DimensionExpression.Relative(delta) =>
-					widget.parent.drawing.clientDim(axis) + delta
+			resolveFixedDimensionFor(widget, axis) match {
+				case Some(v) =>
+					ret(axis) = v
+					setV(axis) = true
+				case None => // do nothing
+			}
+		}
+
+		for (axis <- 0 until 2 optimized) {
+			widget.dimensions(axis) match {
 				case DimensionExpression.Intrinsic =>
-					calculateIntrinsicDimFor(widget)(axis) + widget.drawing.clientOffset(axis) * 2
-				// do nothing here, in this case the desired width is determined by the thing itself,
-				// a button might suggest that it be given a width at least sufficient to display its
-				// text, for example, and other widgets might have intrinsic minimum sizes
-				case DimensionExpression.WrapContent =>
-					val inPad = widget.drawing.interiorPadding
-					val minV = Vec2i(0,0)
-					val maxV = Vec2i(0,0)
-					widget.children.foreach(w => {
-						val rpos = w.drawing.relativePosition
-						val edim = w.drawing.effectiveDimensions
-						minV.x = minV.x.min(rpos.x)
-						minV.y = minV.y.min(rpos.y)
-						maxV.x = maxV.x.max(rpos.x + edim.x)
-						maxV.y = maxV.y.max(rpos.y + edim.y)
-					})
-					maxV(axis) - minV(axis) + inPad(axis) * 2
-			}).round
+					ret(axis) = calculateIntrinsicDimFor(widget, if (setV(0)) { Some(ret(0) ) } else { None }, if (setV(1)) { Some(ret(1))} else { None } )(axis) + widget.drawing.clientOffset(axis) * 2
+				case _ => // do nothing further
+			}
 		}
 		ret
+	}
+
+	def resolveFixedDimensionFor(widget : Widget, axis : Int) : Option[Int] = {
+		widget.dimensions(axis) match {
+			case DimensionExpression.Constant(constValue) =>
+				Some(constValue)
+			case DimensionExpression.Proportional(proportion) =>
+				Some((widget.parent.drawing.clientDim(axis) * proportion).round)
+			case DimensionExpression.Relative(delta) =>
+				Some(widget.parent.drawing.clientDim(axis) + delta)
+//			case DimensionExpression.ExpandToParent =>
+//				Some( widget.parent.drawing.clientDim(axis) - widget.drawing.relativePosition)
+			case DimensionExpression.WrapContent =>
+				val inPad = widget.drawing.interiorPadding
+				val minV = Vec2i(0,0)
+				val maxV = Vec2i(0,0)
+				widget.children.foreach(w => {
+					val rpos = w.drawing.relativePosition
+					val edim = w.drawing.effectiveDimensions
+					minV.x = minV.x.min(rpos.x)
+					minV.y = minV.y.min(rpos.y)
+					maxV.x = maxV.x.max(rpos.x + edim.x)
+					maxV.y = maxV.y.max(rpos.y + edim.y)
+				})
+				Some(maxV(axis) - minV(axis) + inPad(axis) * 2)
+			case _ => None
+		}
 	}
 
 	def resolveRelativePosition(widget : Widget) = {
@@ -329,6 +380,12 @@ class WindowingGraphicsComponentCore(WD : WindowingGraphicsData) {
  						case _ =>
 							Noto.error("Unsupported relative widget position direction/axis: " + direction + "/" + axis)
 							0
+					}
+				case PositionExpression.Match(matchTo) =>
+					if (matchTo.parent == widget.parent) {
+						matchTo.drawing.relativePosition(axis)
+					} else {
+						matchTo.drawing.absolutePosition(axis) - widget.parent.drawing.absolutePosition(axis)
 					}
 				case PositionExpression.Flow =>
 					0

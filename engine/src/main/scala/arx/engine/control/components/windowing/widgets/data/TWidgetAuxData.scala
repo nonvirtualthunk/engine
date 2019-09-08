@@ -52,6 +52,7 @@ object DragAndDropData {
 
 class EventHandlingData extends TWidgetAuxData {
 	var acceptsFocus = false
+	var hasFocus = false
 }
 
 object EventHandlingData extends TWidgetAuxData {

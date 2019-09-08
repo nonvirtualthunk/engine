@@ -20,21 +20,18 @@ trait TBitmappedFont {
 	def characterWidthProportional(c : Char): Float
 	def characterHeightProportional(c : Char): Float
 
-	def characterWidthPixels(c : Char): Int = ???
-	def characterHeightPixels(c : Char): Int = ???
+	def characterWidthPixels(c : Char): Int
+	def characterHeightPixels(c : Char): Int
+
+	def characterAdvancePixels(c : Char) : Int
 
 	def bind ( i : Int)
 
-	def maxCharacterDimensionsProportional : ReadVec2f
-	def maxCharacterDimensionsPixels : ReadVec2i
-
-	def lineHeightProportional : Float = 1.0f
-	def lineHeightPixels : Float
-
-	def maxAscentPlusDescentProportional : Float = ???
-	def maxAscentPlusDescentPixels : Float = ???
-
-	def descentPixels : Float = ???
+	def fontMetrics : FontMetrics
 
 	def pixelFont : Boolean
+
+	def deriveWithPtSize(fontSize : Int) : TBitmappedFont
 }
+
+case class FontMetrics(maxAscent : Int, maxDescent : Int, lineHeight : Int, pointSize : Int, spaceSize : Int)

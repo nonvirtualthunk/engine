@@ -125,6 +125,14 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 		}
 	}
 
+	def softClear(allowDuringUpdate : Boolean = true): Unit = {
+		if ( ! allowDuringUpdate && state.get() == VBO.Updating ) { deferredUntilAfterWrite.enqueue( () => this.softClear() ) }
+		else {
+			points.softClear()
+			indices.softClear()
+		}
+	}
+
 	def drawElements (primitive: Int = GL11.GL_TRIANGLES,start: Int = 0,length: Int = -1,skipPostDraw : Boolean = false){
 		if ( ! GL.disabled ) {
 			val effectiveLength = if ( length == -1 ) { indices.numSolidifiedElements - start } else { length }
@@ -246,6 +254,8 @@ class AVBO(var _attribProfile : AttributeProfile) extends TRenderTarget {
 	def setAbpacked (attribIndex: Int,n : Int, packed : Int) { points.setPacked(n,_attribProfile.attributes(attribIndex).byteOffset,packed) }
 	def setAbf (attribIndex: Int,n : Int, r : Float, g : Float ) {
 		points.setB(n,_attribProfile.attributes(attribIndex).byteOffset,(r*255).toByte,(g*255).toByte) }
+	def setAbf (attribIndex: Int,n : Int, r : Float, g : Float, b : Float ) {
+		points.setB(n,_attribProfile.attributes(attribIndex).byteOffset,(r*255).toByte,(g*255).toByte,(b*255).toByte) }
 	def setAbf (attribIndex: Int,n : Int, r : Float, g : Float, b : Float, scale : Int) {
 		points.setB(n,_attribProfile.attributes(attribIndex).byteOffset,(r*scale).toByte,(g*scale).toByte,(b*scale).toByte) }
 	def setAbf (attribIndex: Int,n : Int, r : Float, g : Float, b : Float, a : Float) {

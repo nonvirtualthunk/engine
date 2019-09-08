@@ -13,3 +13,5 @@ case class DropEvent(draggedWidget: Widget, droppedOn: Widget, localPos: ReadVec
 case class FocusGainedEvent(focusedWidget: Widget) extends UIEvent
 
 case class FocusLostEvent(previouslyFocusedWidget: Widget) extends UIEvent
+
+case class RequestFocusEvent(focusedWidget : Widget) extends UIEvent

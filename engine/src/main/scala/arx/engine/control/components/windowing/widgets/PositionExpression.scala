@@ -31,6 +31,9 @@ object PositionExpression {
 	case class Relative(relativeTo: Widget, offset : Int, direction : Int = Cardinals.Right) extends PositionExpression {
 		override def dependsOn = List(relativeTo)
 	}
+	case class Match(matchTo: Widget) extends PositionExpression {
+		override def dependsOn: List[Widget] = List(matchTo)
+	}
 	case object Flow extends PositionExpression
 }
 
@@ -38,6 +41,7 @@ object DimensionExpression {
 	case class Constant(value : Int) extends DimensionExpression
 	case class Proportional(proportion : Float) extends DimensionExpression
 	case class Relative(delta : Int) extends DimensionExpression
+	case object ExpandToParent extends DimensionExpression
 	case object Intrinsic extends DimensionExpression
 	case object WrapContent extends DimensionExpression {
 		override def dependsOn(w : Widget) = w.children

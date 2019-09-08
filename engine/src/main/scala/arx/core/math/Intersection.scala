@@ -32,6 +32,14 @@ object Intersection {
 
 		def numIntersections = if ( t0 != t0 ) { 0 } else if ( t1 != t1 ) { 1 } else { 2 }
 
+		def intersections = if (t0.isNaN) {
+			Nil
+		} else if (t1.isNaN) {
+			List(t0)
+		} else {
+			List(t0, t1)
+		}
+
 		override def toString = numIntersections match {
 			case 0 => "(No Intersection)"
 			case 1 => "(" + t0 + ")"
@@ -185,6 +193,42 @@ object Intersection {
 		}
 
 		ret
+	}
+
+	def rayTriangleIntersection(start : ReadVec3f, end : ReadVec3f, p0 : ReadVec3f, p1 : ReadVec3f, p2 : ReadVec3f) : LineIntersection = {
+		val edge1 = p1 - p0
+		val edge2 = p2 - p0
+
+		val rayVec = (end - start).normalizeSafe
+		val h = rayVec.cross(edge2)
+		val a = edge1.dot(h)
+
+		if (a > -0.000001f && a < 0.000001f) {
+			NoLineIntersection
+		} else {
+			val f = 1.0f / a
+			val s = start - p0
+
+			val u = f * s.dot(h)
+			if (u < 0.0f || u > 1.0f) {
+				return NoLineIntersection
+			}
+			val q = s.cross(edge1)
+			val v = f * rayVec.dot(q)
+			if (v < 0.0f || u + v > 1.0f) {
+				return NoLineIntersection
+			}
+
+			val t = f * edge2.dot(q)
+			if (t > 0.000001f) {
+				val li = new LineIntersection
+				li.t0 = t
+				li
+			} else {
+				NoLineIntersection
+			}
+		}
+
 	}
 
 	@inline
